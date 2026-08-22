@@ -185,13 +185,6 @@ export default async function Dashboard(){
         {divRows.length===0?<p className="muted">Standings will appear after grading.</p>:
         divRows.map((r:any,i:number)=><p key={r.squads.id}><b>{i+1}. {r.squads.squad_name}</b> — {r.wins}-{r.losses}-{r.pushes} · ATS {Number(r.ats_margin)>0?'+':''}{r.ats_margin}</p>)}
       </section>
-
-      <section className="card">
-        <h2>League Pick Status — Week {week}</h2>
-        <p className="big">{submitted}/16 submitted</p>
-        <p className="muted">Before kickoff, owners see only whether a pick is in — never the actual selection.</p>
-        <p>{(statusRows||[]).map((r:any)=>`${r.squad_name}: ${r.submitted?'✓':'—'}`).join(' · ')}</p>
-      </section>
     </div>
   </main>
 }

@@ -47,6 +47,14 @@ export default async function Schedule({
     .eq('season_year',2026)
     .order('division')
 ])
+
+const {data:pickStatusRows}=await supabase.rpc('league_pick_status',{
+  p_season:2026,
+  p_week:week
+})
+const pickSubmittedBySquad=new Map(
+  (pickStatusRows||[]).map((r:any)=>[r.squad_id,r.submitted])
+)
 const mySquad = (squads || []).find((s:any) => s.user_id === user.id)
   const squadByNflTeam=new Map<number,any>()
   for(const s of squads||[]){
@@ -94,20 +102,22 @@ const divisionOrder = mySquad
       <h2>Week {week}</h2>
       <div style={{overflowX:'auto'}}>
         <table>
-          <thead>
-            <tr>
-              <th>Owner</th>
-              <th>Squad</th>
-              <th>Opponent</th>
-              <th>Spread</th>
-              <th>Kickoff</th>
-              <th>Result</th>
-            </tr>
-          </thead>
+        <thead>
+  <tr>
+    <th>Owner</th>
+    <th>Team name</th>
+    <th>Opponent</th>
+    <th>Line</th>
+    <th>Kickoff</th>
+    <th>Result</th>
+    <th>Pick</th>
+  </tr>
+</thead>  
+
           <tbody>
 {squadsByDivision.flatMap(({division, divisionName, squads: divisionSquads}) => [
   <tr key={`division-${division}`}>
-    <td colSpan={6}>
+    <td colSpan={7}>
       <strong>{divisionName}</strong>
     </td>
   </tr>,
@@ -115,24 +125,26 @@ const divisionOrder = mySquad
   ...divisionSquads.map((s:any) => {
     const g:any = gameForTeam(Number(s.nfl_team_id))
 
-    if(!g){
-      return <tr key={s.id}>
-        <td>{firstName(s.owner_name)}</td>
-       <td>
-  <div style={{display:'flex',alignItems:'center',gap:8}}>
-    <img
-      src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
-      alt=""
-      width={32}
-      height={32}
-      style={{objectFit:'contain'}}
-    />
-    <b>{s.squad_name}</b>
-  </div>
-</td>
-        <td colSpan={4}><b>BYE</b></td>
-      </tr>
-    }
+ if(!g){
+  return <tr key={s.id}>
+    <td>{firstName(s.owner_name)}</td>
+
+    <td>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <img
+          src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
+          alt=""
+          width={32}
+          height={32}
+          style={{objectFit:'contain'}}
+        />
+        <b>{s.squad_name}</b>
+      </div>
+    </td>
+
+    <td colSpan={5}><b>BYE</b></td>
+  </tr>
+}
 
     const isHome = g.home_team_id === s.nfl_team_id
     const opponentTeamId = isHome ? g.away_team_id : g.home_team_id
@@ -194,6 +206,11 @@ const divisionOrder = mySquad
         timeZoneName: 'short',
       })}</td>
       <td>{result}</td>
+      <td style={{textAlign:'center'}}>
+  {pickSubmittedBySquad.get(s.id)
+    ? <span style={{color:'green',fontWeight:700,fontSize:'1.2rem'}}>✓</span>
+    : <span className="muted">—</span>}
+</td>
     </tr>
   })
 ])}

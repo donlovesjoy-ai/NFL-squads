@@ -150,7 +150,18 @@ const squadsByDivision = divisionOrder.map(division => ({
 
     return <tr key={s.id}>
       <td>{firstName(s.owner_name)}</td>
-      <td><b>{s.squad_name}</b></td>
+     <td>
+  <div style={{display:'flex',alignItems:'center',gap:8}}>
+    <img
+      src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
+      alt=""
+      width={32}
+      height={32}
+      style={{objectFit:'contain'}}
+    />
+    <b>{s.squad_name}</b>
+  </div>
+</td>
       <td>{isHome ? 'vs ' : '@ '}{opponentLabel}</td>
       <td>{signed(ownedSpread)}</td>
       <td>{new Date(g.kickoff_time).toLocaleString('en-US', {

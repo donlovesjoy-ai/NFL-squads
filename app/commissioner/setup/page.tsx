@@ -59,6 +59,25 @@ export default async function CommissionerSetup({searchParams}:{searchParams:Pro
     {sp.error==='duplicate'&&<p className="status">That owner or NFL team is already assigned for 2026.</p>}
   {sp.error==='division_full'&&<p className="status">That division already has 4 squads.</p>}
     <section className="card">
+      <section className="card">
+  <h2>Division Names</h2>
+  <form action={saveDivisionNames}>
+    {(divisionNames||[]).map((d:any)=>
+      <div key={d.division}>
+        <label>Division {d.division}</label>
+        <input
+          name={`division_${d.division}`}
+          defaultValue={d.division_name}
+          required
+        />
+      </div>
+    )}
+
+    <button className="submit" type="submit">
+      Save Division Names
+    </button>
+  </form>
+</section>
       <h2>Add / Assign Squad</h2>
       <p className="muted">Owner accounts appear here after each person creates an account. NFL teams disappear from the dropdown once assigned.</p>
       <form action={saveSquad}>

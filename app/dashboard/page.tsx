@@ -78,7 +78,15 @@ export default async function Dashboard(){
           <p><b>{game.away?.name}</b> at <b>{game.home?.name}</b></p>
           <p><b>Your line:</b> {fmtSpread(ownSpread)}</p>
           <p><b>Game total:</b> {game.total ?? 'Pending'}</p>
-          <p><b>Kickoff:</b> {new Date(game.kickoff_time).toLocaleString()}</p>
+<p><b>Kickoff:</b> {new Date(game.kickoff_time).toLocaleString('en-US', {
+  timeZone: 'America/New_York',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZoneName: 'short',
+})}</p>
+<p><b>Status:</b> {game.status}</p>
           <p><b>Status:</b> {game.status}</p>
         </>:<p className="muted">No upcoming game found.</p>}
       </section>

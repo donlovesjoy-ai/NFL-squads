@@ -117,7 +117,14 @@ export default async function Schedule({
               <td><b>{s.squad_name}</b></td>
               <td>{isHome?'vs ':'@ '}{opponentLabel}</td>
               <td>{signed(ownedSpread)}</td>
-              <td>{new Date(g.kickoff_time).toLocaleString()}</td>
+              <td>{new Date(g.kickoff_time).toLocaleString('en-US', {
+  timeZone: 'America/New_York',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZoneName: 'short',
+})}</td>
               <td>{result}</td>
             </tr>
           })}

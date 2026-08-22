@@ -48,12 +48,24 @@ export default async function Schedule({
     .order('division')
 ])
 
-const {data:pickStatusRows}=await supabase.rpc('league_pick_status',{
-  p_season:2026,
-  p_week:week
-})
-const pickSubmittedBySquad=new Map(
-  (pickStatusRows||[]).map((r:any)=>[r.squad_id,r.submitted])
+const gameIds=(games||[]).map((g:any)=>g.id)
+
+let weekPicks:any[]=[]
+
+if(gameIds.length){
+  const {data:picks}=await supabase
+    .from('picks')
+    .select('squad_id,game_id,selection_team_id,result,revealed,is_missed')
+    .in('game_id',gameIds)
+
+  weekPicks=picks||[]
+}
+
+const pickBySquadGame=new Map(
+  weekPicks.map((p:any)=>[
+    `${p.squad_id}:${p.game_id}`,
+    p
+  ])
 )
 const mySquad = (squads || []).find((s:any) => s.user_id === user.id)
   const squadByNflTeam=new Map<number,any>()
@@ -206,10 +218,64 @@ const divisionOrder = mySquad
         timeZoneName: 'short',
       })}</td>
       <td>{result}</td>
-      <td style={{textAlign:'center'}}>
-  {pickSubmittedBySquad.get(s.id)
-    ? <span style={{color:'green',fontWeight:700,fontSize:'1.2rem'}}>✓</span>
-    : <span className="muted">—</span>}
+    <td style={{textAlign:'center'}}>
+  {(() => {
+    const pick:any = pickBySquadGame.get(`${s.id}:${g.id}`)
+    const kickedOff = new Date(g.kickoff_time) <= new Date()
+
+    // Before kickoff: only show whether a pick was submitted
+    if(!kickedOff){
+      return pick && !pick.is_missed
+        ? <span style={{color:'green',fontWeight:700,fontSize:'1.2rem'}}>✓</span>
+        : <span className="muted">—</span>
+    }
+
+    // Missed submission
+    if(pick?.is_missed){
+      const color =
+        pick.result === 'L' ? 'red' :
+        pick.result === 'W' ? 'green' :
+        undefined
+
+      return <b style={{color}}>
+        {pick.result === 'P' ? 'NO PICK — PUSH' : 'NO PICK'}
+      </b>
+    }
+
+    // No pick record
+    if(!pick){
+      return <span className="muted">—</span>
+    }
+
+    // Determine selected team and its spread
+    const pickedHome = pick.selection_team_id === g.home_team_id
+    const pickedTeam = pickedHome ? g.home : g.away
+
+    const pickedSpread =
+      g.spread === null
+        ? null
+        : pickedHome
+          ? Number(g.spread)
+          : -Number(g.spread)
+
+    const pickLabel =
+      `${pickedTeam?.abbreviation || pickedTeam?.name || 'Pick'} ${signed(pickedSpread)}`
+
+    // Final game: color by ATS result
+    if(g.status === 'final'){
+      const color =
+        pick.result === 'W' ? 'green' :
+        pick.result === 'L' ? 'red' :
+        undefined
+
+      return <b style={{color}}>
+        {pickLabel}{pick.result === 'P' ? ' — PUSH' : ''}
+      </b>
+    }
+
+    // Game has kicked off: reveal the selection
+    return <b>{pickLabel}</b>
+  })()}
 </td>
     </tr>
   })

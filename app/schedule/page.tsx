@@ -31,7 +31,7 @@ export default async function Schedule({
 
   const [{data:squads},{data:games}] = await Promise.all([
     supabase.from('squads')
-      .select('id,owner_name,squad_name,nfl_team_id,division')
+      .select('id,user_id,owner_name,squad_name,nfl_team_id,division')
       .eq('season_year',2026)
       .order('division').order('squad_name'),
     supabase.from('games')
@@ -40,12 +40,25 @@ export default async function Schedule({
       .eq('nfl_week',week)
       .order('kickoff_time')
   ])
-
+const mySquad = (squads || []).find((s:any) => s.user_id === user.id)
   const squadByNflTeam=new Map<number,any>()
   for(const s of squads||[]){
     squadByNflTeam.set(Number(s.nfl_team_id),s)
   }
+const divisionOrder = mySquad
+  ? [mySquad.division, ...[1,2,3,4].filter(d => d !== mySquad.division)]
+  : [1,2,3,4]
 
+const squadsByDivision = divisionOrder.map(division => ({
+  division,
+  squads: (squads || [])
+    .filter((s:any) => s.division === division)
+    .sort((a:any,b:any) => {
+      if (a.id === mySquad?.id) return -1
+      if (b.id === mySquad?.id) return 1
+      return String(a.squad_name).localeCompare(String(b.squad_name))
+    })
+}))
   const gameForTeam=(teamId:number)=>{
     return (games||[]).find((g:any)=>g.home_team_id===teamId || g.away_team_id===teamId)
   }
@@ -82,52 +95,65 @@ export default async function Schedule({
             </tr>
           </thead>
           <tbody>
-          {(squads||[]).map((s:any)=>{
-            const g:any=gameForTeam(Number(s.nfl_team_id))
-            if(!g){
-              return <tr key={s.id}>
-                <td>{firstName(s.owner_name)}</td>
-                <td>{s.squad_name}</td>
-                <td colSpan={4}>No game found</td>
-              </tr>
-            }
+{squadsByDivision.flatMap(({division, squads: divisionSquads}) => [
+  <tr key={`division-${division}`}>
+    <td colSpan={6}>
+      <strong>Division {division}</strong>
+    </td>
+  </tr>,
 
-            const isHome=g.home_team_id===s.nfl_team_id
-            const opponentTeamId=isHome?g.away_team_id:g.home_team_id
-            const opponentNfl=isHome?g.away:g.home
-            const opponentSquad=squadByNflTeam.get(Number(opponentTeamId))
-            const opponentLabel=opponentSquad?.squad_name || opponentNfl?.name || '—'
+  ...divisionSquads.map((s:any) => {
+    const g:any = gameForTeam(Number(s.nfl_team_id))
 
-            const ownedSpread=g.spread===null?null:(isHome?Number(g.spread):-Number(g.spread))
+    if(!g){
+      return <tr key={s.id}>
+        <td>{firstName(s.owner_name)}</td>
+        <td>{s.squad_name}</td>
+        <td colSpan={4}>No game found</td>
+      </tr>
+    }
 
-            let result='Scheduled'
-            if(g.status==='live'){
-              const ownScore=isHome?g.home_score:g.away_score
-              const oppScore=isHome?g.away_score:g.home_score
-              result=`Live ${ownScore ?? 0}-${oppScore ?? 0}`
-            }else if(g.status==='final'){
-              const ownScore=isHome?g.home_score:g.away_score
-              const oppScore=isHome?g.away_score:g.home_score
-              const wl=ownScore>oppScore?'W':ownScore<oppScore?'L':'T'
-              result=`${wl} ${ownScore}-${oppScore}`
-            }
+    const isHome = g.home_team_id === s.nfl_team_id
+    const opponentTeamId = isHome ? g.away_team_id : g.home_team_id
+    const opponentNfl = isHome ? g.away : g.home
+    const opponentSquad = squadByNflTeam.get(Number(opponentTeamId))
+    const opponentLabel = opponentSquad?.squad_name || opponentNfl?.name || '—'
 
-            return <tr key={s.id}>
-              <td>{firstName(s.owner_name)}</td>
-              <td><b>{s.squad_name}</b></td>
-              <td>{isHome?'vs ':'@ '}{opponentLabel}</td>
-              <td>{signed(ownedSpread)}</td>
-              <td>{new Date(g.kickoff_time).toLocaleString('en-US', {
-  timeZone: 'America/New_York',
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  timeZoneName: 'short',
-})}</td>
-              <td>{result}</td>
-            </tr>
-          })}
+    const ownedSpread =
+      g.spread === null
+        ? null
+        : (isHome ? Number(g.spread) : -Number(g.spread))
+
+    let result = 'Scheduled'
+
+    if(g.status === 'live'){
+      const ownScore = isHome ? g.home_score : g.away_score
+      const oppScore = isHome ? g.away_score : g.home_score
+      result = `Live ${ownScore ?? 0}-${oppScore ?? 0}`
+    }else if(g.status === 'final'){
+      const ownScore = isHome ? g.home_score : g.away_score
+      const oppScore = isHome ? g.away_score : g.home_score
+      const wl = ownScore > oppScore ? 'W' : ownScore < oppScore ? 'L' : 'T'
+      result = `${wl} ${ownScore}-${oppScore}`
+    }
+
+    return <tr key={s.id}>
+      <td>{firstName(s.owner_name)}</td>
+      <td><b>{s.squad_name}</b></td>
+      <td>{isHome ? 'vs ' : '@ '}{opponentLabel}</td>
+      <td>{signed(ownedSpread)}</td>
+      <td>{new Date(g.kickoff_time).toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      })}</td>
+      <td>{result}</td>
+    </tr>
+  })
+])}
           </tbody>
         </table>
       </div>

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
-
+import KickoffCountdown from '../components/KickoffCountdown'
 function fmtSpread(n:any){
   if(n===null || n===undefined) return 'Line pending'
   const x=Number(n)
@@ -50,7 +50,7 @@ export default async function Dashboard(){
     .eq('season_year',2026)
   const divRows=(standings||[]).filter((r:any)=>r.squads?.division===squad?.division)
     .sort((a:any,b:any)=>(b.wins-a.wins)||(Number(b.ats_margin)-Number(a.ats_margin)))
-
+  const myStanding:any=(standings||[]).find((r:any)=>r.squads?.id===squad?.id) 
   const homeSpread=game?.spread===null||game?.spread===undefined?null:Number(game.spread)
   const awaySpread=homeSpread===null?null:-homeSpread
   const ownSpread=game && squad?.nfl_team_id===game.home_team_id?homeSpread:awaySpread
@@ -66,12 +66,31 @@ export default async function Dashboard(){
 
     <div className="grid">
       <section className="card">
-        <h2>My Squad</h2>
-        <p className="big">{squad?.squad_name||'Not assigned yet'}</p>
-        <p>{(squad as any)?.nfl_teams?.name||''}</p>
-        <p className="muted">{squad?`Division ${squad.division}`:'Commissioner setup pending'}</p>
-      </section>
+  <h2>My Squad</h2>
 
+  <p className="big">{squad?.squad_name || 'Not assigned yet'}</p>
+
+  {squad ? <>
+    <p>{(squad as any)?.nfl_teams?.name || ''}</p>
+    <p><b>{divisionTitle}</b></p>
+
+    <p>
+      <b>Record:</b>{' '}
+      {myStanding
+        ? `${myStanding.wins}-${myStanding.losses}-${myStanding.pushes}`
+        : '0-0-0'}
+    </p>
+
+    <p>
+      <b>ATS Margin:</b>{' '}
+      {myStanding
+        ? `${Number(myStanding.ats_margin) > 0 ? '+' : ''}${myStanding.ats_margin}`
+        : '0'}
+    </p>
+  </> : <>
+    <p className="muted">Waiting for commissioner assignment.</p>
+  </>}
+</section>
       <section className="card">
         <h2>{game?`Week ${game.nfl_week} NFL Game`:'My Matchup'}</h2>
         {game?<>
@@ -86,20 +105,49 @@ export default async function Dashboard(){
   minute: '2-digit',
   timeZoneName: 'short',
 })}</p>
+<KickoffCountdown kickoffTime={game.kickoff_time} />
 <p><b>Status:</b> {game.status}</p>
-          <p><b>Status:</b> {game.status}</p>
         </>:<p className="muted">No upcoming game found.</p>}
       </section>
 
       <section className="card">
-        <h2>My Pick</h2>
-        <p className="big">{pick?'Submitted':'Not submitted'}</p>
-        <p className="muted">{pick?.is_locked?'Locked':game?'Editable until one minute before kickoff':''}</p>
-        <p><a href="/my-pick"><b>{pick?'Review / Update Pick →':'Make My Pick →'}</b></a></p>
-      </section>
-    </div>
+  <h2>My Pick</h2>
 
-    <div className="grid">
+  <p className="big">
+    {pick ? '✓ Pick Submitted' : 'Pick Needed'}
+  </p>
+
+  <p className="muted">
+    {pick?.is_locked
+      ? 'Your pick is locked.'
+      : game
+        ? 'You may change your pick until one minute before kickoff.'
+        : 'Waiting for your next matchup.'}
+  </p>
+
+  {game && !pick?.is_locked && (
+    <p>
+      <a
+        href="/my-pick"
+        className="submit"
+        style={{
+          display:'inline-block',
+          textDecoration:'none',
+          textAlign:'center'
+        }}
+      >
+        {pick ? 'Review / Update My Pick →' : 'MAKE MY PICK →'}
+      </a>
+    </p>
+  )}
+
+  {pick?.is_locked && (
+    <p><a href="/my-pick"><b>View My Pick →</b></a></p>
+  )}
+</section>
+</div>
+
+<div className="grid">
       <section className="card">
         <h2>{divisionTitle}</h2>
         {divRows.length===0?<p className="muted">Standings will appear after grading.</p>:

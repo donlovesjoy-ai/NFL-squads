@@ -32,7 +32,7 @@ export default async function CommissionerSetup({searchParams}:{searchParams:Pro
     .order('name'),
 
   supabase.from('squads')
-    .select('id,user_id,squad_name,nfl_team_id,division,users(email),nfl_teams(name,abbreviation)')
+    .select('id,user_id,owner_name,squad_name,nfl_team_id,division,users(email),nfl_teams(name,abbreviation)')
     .eq('season_year',2026)
     .order('division')
     .order('id'),
@@ -67,7 +67,12 @@ export default async function CommissionerSetup({searchParams}:{searchParams:Pro
           <option value="" disabled>Select owner</option>
           {openUsers.map((p:any)=><option key={p.id} value={p.id}>{p.email}{p.role==='commissioner'?' (Commissioner)':''}</option>)}
         </select>
-
+      <label>Owner first name</label>
+<input
+  name="owner_name"
+  placeholder="Example: Don"
+  required
+/>
         <label>Custom squad name</label>
         <input name="squad_name" placeholder="Example: Dawg Pound Elite" required/>
 
@@ -98,13 +103,69 @@ export default async function CommissionerSetup({searchParams}:{searchParams:Pro
       <table>
         <thead><tr><th>Division</th><th>Owner</th><th>Squad</th><th>NFL Team</th><th></th></tr></thead>
         <tbody>
-          {(squads||[]).map((s:any)=><tr key={s.id}>
-            <td>{s.division}</td>
-            <td>{s.users?.email}</td>
-            <td>{s.squad_name}</td>
-            <td>{s.nfl_teams?.name}</td>
-            <td><form action={deleteSquad}><input type="hidden" name="id" value={s.id}/><button type="submit">Remove</button></form></td>
-          </tr>)}
+       {(squads||[]).map((s:any)=><tr key={s.id}>
+  <td colSpan={5}>
+    <form action={saveSquad}>
+      <input type="hidden" name="user_id" value={s.user_id}/>
+
+      <div className="grid">
+        <div>
+          <label>Owner first name</label>
+          <input
+            name="owner_name"
+            defaultValue={s.owner_name || ''}
+            required
+          />
+          <div className="muted">{s.users?.email}</div>
+        </div>
+
+        <div>
+          <label>Squad name</label>
+          <input
+            name="squad_name"
+            defaultValue={s.squad_name}
+            required
+          />
+        </div>
+
+        <div>
+          <label>NFL team</label>
+          <select name="nfl_team_id" defaultValue={s.nfl_team_id} required>
+            <option value={s.nfl_team_id}>
+              {s.nfl_teams?.name}
+            </option>
+
+            {openTeams.map((t:any)=>
+              <option key={t.id} value={t.id}>
+                {t.name} ({t.abbreviation})
+              </option>
+            )}
+          </select>
+        </div>
+
+        <div>
+          <label>Division</label>
+          <select name="division" defaultValue={s.division} required>
+            {(divisionNames||[]).map((d:any)=>
+              <option key={d.division} value={d.division}>
+                {d.division_name}
+              </option>
+            )}
+          </select>
+        </div>
+      </div>
+
+      <button className="submit" type="submit">
+        Save Changes
+      </button>
+    </form>
+
+    <form action={deleteSquad}>
+      <input type="hidden" name="id" value={s.id}/>
+      <button type="submit">Remove Squad</button>
+    </form>
+  </td>
+</tr>)}  
         </tbody>
       </table>}
     </section>

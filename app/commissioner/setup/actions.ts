@@ -18,12 +18,13 @@ export async function saveSquad(formData:FormData){
 
   const userId=String(formData.get('user_id')||'').trim() || null
   const squadName=String(formData.get('squad_name')||'').trim()
+  const ownerName=String(formData.get('owner_name')||'').trim()
   const nflTeamIdRaw=String(formData.get('nfl_team_id')||'')
   const divisionRaw=String(formData.get('division')||'')
   const nflTeamId=nflTeamIdRaw ? Number(nflTeamIdRaw) : null
   const division=divisionRaw ? Number(divisionRaw) : null
 
-  if(!squadName || !userId || !nflTeamId || !division){
+ if(!squadName || !ownerName || !userId || !nflTeamId || !division){
     redirect('/commissioner/setup?error=missing')
   }
 
@@ -50,12 +51,14 @@ if(movingIntoFullDivision){
   let error
   if(existing){
     ;({error}=await supabase.from('squads').update({
+      owner_name:ownerName,
       squad_name:squadName,
       nfl_team_id:nflTeamId,
       division
     }).eq('id',existing.id))
   }else{
     ;({error}=await supabase.from('squads').insert({
+      owner_name:ownerName,
       user_id:userId,
       season_year:2026,
       squad_name:squadName,

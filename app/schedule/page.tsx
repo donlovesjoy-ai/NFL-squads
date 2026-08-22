@@ -120,7 +120,7 @@ const squadsByDivision = divisionOrder.map(division => ({
     <b>{s.squad_name}</b>
   </div>
 </td>
-        <td colSpan={4}>No game found</td>
+        <td colSpan={4}><b>BYE</b></td>
       </tr>
     }
 
@@ -162,7 +162,18 @@ const squadsByDivision = divisionOrder.map(division => ({
     <b>{s.squad_name}</b>
   </div>
 </td>
-      <td>{isHome ? 'vs ' : '@ '}{opponentLabel}</td>
+      <td>
+  <div style={{display:'flex',alignItems:'center',gap:8}}>
+    <img
+      src={`/helmets/${opponentNfl?.abbreviation}.png`}
+      alt=""
+      width={32}
+      height={32}
+      style={{objectFit:'contain'}}
+    />
+    <span>{isHome ? 'vs ' : '@ '}{opponentLabel}</span>
+  </div>
+</td>
       <td>{signed(ownedSpread)}</td>
       <td>{new Date(g.kickoff_time).toLocaleString('en-US', {
         timeZone: 'America/New_York',

@@ -221,7 +221,10 @@ const divisionOrder = mySquad
     <td style={{textAlign:'center'}}>
   {(() => {
     const pick:any = pickBySquadGame.get(`${s.id}:${g.id}`)
-    const kickedOff = new Date(g.kickoff_time) <= new Date()
+    const kickedOff =
+  g.status === 'live' ||
+  g.status === 'final' ||
+  new Date(g.kickoff_time) <= new Date()
 
     // Before kickoff: only show whether a pick was submitted
     if(!kickedOff){

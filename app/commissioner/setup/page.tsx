@@ -22,13 +22,26 @@ export default async function CommissionerSetup({searchParams}:{searchParams:Pro
     </main>
   }
 
-  const [{data:profiles},{data:teams},{data:squads}] = await Promise.all([
-    supabase.from('users').select('id,email,role').order('email'),
-    supabase.from('nfl_teams').select('id,name,abbreviation').order('name'),
-    supabase.from('squads')
-      .select('id,user_id,squad_name,nfl_team_id,division,users(email),nfl_teams(name,abbreviation)')
-      .eq('season_year',2026).order('division').order('id')
-  ])
+  const [{data:profiles},{data:teams},{data:squads},{data:divisionNames}] = await Promise.all([
+  supabase.from('users')
+    .select('id,email,role')
+    .order('email'),
+
+  supabase.from('nfl_teams')
+    .select('id,name,abbreviation')
+    .order('name'),
+
+  supabase.from('squads')
+    .select('id,user_id,squad_name,nfl_team_id,division,users(email),nfl_teams(name,abbreviation)')
+    .eq('season_year',2026)
+    .order('division')
+    .order('id'),
+
+  supabase.from('division_names')
+    .select('division,division_name')
+    .eq('season_year',2026)
+    .order('division')
+])
 
   const assignedUsers=new Set((squads||[]).map((s:any)=>s.user_id))
   const assignedTeams=new Set((squads||[]).map((s:any)=>s.nfl_team_id))
@@ -44,7 +57,7 @@ export default async function CommissionerSetup({searchParams}:{searchParams:Pro
     {sp.saved&&<p className="status">Squad assignment saved.</p>}
     {sp.error==='missing'&&<p className="status">Fill in owner, squad name, NFL team and division.</p>}
     {sp.error==='duplicate'&&<p className="status">That owner or NFL team is already assigned for 2026.</p>}
-
+  {sp.error==='division_full'&&<p className="status">That division already has 4 squads.</p>}
     <section className="card">
       <h2>Add / Assign Squad</h2>
       <p className="muted">Owner accounts appear here after each person creates an account. NFL teams disappear from the dropdown once assigned.</p>
@@ -64,11 +77,15 @@ export default async function CommissionerSetup({searchParams}:{searchParams:Pro
           {openTeams.map((t:any)=><option key={t.id} value={t.id}>{t.name} ({t.abbreviation})</option>)}
         </select>
 
-        <label>Division</label>
-        <select name="division" required defaultValue="">
-          <option value="" disabled>Select division</option>
-          {[1,2,3,4].map(d=><option key={d} value={d}>Division {d}</option>)}
-        </select>
+      <label>Division</label>
+<select name="division" required defaultValue="">
+  <option value="" disabled>Select division</option>
+  {(divisionNames||[]).map((d:any)=>
+    <option key={d.division} value={d.division}>
+      {d.division_name}
+    </option>
+  )}
+</select>
 
         <button className="submit" type="submit">Save Squad</button>
       </form>

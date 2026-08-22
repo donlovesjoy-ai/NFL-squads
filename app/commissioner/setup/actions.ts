@@ -29,11 +29,24 @@ export async function saveSquad(formData:FormData){
 
   const {data:existing}=await supabase
     .from('squads')
-    .select('id')
+    .select('id,division')
     .eq('season_year',2026)
     .eq('user_id',userId)
     .maybeSingle()
+const {count:divisionCount}=await supabase
+  .from('squads')
+  .select('id',{count:'exact',head:true})
+  .eq('season_year',2026)
+  .eq('division',division)
 
+const movingIntoFullDivision =
+  divisionCount !== null &&
+  divisionCount >= 4 &&
+  (!existing || existing.division !== division)
+
+if(movingIntoFullDivision){
+  redirect('/commissioner/setup?error=division_full')
+}
   let error
   if(existing){
     ;({error}=await supabase.from('squads').update({

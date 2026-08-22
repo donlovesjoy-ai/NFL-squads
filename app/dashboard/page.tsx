@@ -67,7 +67,15 @@ export default async function Dashboard(){
     <div className="grid">
       <section className="card">
   <h2>My Squad</h2>
-
+{squad && (
+  <img
+    src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
+    alt={`${(squad as any)?.nfl_teams?.name || 'NFL team'} logo`}
+    width={90}
+    height={90}
+    style={{objectFit:'contain'}}
+  />
+)}
   <p className="big">{squad?.squad_name || 'Not assigned yet'}</p>
 
   {squad ? <>
@@ -94,7 +102,31 @@ export default async function Dashboard(){
       <section className="card">
         <h2>{game?`Week ${game.nfl_week} NFL Game`:'My Matchup'}</h2>
         {game?<>
-          <p><b>{game.away?.name}</b> at <b>{game.home?.name}</b></p>
+         <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:12}}>
+  <div style={{textAlign:'center'}}>
+    <img
+      src={`/helmets/${game.away?.abbreviation}.png`}
+      alt={`${game.away?.name || 'Away team'} logo`}
+      width={64}
+      height={64}
+      style={{objectFit:'contain'}}
+    />
+    <div><b>{game.away?.name}</b></div>
+  </div>
+
+  <div><b>at</b></div>
+
+  <div style={{textAlign:'center'}}>
+    <img
+      src={`/helmets/${game.home?.abbreviation}.png`}
+      alt={`${game.home?.name || 'Home team'} logo`}
+      width={64}
+      height={64}
+      style={{objectFit:'contain'}}
+    />
+    <div><b>{game.home?.name}</b></div>
+  </div>
+</div>
           <p><b>Your line:</b> {fmtSpread(ownSpread)}</p>
           <p><b>Game total:</b> {game.total ?? 'Pending'}</p>
 <p><b>Kickoff:</b> {new Date(game.kickoff_time).toLocaleString('en-US', {

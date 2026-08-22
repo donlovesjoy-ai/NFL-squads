@@ -55,7 +55,7 @@ let weekPicks:any[]=[]
 if(gameIds.length){
   const {data:picks}=await supabase
     .from('picks')
-    .select('squad_id,game_id,selection_team_id,result,revealed,is_missed')
+    .select('squad_id,game_id,selection_team_id,result,revealed,is_missed,ats_margin')
     .in('game_id',gameIds)
 
   weekPicks=picks||[]
@@ -121,8 +121,8 @@ const divisionOrder = mySquad
     <th>Opponent</th>
     <th>Line</th>
     <th>Kickoff</th>
+    <th>Score</th>
     <th>Result</th>
-    <th>Pick</th>
   </tr>
 </thead>  
 
@@ -222,27 +222,27 @@ const divisionOrder = mySquad
   {(() => {
     const pick:any = pickBySquadGame.get(`${s.id}:${g.id}`)
     const kickedOff =
-  g.status === 'live' ||
-  g.status === 'final' ||
-  new Date(g.kickoff_time) <= new Date()
+      g.status === 'live' ||
+      g.status === 'final' ||
+      new Date(g.kickoff_time) <= new Date()
 
-    // Before kickoff: only show whether a pick was submitted
+    // Before kickoff: only show submitted status
     if(!kickedOff){
       return pick && !pick.is_missed
         ? <span style={{color:'green',fontWeight:700,fontSize:'1.2rem'}}>✓</span>
         : <span className="muted">—</span>
     }
 
-    // Missed submission
+    // Missed pick
     if(pick?.is_missed){
-      const color =
-        pick.result === 'L' ? 'red' :
-        pick.result === 'W' ? 'green' :
-        undefined
+      if(g.status === 'final'){
+        const margin = pick.ats_margin ?? 0
+        return <b style={{color: margin < 0 ? 'red' : undefined}}>
+          NO PICK {margin > 0 ? '+' : ''}{margin}
+        </b>
+      }
 
-      return <b style={{color}}>
-        {pick.result === 'P' ? 'NO PICK — PUSH' : 'NO PICK'}
-      </b>
+      return <b>NO PICK</b>
     }
 
     // No pick record
@@ -250,7 +250,6 @@ const divisionOrder = mySquad
       return <span className="muted">—</span>
     }
 
-    // Determine selected team and its spread
     const pickedHome = pick.selection_team_id === g.home_team_id
     const pickedTeam = pickedHome ? g.home : g.away
 
@@ -261,23 +260,27 @@ const divisionOrder = mySquad
           ? Number(g.spread)
           : -Number(g.spread)
 
-    const pickLabel =
-      `${pickedTeam?.abbreviation || pickedTeam?.name || 'Pick'} ${signed(pickedSpread)}`
+    const teamLabel =
+      pickedTeam?.abbreviation || pickedTeam?.name || 'Pick'
 
-    // Final game: color by ATS result
+    // Final: team name + ATS margin
     if(g.status === 'final'){
+      const margin = Number(pick.ats_margin ?? 0)
+
       const color =
-        pick.result === 'W' ? 'green' :
-        pick.result === 'L' ? 'red' :
+        margin > 0 ? 'green' :
+        margin < 0 ? 'red' :
         undefined
 
       return <b style={{color}}>
-        {pickLabel}{pick.result === 'P' ? ' — PUSH' : ''}
+        {teamLabel} {margin > 0 ? '+' : ''}{margin}
       </b>
     }
 
-    // Game has kicked off: reveal the selection
-    return <b>{pickLabel}</b>
+    // Live: team name + original line
+    return <b>
+      {teamLabel} {signed(pickedSpread)}
+    </b>
   })()}
 </td>
     </tr>

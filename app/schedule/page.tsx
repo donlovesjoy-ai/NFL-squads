@@ -29,17 +29,24 @@ export default async function Schedule({
     .select('role').eq('id',user.id).maybeSingle()
   const commissioner=profile?.role==='commissioner'
 
-  const [{data:squads},{data:games}] = await Promise.all([
-    supabase.from('squads')
-.select('id,user_id,owner_name,squad_name,nfl_team_id,division,nfl_teams(name,abbreviation)')
-      .eq('season_year',2026)
-      .order('division').order('squad_name'),
-    supabase.from('games')
-      .select('id,nfl_week,kickoff_time,spread,total,status,home_score,away_score,home_team_id,away_team_id,home:nfl_teams!games_home_team_id_fkey(name,abbreviation),away:nfl_teams!games_away_team_id_fkey(name,abbreviation)')
-      .eq('season_year',2026)
-      .eq('nfl_week',week)
-      .order('kickoff_time')
-  ])
+ const [{data:squads},{data:games},{data:divisionNames}] = await Promise.all([
+  supabase.from('squads')
+    .select('id,user_id,owner_name,squad_name,nfl_team_id,division,nfl_teams(name,abbreviation)')
+    .eq('season_year',2026)
+    .order('division')
+    .order('squad_name'),
+
+  supabase.from('games')
+    .select('id,nfl_week,kickoff_time,spread,total,status,home_score,away_score,home_team_id,away_team_id,home:nfl_teams!games_home_team_id_fkey(name,abbreviation),away:nfl_teams!games_away_team_id_fkey(name,abbreviation)')
+    .eq('season_year',2026)
+    .eq('nfl_week',week)
+    .order('kickoff_time'),
+
+  supabase.from('division_names')
+    .select('division,division_name')
+    .eq('season_year',2026)
+    .order('division')
+])
 const mySquad = (squads || []).find((s:any) => s.user_id === user.id)
   const squadByNflTeam=new Map<number,any>()
   for(const s of squads||[]){
@@ -49,8 +56,11 @@ const divisionOrder = mySquad
   ? [mySquad.division, ...[1,2,3,4].filter(d => d !== mySquad.division)]
   : [1,2,3,4]
 
-const squadsByDivision = divisionOrder.map(division => ({
+  const squadsByDivision = divisionOrder.map(division => ({
   division,
+  divisionName:
+    (divisionNames || []).find((d:any) => d.division === division)?.division_name
+    || `Division ${division}`,
   squads: (squads || [])
     .filter((s:any) => s.division === division)
     .sort((a:any,b:any) => {
@@ -95,10 +105,10 @@ const squadsByDivision = divisionOrder.map(division => ({
             </tr>
           </thead>
           <tbody>
-{squadsByDivision.flatMap(({division, squads: divisionSquads}) => [
+{squadsByDivision.flatMap(({division, divisionName, squads: divisionSquads}) => [
   <tr key={`division-${division}`}>
     <td colSpan={6}>
-      <strong>Division {division}</strong>
+      <strong>{divisionName}</strong>
     </td>
   </tr>,
 

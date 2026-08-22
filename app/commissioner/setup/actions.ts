@@ -24,7 +24,7 @@ export async function saveSquad(formData:FormData){
   const nflTeamId=nflTeamIdRaw ? Number(nflTeamIdRaw) : null
   const division=divisionRaw ? Number(divisionRaw) : null
 
- if(!squadName || !ownerName || !userId || !nflTeamId || !division){
+  if(!squadName || !ownerName || !userId || !nflTeamId || !division){
     redirect('/commissioner/setup?error=missing')
   }
 
@@ -34,21 +34,24 @@ export async function saveSquad(formData:FormData){
     .eq('season_year',2026)
     .eq('user_id',userId)
     .maybeSingle()
-const {count:divisionCount}=await supabase
-  .from('squads')
-  .select('id',{count:'exact',head:true})
-  .eq('season_year',2026)
-  .eq('division',division)
 
-const movingIntoFullDivision =
-  divisionCount !== null &&
-  divisionCount >= 4 &&
-  (!existing || existing.division !== division)
+  const {count:divisionCount}=await supabase
+    .from('squads')
+    .select('id',{count:'exact',head:true})
+    .eq('season_year',2026)
+    .eq('division',division)
 
-if(movingIntoFullDivision){
-  redirect('/commissioner/setup?error=division_full')
-}
+  const movingIntoFullDivision =
+    divisionCount !== null &&
+    divisionCount >= 4 &&
+    (!existing || existing.division !== division)
+
+  if(movingIntoFullDivision){
+    redirect('/commissioner/setup?error=division_full')
+  }
+
   let error
+
   if(existing){
     ;({error}=await supabase.from('squads').update({
       owner_name:ownerName,
@@ -57,19 +60,40 @@ if(movingIntoFullDivision){
       division
     }).eq('id',existing.id))
   }else{
-    ;({error}=await supabase.from('squads').insert({
-      owner_name:ownerName,
-      user_id:userId,
-      season_year:2026,
-      squad_name:squadName,
-      nfl_team_id:nflTeamId,
-      division
-    }))
+    const {data:newSquad,error:insertError}=await supabase
+      .from('squads')
+      .insert({
+        owner_name:ownerName,
+        user_id:userId,
+        season_year:2026,
+        squad_name:squadName,
+        nfl_team_id:nflTeamId,
+        division
+      })
+      .select('id')
+      .single()
+
+    error=insertError
+
+    if(!error && newSquad){
+      const {error:standingsError}=await supabase
+        .from('standings')
+        .insert({
+          squad_id:newSquad.id,
+          season_year:2026
+        })
+
+      if(standingsError) error=standingsError
+    }
   }
 
   if(error) redirect('/commissioner/setup?error=duplicate')
+
   revalidatePath('/commissioner/setup')
   revalidatePath('/standings')
+  revalidatePath('/dashboard')
+  revalidatePath('/schedule')
+
   redirect('/commissioner/setup?saved=1')
 }
 

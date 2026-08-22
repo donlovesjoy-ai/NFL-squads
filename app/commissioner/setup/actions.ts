@@ -76,9 +76,29 @@ if(movingIntoFullDivision){
 export async function deleteSquad(formData:FormData){
   const supabase=await requireCommissioner()
   const id=Number(formData.get('id'))
-  if(id) await supabase.from('squads').delete().eq('id',id).eq('season_year',2026)
+
+  if(id){
+    // Remove records that reference this squad before deleting the squad itself.
+    await supabase.from('picks').delete().eq('squad_id',id)
+    await supabase.from('standings').delete().eq('squad_id',id)
+
+    const {error}=await supabase
+      .from('squads')
+      .delete()
+      .eq('id',id)
+      .eq('season_year',2026)
+
+    if(error){
+      console.error(error)
+      redirect('/commissioner/setup?error=delete')
+    }
+  }
+
   revalidatePath('/commissioner/setup')
-  redirect('/commissioner/setup')
+  revalidatePath('/standings')
+  revalidatePath('/schedule')
+  revalidatePath('/dashboard')
+  redirect('/commissioner/setup?removed=1')
 }
 
 export async function claimCommissioner(){

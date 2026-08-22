@@ -31,7 +31,7 @@ export default async function Schedule({
 
   const [{data:squads},{data:games}] = await Promise.all([
     supabase.from('squads')
-      .select('id,user_id,owner_name,squad_name,nfl_team_id,division')
+.select('id,user_id,owner_name,squad_name,nfl_team_id,division,nfl_teams(name,abbreviation)')
       .eq('season_year',2026)
       .order('division').order('squad_name'),
     supabase.from('games')
@@ -108,7 +108,18 @@ const squadsByDivision = divisionOrder.map(division => ({
     if(!g){
       return <tr key={s.id}>
         <td>{firstName(s.owner_name)}</td>
-        <td>{s.squad_name}</td>
+       <td>
+  <div style={{display:'flex',alignItems:'center',gap:8}}>
+    <img
+      src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
+      alt=""
+      width={32}
+      height={32}
+      style={{objectFit:'contain'}}
+    />
+    <b>{s.squad_name}</b>
+  </div>
+</td>
         <td colSpan={4}>No game found</td>
       </tr>
     }

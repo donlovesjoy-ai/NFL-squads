@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 
-const championshipPayouts={
+const championshipPayouts:Record<number,number>={
   1:250,
   2:200,
   3:175,
@@ -13,7 +13,7 @@ const championshipPayouts={
   8:50
 }
 
-const consolationPayouts={
+const consolationPayouts:Record<number,number>={
   9:-50,
   10:-75,
   11:-100,
@@ -25,18 +25,34 @@ const consolationPayouts={
 }
 
 function money(n:number){
-  return n>0
-    ? `+$${n}`
-    : n<0
-      ? `-$${Math.abs(n)}`
-      : '$0'
+  if(n>0) return `+$${n}`
+  if(n<0) return `-$${Math.abs(n)}`
+  return '$0'
+}
+
+function ordinal(n:number){
+  const mod100=n%100
+
+  if(mod100>=11 && mod100<=13){
+    return `${n}th`
+  }
+
+  switch(n%10){
+    case 1:
+      return `${n}st`
+    case 2:
+      return `${n}nd`
+    case 3:
+      return `${n}rd`
+    default:
+      return `${n}th`
+  }
 }
 
 export default async function Playoffs(){
   const supabase=await createClient()
 
-  const {data:{user}}=
-    await supabase.auth.getUser()
+  const {data:{user}}=await supabase.auth.getUser()
 
   if(!user){
     redirect('/login')
@@ -58,7 +74,6 @@ export default async function Playoffs(){
     {data:squads},
     {data:divisionNames}
   ]=await Promise.all([
-
     supabase
       .from('playoff_matchups')
       .select(`
@@ -167,20 +182,22 @@ export default async function Playoffs(){
     seed:number
   )=>{
     const state=
-      (seedState||[])
-        .find(
-          (s:any)=>
-            Number(s.division)===division &&
-            Number(s.seed)===seed
-        )
+      (seedState||[]).find(
+        (s:any)=>
+          Number(s.division)===division &&
+          Number(s.seed)===seed
+      )
 
     if(!state){
       return null
     }
 
-    return squadMap.get(
-      Number(state.squad_id)
-    )?.squad_name || null
+    return (
+      squadMap.get(
+        Number(state.squad_id)
+      )?.squad_name
+      || null
+    )
   }
 
   const seedLabel=(
@@ -188,8 +205,12 @@ export default async function Playoffs(){
     seed:number
   )=>{
     return (
-      lockedSeed(division,seed)
-      || `${divisionName(division)} ${ordinal(seed)} Place`
+      lockedSeed(
+        division,
+        seed
+      )
+      ||
+      `${divisionName(division)} ${ordinal(seed)} Place`
     )
   }
 
@@ -240,15 +261,15 @@ export default async function Playoffs(){
         </h1>
 
         <p className="muted">
-          Division seeds populate automatically
-          once that exact finishing position is
-          mathematically secured.
+          Division positions populate with squad names
+          only when that exact seed is mathematically locked.
         </p>
       </section>
 
-      <Matrix
+      <PlayoffMatrix
         title="Championship Playoff Matrix"
-        seedStart={1}
+        seedA={1}
+        seedB={2}
         week16Band="1-4"
         upperBand="1-4"
         lowerBand="5-8"
@@ -256,11 +277,13 @@ export default async function Playoffs(){
         payouts={championshipPayouts}
         seedLabel={seedLabel}
         getMatch={getMatch}
+        championLabel
       />
 
-      <Matrix
+      <PlayoffMatrix
         title="Consolation Playoff Matrix"
-        seedStart={3}
+        seedA={3}
+        seedB={4}
         week16Band="9-12"
         upperBand="9-12"
         lowerBand="13-16"
@@ -272,7 +295,6 @@ export default async function Playoffs(){
 
       {placements &&
        placements.length>0 && (
-
         <section
           className="card"
           style={{
@@ -291,27 +313,15 @@ export default async function Playoffs(){
           >
             <thead>
               <tr>
-                <th
-                  style={{
-                    textAlign:'center'
-                  }}
-                >
+                <th style={{textAlign:'center'}}>
                   Place
                 </th>
 
-                <th
-                  style={{
-                    textAlign:'center'
-                  }}
-                >
+                <th style={{textAlign:'center'}}>
                   Squad
                 </th>
 
-                <th
-                  style={{
-                    textAlign:'center'
-                  }}
-                >
+                <th style={{textAlign:'center'}}>
                   Payout
                 </th>
               </tr>
@@ -321,15 +331,9 @@ export default async function Playoffs(){
               {placements.map(
                 (p:any)=>(
                   <tr
-                    key={
-                      p.final_place
-                    }
+                    key={p.final_place}
                   >
-                    <td
-                      style={{
-                        textAlign:'center'
-                      }}
-                    >
+                    <td style={{textAlign:'center'}}>
                       {ordinal(
                         Number(
                           p.final_place
@@ -337,15 +341,8 @@ export default async function Playoffs(){
                       )}
                     </td>
 
-                    <td
-                      style={{
-                        textAlign:'center'
-                      }}
-                    >
-                      {
-                        p.squads
-                          ?.squad_name
-                      }
+                    <td style={{textAlign:'center'}}>
+                      {p.squads?.squad_name}
                     </td>
 
                     <td
@@ -372,19 +369,22 @@ export default async function Playoffs(){
   )
 }
 
-function Matrix({
+function PlayoffMatrix({
   title,
-  seedStart,
+  seedA,
+  seedB,
   week16Band,
   upperBand,
   lowerBand,
   firstPlace,
   payouts,
   seedLabel,
-  getMatch
+  getMatch,
+  championLabel=false
 }:{
   title:string
-  seedStart:number
+  seedA:number
+  seedB:number
   week16Band:string
   upperBand:string
   lowerBand:string
@@ -392,36 +392,37 @@ function Matrix({
   payouts:Record<number,number>
   seedLabel:(division:number,seed:number)=>string
   getMatch:(week:number,band:string,slot:number)=>any
+  championLabel?:boolean
 }){
-  const w16=[
-    getMatch(16,week16Band,1),
-    getMatch(16,week16Band,2),
-    getMatch(16,week16Band,3),
-    getMatch(16,week16Band,4)
-  ]
+  const g1=getMatch(16,week16Band,1)
+  const g2=getMatch(16,week16Band,2)
+  const g3=getMatch(16,week16Band,3)
+  const g4=getMatch(16,week16Band,4)
 
-  const w17=[
-    getMatch(17,upperBand,1),
-    getMatch(17,upperBand,2),
-    getMatch(17,lowerBand,1),
-    getMatch(17,lowerBand,2)
-  ]
+  const g5=getMatch(17,upperBand,1)
+  const g6=getMatch(17,upperBand,2)
 
-  const w18=[
-    getMatch(18,upperBand,1),
-    getMatch(18,upperBand,2),
-    getMatch(18,lowerBand,1),
-    getMatch(18,lowerBand,2)
-  ]
+  const g7=getMatch(17,lowerBand,1)
+  const g8=getMatch(17,lowerBand,2)
+
+  const g9=getMatch(18,upperBand,1)
+  const g10=getMatch(18,upperBand,2)
+
+  const g11=getMatch(18,lowerBand,1)
+  const g12=getMatch(18,lowerBand,2)
 
   return (
-    <section className="card">
-
+    <section
+      className="card"
+      style={{
+        paddingBottom:24
+      }}
+    >
       <h2
         style={{
           textAlign:'center',
           textDecoration:'underline',
-          marginBottom:20
+          marginBottom:22
         }}
       >
         {title}
@@ -434,32 +435,30 @@ function Matrix({
       >
         <div
           style={{
-            minWidth:980,
-            padding:'0 10px 20px'
+            minWidth:1080
           }}
         >
-
           <div
             style={{
               display:'grid',
               gridTemplateColumns:
-                '260px 240px 240px 180px',
-              gap:28,
+                '290px 250px 250px 220px',
+              columnGap:32,
               textAlign:'center',
-              marginBottom:14,
-              fontWeight:700
+              fontWeight:700,
+              marginBottom:20
             }}
           >
             <div>
-              Week 16
+              Week #16
             </div>
 
             <div>
-              Week 17
+              Week #17
             </div>
 
             <div>
-              Week 18
+              Week #18
             </div>
 
             <div>
@@ -471,277 +470,233 @@ function Matrix({
             style={{
               display:'grid',
               gridTemplateColumns:
-                '260px 240px 240px 180px',
-              gap:28,
-              alignItems:'stretch'
+                '290px 250px 250px 220px',
+              columnGap:32
             }}
           >
 
+            {/* WEEK 16 */}
+
             <div
               style={{
                 display:'grid',
-                gap:18
+                gap:24
               }}
             >
-              {[1,2,3,4].map(
-                (division,index)=>{
-
-                  const match=
-                    w16[index]
-
-                  const a=
-                    match?.squad_a
-                      ?.squad_name
-                    || seedLabel(
-                      division,
-                      seedStart
-                    )
-
-                  const b=
-                    match?.squad_b
-                      ?.squad_name
-                    || seedLabel(
-                      division,
-                      seedStart+1
-                    )
-
-                  return (
-                    <MatchBox
-                      key={division}
-                      label={`Game #${index+1}`}
-                      a={a}
-                      b={b}
-                      match={match}
-                    />
-                  )
+              <SeedGame
+                gameNumber={1}
+                a={
+                  g1?.squad_a?.squad_name
+                  || seedLabel(1,seedA)
                 }
-              )}
+                b={
+                  g1?.squad_b?.squad_name
+                  || seedLabel(1,seedB)
+                }
+                match={g1}
+              />
+
+              <SeedGame
+                gameNumber={2}
+                a={
+                  g2?.squad_a?.squad_name
+                  || seedLabel(2,seedA)
+                }
+                b={
+                  g2?.squad_b?.squad_name
+                  || seedLabel(2,seedB)
+                }
+                match={g2}
+              />
+
+              <SeedGame
+                gameNumber={3}
+                a={
+                  g3?.squad_a?.squad_name
+                  || seedLabel(3,seedA)
+                }
+                b={
+                  g3?.squad_b?.squad_name
+                  || seedLabel(3,seedB)
+                }
+                match={g3}
+              />
+
+              <SeedGame
+                gameNumber={4}
+                a={
+                  g4?.squad_a?.squad_name
+                  || seedLabel(4,seedA)
+                }
+                b={
+                  g4?.squad_b?.squad_name
+                  || seedLabel(4,seedB)
+                }
+                match={g4}
+              />
             </div>
 
+            {/* WEEK 17 */}
+
             <div
               style={{
                 display:'grid',
-                gap:30,
-                paddingTop:38
+                gap:34,
+                paddingTop:42
               }}
             >
-              <MatchBox
-                label="Game #5"
+              <FlowGame
+                gameNumber={5}
                 a={
-                  w17[0]
-                    ?.squad_a
-                    ?.squad_name
+                  g5?.squad_a?.squad_name
                   || 'Game #1 Winner'
                 }
                 b={
-                  w17[0]
-                    ?.squad_b
-                    ?.squad_name
+                  g5?.squad_b?.squad_name
                   || 'Game #2 Winner'
                 }
-                match={w17[0]}
+                match={g5}
               />
 
-              <MatchBox
-                label="Game #6"
+              <FlowGame
+                gameNumber={6}
                 a={
-                  w17[1]
-                    ?.squad_a
-                    ?.squad_name
+                  g6?.squad_a?.squad_name
                   || 'Game #3 Winner'
                 }
                 b={
-                  w17[1]
-                    ?.squad_b
-                    ?.squad_name
+                  g6?.squad_b?.squad_name
                   || 'Game #4 Winner'
                 }
-                match={w17[1]}
+                match={g6}
               />
 
-              <MatchBox
-                label="Game #7"
+              <FlowGame
+                gameNumber={7}
                 a={
-                  w17[2]
-                    ?.squad_a
-                    ?.squad_name
+                  g7?.squad_a?.squad_name
                   || 'Game #1 Loser'
                 }
                 b={
-                  w17[2]
-                    ?.squad_b
-                    ?.squad_name
+                  g7?.squad_b?.squad_name
                   || 'Game #2 Loser'
                 }
-                match={w17[2]}
+                match={g7}
               />
 
-              <MatchBox
-                label="Game #8"
+              <FlowGame
+                gameNumber={8}
                 a={
-                  w17[3]
-                    ?.squad_a
-                    ?.squad_name
+                  g8?.squad_a?.squad_name
                   || 'Game #3 Loser'
                 }
                 b={
-                  w17[3]
-                    ?.squad_b
-                    ?.squad_name
+                  g8?.squad_b?.squad_name
                   || 'Game #4 Loser'
                 }
-                match={w17[3]}
+                match={g8}
               />
             </div>
+
+            {/* WEEK 18 */}
 
             <div
               style={{
                 display:'grid',
-                gap:30,
-                paddingTop:78
+                gap:34,
+                paddingTop:84
               }}
             >
-              <MatchBox
-                label="Game #9"
+              <FlowGame
+                gameNumber={9}
                 a={
-                  w18[0]
-                    ?.squad_a
-                    ?.squad_name
+                  g9?.squad_a?.squad_name
                   || 'Game #5 Winner'
                 }
                 b={
-                  w18[0]
-                    ?.squad_b
-                    ?.squad_name
+                  g9?.squad_b?.squad_name
                   || 'Game #6 Winner'
                 }
-                match={w18[0]}
+                match={g9}
               />
 
-              <MatchBox
-                label="Game #10"
+              <FlowGame
+                gameNumber={10}
                 a={
-                  w18[1]
-                    ?.squad_a
-                    ?.squad_name
+                  g10?.squad_a?.squad_name
                   || 'Game #5 Loser'
                 }
                 b={
-                  w18[1]
-                    ?.squad_b
-                    ?.squad_name
+                  g10?.squad_b?.squad_name
                   || 'Game #6 Loser'
                 }
-                match={w18[1]}
+                match={g10}
               />
 
-              <MatchBox
-                label="Game #11"
+              <FlowGame
+                gameNumber={11}
                 a={
-                  w18[2]
-                    ?.squad_a
-                    ?.squad_name
+                  g11?.squad_a?.squad_name
                   || 'Game #7 Winner'
                 }
                 b={
-                  w18[2]
-                    ?.squad_b
-                    ?.squad_name
+                  g11?.squad_b?.squad_name
                   || 'Game #8 Winner'
                 }
-                match={w18[2]}
+                match={g11}
               />
 
-              <MatchBox
-                label="Game #12"
+              <FlowGame
+                gameNumber={12}
                 a={
-                  w18[3]
-                    ?.squad_a
-                    ?.squad_name
+                  g12?.squad_a?.squad_name
                   || 'Game #7 Loser'
                 }
                 b={
-                  w18[3]
-                    ?.squad_b
-                    ?.squad_name
+                  g12?.squad_b?.squad_name
                   || 'Game #8 Loser'
                 }
-                match={w18[3]}
+                match={g12}
               />
             </div>
+
+            {/* FINAL RESULTS */}
 
             <div
               style={{
                 display:'grid',
-                gap:16,
+                gap:24,
                 paddingTop:78
               }}
             >
-              {[0,1,2,3].map(
-                index=>{
+              <FinalPair
+                match={g9}
+                winnerPlace={firstPlace}
+                loserPlace={firstPlace+1}
+                payouts={payouts}
+                championLabel={championLabel}
+              />
 
-                  const winnerPlace=
-                    firstPlace+
-                    index*2
+              <FinalPair
+                match={g10}
+                winnerPlace={firstPlace+2}
+                loserPlace={firstPlace+3}
+                payouts={payouts}
+              />
 
-                  const loserPlace=
-                    winnerPlace+1
+              <FinalPair
+                match={g11}
+                winnerPlace={firstPlace+4}
+                loserPlace={firstPlace+5}
+                payouts={payouts}
+              />
 
-                  const match=
-                    w18[index]
-
-                  const winner=
-                    match?.winner
-                      ?.squad_name
-                    || (
-                      index===0
-                        ? (
-                          firstPlace===1
-                            ? 'SQUADS Bowl Champion'
-                            : `${ordinal(winnerPlace)} Place`
-                        )
-                        : `${ordinal(winnerPlace)} Place`
-                    )
-
-                  const loser=
-                    match?.loser
-                      ?.squad_name
-                    || `${ordinal(loserPlace)} Place`
-
-                  return (
-                    <div
-                      key={index}
-                      style={{
-                        display:'grid',
-                        gap:10
-                      }}
-                    >
-                      <PlaceBox
-                        name={winner}
-                        place={winnerPlace}
-                        payout={
-                          payouts[
-                            winnerPlace
-                          ]
-                        }
-                        champion={
-                          winnerPlace===1
-                        }
-                      />
-
-                      <PlaceBox
-                        name={loser}
-                        place={loserPlace}
-                        payout={
-                          payouts[
-                            loserPlace
-                          ]
-                        }
-                      />
-                    </div>
-                  )
-                }
-              )}
+              <FinalPair
+                match={g12}
+                winnerPlace={firstPlace+6}
+                loserPlace={firstPlace+7}
+                payouts={payouts}
+              />
             </div>
 
           </div>
@@ -751,76 +706,140 @@ function Matrix({
   )
 }
 
-function MatchBox({
-  label,
+function SeedGame({
+  gameNumber,
   a,
   b,
   match
 }:{
-  label:string
+  gameNumber:number
+  a:string
+  b:string
+  match:any
+}){
+  return (
+    <BracketGame
+      gameNumber={gameNumber}
+      a={a}
+      b={b}
+      match={match}
+    />
+  )
+}
+
+function FlowGame({
+  gameNumber,
+  a,
+  b,
+  match
+}:{
+  gameNumber:number
+  a:string
+  b:string
+  match:any
+}){
+  return (
+    <BracketGame
+      gameNumber={gameNumber}
+      a={a}
+      b={b}
+      match={match}
+    />
+  )
+}
+
+function BracketGame({
+  gameNumber,
+  a,
+  b,
+  match
+}:{
+  gameNumber:number
   a:string
   b:string
   match:any
 }){
   const winner=
-    match?.winner
-      ?.squad_name
+    match?.winner?.squad_name
 
   return (
     <div
       style={{
         position:'relative',
-        border:'1px solid #bbb',
-        borderRadius:8,
-        padding:'8px 10px',
-        minHeight:84,
-        display:'grid',
-        alignContent:'center',
-        background:'#fff'
+        paddingRight:22
       }}
     >
       <div
-        className="muted"
         style={{
-          fontSize:'0.72rem',
-          marginBottom:4,
-          textAlign:'center'
+          fontSize:'0.74rem',
+          fontWeight:700,
+          marginBottom:4
         }}
       >
-        {label}
+        Game #{gameNumber}
       </div>
 
       <div
         style={{
-          borderBottom:
-            '1px solid #ddd',
-          padding:'4px 2px',
-          fontWeight:
-            winner===a
-              ? 700
-              : 500
+          minHeight:30,
+          display:'flex',
+          alignItems:'end'
         }}
       >
-        {a}
-      </div>
-
-      <div
-        style={{
-          padding:'4px 2px',
-          fontWeight:
-            winner===b
-              ? 700
-              : 500
-        }}
-      >
-        {b}
-      </div>
-
-      {match?.status===
-       'needs_tiebreaker' && (
         <div
           style={{
-            marginTop:5,
+            width:'100%',
+            borderBottom:'2px solid #555',
+            padding:'0 4px 3px',
+            fontWeight:
+              winner===a
+                ? 800
+                : 500
+          }}
+        >
+          {a}
+        </div>
+      </div>
+
+      <div
+        style={{
+          minHeight:34,
+          display:'flex',
+          alignItems:'end'
+        }}
+      >
+        <div
+          style={{
+            width:'100%',
+            borderBottom:'2px solid #555',
+            padding:'0 4px 3px',
+            fontWeight:
+              winner===b
+                ? 800
+                : 500
+          }}
+        >
+          {b}
+        </div>
+      </div>
+
+      <div
+        style={{
+          position:'absolute',
+          right:0,
+          top:26,
+          width:22,
+          height:36,
+          borderRight:'2px solid #555',
+          borderTop:'2px solid #555',
+          borderBottom:'2px solid #555'
+        }}
+      />
+
+      {match?.status==='needs_tiebreaker' && (
+        <div
+          style={{
+            marginTop:4,
             fontSize:'0.7rem',
             fontWeight:700
           }}
@@ -832,7 +851,58 @@ function MatchBox({
   )
 }
 
-function PlaceBox({
+function FinalPair({
+  match,
+  winnerPlace,
+  loserPlace,
+  payouts,
+  championLabel=false
+}:{
+  match:any
+  winnerPlace:number
+  loserPlace:number
+  payouts:Record<number,number>
+  championLabel?:boolean
+}){
+  const winnerName=
+    match?.winner?.squad_name
+    || (
+      championLabel
+        ? 'SQUADS Bowl Champion!'
+        : `${ordinal(winnerPlace)} Place`
+    )
+
+  const loserName=
+    match?.loser?.squad_name
+    || `${ordinal(loserPlace)} Place`
+
+  return (
+    <div
+      style={{
+        display:'grid',
+        gap:16
+      }}
+    >
+      <FinishLine
+        name={winnerName}
+        place={winnerPlace}
+        payout={payouts[winnerPlace]}
+        champion={
+          championLabel &&
+          winnerPlace===1
+        }
+      />
+
+      <FinishLine
+        name={loserName}
+        place={loserPlace}
+        payout={payouts[loserPlace]}
+      />
+    </div>
+  )
+}
+
+function FinishLine({
   name,
   place,
   payout,
@@ -844,20 +914,13 @@ function PlaceBox({
   champion?:boolean
 }){
   return (
-    <div
-      style={{
-        borderBottom:
-          '2px solid #555',
-        padding:'5px 4px',
-        textAlign:'center'
-      }}
-    >
+    <div>
       <div
         style={{
-          fontWeight:
-            champion
-              ? 800
-              : 700
+          borderBottom:'2px solid #555',
+          padding:'0 4px 4px',
+          textAlign:'center',
+          fontWeight:champion?800:700
         }}
       >
         {name}
@@ -865,42 +928,17 @@ function PlaceBox({
 
       <div
         style={{
+          textAlign:'center',
           fontSize:'0.78rem',
-          marginTop:2
+          marginTop:3
         }}
       >
         {ordinal(place)}
         {' · '}
-        <span
-          style={{
-            fontWeight:800
-          }}
-        >
+        <b>
           {money(payout)}
-        </span>
+        </b>
       </div>
     </div>
   )
-}
-
-function ordinal(n:number){
-  const mod100=n%100
-
-  if(
-    mod100>=11 &&
-    mod100<=13
-  ){
-    return `${n}th`
-  }
-
-  switch(n%10){
-    case 1:
-      return `${n}st`
-    case 2:
-      return `${n}nd`
-    case 3:
-      return `${n}rd`
-    default:
-      return `${n}th`
-  }
 }

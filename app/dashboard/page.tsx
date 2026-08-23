@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import KickoffCountdown from '../components/KickoffCountdown'
@@ -20,6 +20,18 @@ function formatChatTime(value:string){
   })
 }
 
+function ordinal(n:number){
+  const mod100=n%100
+  if(mod100>=11 && mod100<=13) return `${n}th`
+
+  switch(n%10){
+    case 1: return `${n}st`
+    case 2: return `${n}nd`
+    case 3: return `${n}rd`
+    default: return `${n}th`
+  }
+}
+
 export default async function Dashboard(){
   const supabase=await createClient()
 
@@ -36,33 +48,50 @@ export default async function Dashboard(){
 
   const {data:squad}=await supabase
     .from('squads')
-    .select('id,squad_name,division,nfl_team_id,nfl_teams(name,abbreviation)')
+    .select(
+      'id,squad_name,division,nfl_team_id,nfl_teams(name,abbreviation)'
+    )
     .eq('user_id',user.id)
     .eq('season_year',2026)
     .maybeSingle()
 
   let game:any=null
   let pick:any=null
-  let week=1
 
   if(squad){
     const {data:games}=await supabase
       .from('games')
-      .select('id,nfl_week,kickoff_time,spread,total,status,home_team_id,away_team_id,home_score,away_score,home:nfl_teams!games_home_team_id_fkey(name,abbreviation),away:nfl_teams!games_away_team_id_fkey(name,abbreviation)')
+      .select(`
+        id,
+        nfl_week,
+        kickoff_time,
+        spread,
+        total,
+        status,
+        home_team_id,
+        away_team_id,
+        home_score,
+        away_score,
+        home:nfl_teams!games_home_team_id_fkey(name,abbreviation),
+        away:nfl_teams!games_away_team_id_fkey(name,abbreviation)
+      `)
       .eq('season_year',2026)
-      .or(`home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`)
-      .gte('kickoff_time',new Date(Date.now()-6*3600000).toISOString())
+      .or(
+        `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
+      )
+      .neq('status','final')
+      .order('nfl_week',{ascending:true})
       .order('kickoff_time',{ascending:true})
       .limit(1)
 
     game=games?.[0]||null
 
     if(game){
-      week=game.nfl_week
-
       const {data:p}=await supabase
         .from('picks')
-        .select('selection_team_id,result,ats_margin,is_locked,revealed')
+        .select(
+          'selection_team_id,result,ats_margin,is_locked,revealed,is_missed'
+        )
         .eq('squad_id',squad.id)
         .eq('game_id',game.id)
         .maybeSingle()
@@ -86,19 +115,37 @@ export default async function Dashboard(){
 
   const {data:standings}=await supabase
     .from('standings')
-    .select('wins,losses,pushes,ats_margin,squads!inner(id,squad_name,division)')
+    .select(
+      'wins,losses,pushes,ats_margin,squads!inner(id,squad_name,division)'
+    )
     .eq('season_year',2026)
 
   const divRows=(standings||[])
-    .filter((r:any)=>r.squads?.division===squad?.division)
+    .filter(
+      (r:any)=>
+        r.squads?.division===squad?.division
+    )
     .sort(
       (a:any,b:any)=>
         (b.wins-a.wins) ||
-        (Number(b.ats_margin)-Number(a.ats_margin))
+        (Number(b.ats_margin)-Number(a.ats_margin)) ||
+        (a.squads.id-b.squads.id)
     )
 
   const myStanding:any=(standings||[])
-    .find((r:any)=>r.squads?.id===squad?.id)
+    .find(
+      (r:any)=>
+        r.squads?.id===squad?.id
+    )
+
+  const myPlaceIndex=divRows.findIndex(
+    (r:any)=>r.squads?.id===squad?.id
+  )
+
+  const myPlace=
+    myPlaceIndex>=0
+      ? ordinal(myPlaceIndex+1)
+      : null
 
   const homeSpread=
     game?.spread===null ||
@@ -123,6 +170,7 @@ export default async function Dashboard(){
       id,
       message,
       is_commissioner,
+      is_system,
       is_pinned,
       created_at,
       squads(
@@ -137,41 +185,72 @@ export default async function Dashboard(){
 
   return <main className="wrap">
 
-    <div className="top">
+    <div
+      className="top"
+      style={{
+        justifyContent:'center',
+        textAlign:'center'
+      }}
+    >
       <div>
-        <div className="big">NFL SQUADS</div>
-        <div className="muted">2026 Season</div>
+        <div className="big">
+          NFL SQUADS
+        </div>
+
+        <div className="muted">
+          2026 Season
+        </div>
       </div>
     </div>
 
     <Nav commissioner={commissioner}/>
 
     {commissioner && (
-      <section className="card">
+      <section
+        className="card"
+        style={{textAlign:'center'}}
+      >
         <h2>Commissioner</h2>
 
         <p>
-          <a href="/commissioner/setup"><b>League Setup</b></a>
+          <a href="/commissioner/setup">
+            <b>League Setup</b>
+          </a>
+
           {' · '}
-          <a href="/commissioner/live-feed"><b>Live Feed</b></a>
+
+          <a href="/commissioner/live-feed">
+            <b>Live Feed</b>
+          </a>
+
           {' · '}
-          <a href="/commissioner/results"><b>Lines & Results</b></a>
+
+          <a href="/commissioner/results">
+            <b>Lines & Results</b>
+          </a>
         </p>
       </section>
     )}
 
     <div className="grid">
 
-      <section className="card">
+      <section
+        className="card"
+        style={{textAlign:'center'}}
+      >
         <h2>My Squad</h2>
 
         {squad && (
           <img
             src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
             alt={`${(squad as any)?.nfl_teams?.name || 'NFL team'} logo`}
-            width={90}
-            height={90}
-            style={{objectFit:'contain'}}
+            width={114}
+            height={114}
+            style={{
+              objectFit:'contain',
+              display:'block',
+              margin:'0 auto'
+            }}
           />
         )}
 
@@ -185,7 +264,12 @@ export default async function Dashboard(){
           </p>
 
           <p>
-            <b>{divisionTitle}</b>
+            <b>
+              {divisionTitle}
+              {myPlace
+                ? ` · ${myPlace} Place`
+                : ''}
+            </b>
           </p>
 
           <p>
@@ -208,7 +292,10 @@ export default async function Dashboard(){
         </>}
       </section>
 
-      <section className="card">
+      <section
+        className="card"
+        style={{textAlign:'center'}}
+      >
         <h2>
           {game
             ? `Week ${game.nfl_week} NFL Game`
@@ -220,8 +307,10 @@ export default async function Dashboard(){
             style={{
               display:'flex',
               alignItems:'center',
-              gap:16,
-              marginBottom:12
+              justifyContent:'center',
+              gap:20,
+              marginBottom:16,
+              flexWrap:'wrap'
             }}
           >
             <div style={{textAlign:'center'}}>
@@ -269,22 +358,24 @@ export default async function Dashboard(){
 
           <p>
             <b>Kickoff:</b>{' '}
-            {new Date(game.kickoff_time).toLocaleString('en-US',{
-              timeZone:'America/New_York',
-              month:'short',
-              day:'numeric',
-              hour:'numeric',
-              minute:'2-digit',
-              timeZoneName:'short'
-            })}
+            {new Date(game.kickoff_time).toLocaleString(
+              'en-US',
+              {
+                timeZone:'America/New_York',
+                month:'short',
+                day:'numeric',
+                hour:'numeric',
+                minute:'2-digit',
+                timeZoneName:'short'
+              }
+            )}
           </p>
 
-          <KickoffCountdown kickoffTime={game.kickoff_time}/>
-
-          <p>
-            <b>Status:</b>{' '}
-            {game.status}
-          </p>
+          <div style={{textAlign:'center'}}>
+            <KickoffCountdown
+              kickoffTime={game.kickoff_time}
+            />
+          </div>
         </> : (
           <p className="muted">
             No upcoming game found.
@@ -292,11 +383,14 @@ export default async function Dashboard(){
         )}
       </section>
 
-      <section className="card">
+      <section
+        className="card"
+        style={{textAlign:'center'}}
+      >
         <h2>My Pick</h2>
 
         <p className="big">
-          {pick
+          {pick && !pick.is_missed
             ? '✓ Pick Submitted'
             : 'Pick Needed'}
         </p>
@@ -320,7 +414,7 @@ export default async function Dashboard(){
                 textAlign:'center'
               }}
             >
-              {pick
+              {pick && !pick.is_missed
                 ? 'Review / Update My Pick →'
                 : 'MAKE MY PICK →'}
             </a>
@@ -338,100 +432,154 @@ export default async function Dashboard(){
 
     </div>
 
-    <div className="grid">
+    <section
+      className="card"
+      style={{textAlign:'center'}}
+    >
+      <h2>{divisionTitle}</h2>
 
-      <section className="card">
-        <h2>{divisionTitle}</h2>
-
-        {divRows.length===0
-          ? (
-            <p className="muted">
-              Standings will appear after grading.
-            </p>
-          )
-          : divRows.map((r:any,i:number)=>(
-            <p key={r.squads.id}>
-              <b>
-                {i+1}. {r.squads.squad_name}
-              </b>
-              {' — '}
-              {r.wins}-{r.losses}-{r.pushes}
-              {' · ATS '}
-              {Number(r.ats_margin)>0?'+':''}
-              {r.ats_margin}
-            </p>
-          ))
-        }
-      </section>
-
-    </div>
-
-    <section className="card">
-      <h2>League Chat</h2>
-
-      {!chatMessages?.length
-        ? (
-          <p className="muted">
-            No messages yet.
-          </p>
-        )
-        : chatMessages.map((m:any)=>{
-          const squad=m.squads
-
-          const author=
-            squad?.owner_name ||
-            squad?.squad_name ||
-            (m.is_commissioner
-              ? 'Commissioner'
-              : 'Owner')
-
-          return <div
-            key={m.id}
+      {divRows.length===0 ? (
+        <p className="muted">
+          Standings will appear after grading.
+        </p>
+      ) : (
+        <div style={{overflowX:'auto'}}>
+          <table
             style={{
-              padding:'10px 0',
-              borderBottom:'1px solid #ddd'
+              width:'100%',
+              textAlign:'center'
             }}
           >
-            {m.is_pinned && (
-              <div
-                style={{
-                  fontWeight:700,
-                  marginBottom:4
-                }}
-              >
-                📌 Pinned Announcement
-              </div>
-            )}
+            <thead>
+              <tr>
+                <th style={{textAlign:'center'}}>
+                  Place
+                </th>
 
-            <div>
-              <b>{author}</b>
+                <th style={{textAlign:'center'}}>
+                  Team
+                </th>
 
-              {squad?.squad_name &&
-               squad.owner_name
-                ? (
-                  <span className="muted">
-                    {' '}· {squad.squad_name}
-                  </span>
-                )
-                : null}
-            </div>
+                <th style={{textAlign:'center'}}>
+                  Record
+                </th>
 
-            <div style={{marginTop:4}}>
-              {m.message}
-            </div>
+                <th style={{textAlign:'center'}}>
+                  Margin
+                </th>
+              </tr>
+            </thead>
 
-            <div
-              className="muted"
+            <tbody>
+              {divRows.map((r:any,i:number)=>(
+                <tr key={r.squads.id}>
+                  <td style={{textAlign:'center'}}>
+                    {i+1}
+                  </td>
+
+                  <td style={{textAlign:'center'}}>
+                    <b>{r.squads.squad_name}</b>
+                  </td>
+
+                  <td style={{textAlign:'center'}}>
+                    {r.wins}-{r.losses}-{r.pushes}
+                  </td>
+
+                  <td style={{textAlign:'center'}}>
+                    {Number(r.ats_margin)>0?'+':''}
+                    {r.ats_margin}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+
+    <section
+      className="card"
+      style={{textAlign:'center'}}
+    >
+      <h2>League Chat</h2>
+
+      {!chatMessages?.length ? (
+        <p className="muted">
+          No messages yet.
+        </p>
+      ) : (
+        <div
+          style={{
+            maxWidth:760,
+            margin:'0 auto',
+            textAlign:'left'
+          }}
+        >
+          {chatMessages.map((m:any)=>{
+            const squad=m.squads
+            const isSystem=m.is_system===true
+
+            const author=
+              isSystem
+                ? 'NFL SQUADS · League Update'
+                : squad?.owner_name ||
+                  squad?.squad_name ||
+                  (m.is_commissioner
+                    ? 'Commissioner'
+                    : 'Owner')
+
+            return <div
+              key={m.id}
               style={{
-                marginTop:4,
-                fontSize:'0.85rem'
+                padding:'10px 0',
+                borderBottom:'1px solid #ddd'
               }}
             >
-              {formatChatTime(m.created_at)} ET
+              {m.is_pinned && (
+                <div
+                  style={{
+                    fontWeight:700,
+                    marginBottom:4
+                  }}
+                >
+                  📌 Pinned Announcement
+                </div>
+              )}
+
+              <div>
+                <b>
+                  {isSystem ? '🏈 ' : ''}
+                  {author}
+                </b>
+
+                {!isSystem &&
+                 squad?.squad_name &&
+                 squad.owner_name
+                  ? (
+                    <span className="muted">
+                      {' '}· {squad.squad_name}
+                    </span>
+                  )
+                  : null}
+              </div>
+
+              <div style={{marginTop:4}}>
+                {m.message}
+              </div>
+
+              <div
+                className="muted"
+                style={{
+                  marginTop:4,
+                  fontSize:'0.85rem'
+                }}
+              >
+                {formatChatTime(m.created_at)} ET
+              </div>
             </div>
-          </div>
-        })
-      }
+          })}
+        </div>
+      )}
 
       <p style={{marginTop:14}}>
         <a href="/chat">

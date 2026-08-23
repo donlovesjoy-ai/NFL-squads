@@ -1,7 +1,11 @@
- import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
-import { postMessage } from './actions'
+import {
+  postMessage,
+  togglePinMessage,
+  deleteMessage
+} from './actions'
 
 function formatTime(value:string){
   return new Date(value).toLocaleString('en-US',{
@@ -31,6 +35,8 @@ export default async function ChatPage(){
         user_id,
         message,
         is_commissioner,
+        is_pinned,
+        pinned_at,
         created_at,
         squads(
           squad_name,
@@ -38,6 +44,8 @@ export default async function ChatPage(){
           nfl_teams(name,abbreviation)
         )
       `)
+      .order('is_pinned',{ascending:false})
+      .order('pinned_at',{ascending:false,nullsFirst:false})
       .order('created_at',{ascending:false})
       .limit(100)
   ])
@@ -91,17 +99,33 @@ export default async function ChatPage(){
             return <div
               key={m.id}
               style={{
-                padding:'12px 0',
-                borderBottom:'1px solid #ddd'
+                padding:'12px',
+                marginBottom:10,
+                border:m.is_pinned
+                  ? '2px solid #999'
+                  : '1px solid #ddd',
+                borderRadius:8
               }}
             >
+              {m.is_pinned && (
+                <div style={{fontWeight:700,marginBottom:6}}>
+                  📌 Pinned Announcement
+                </div>
+              )}
+
               <div>
                 <b>{author}</b>
+
                 {squad?.squad_name && squad.owner_name
-                  ? <span className="muted"> · {squad.squad_name}</span>
+                  ? <span className="muted">
+                      {' '}· {squad.squad_name}
+                    </span>
                   : null}
+
                 {m.is_commissioner
-                  ? <span className="muted"> · Commissioner</span>
+                  ? <span className="muted">
+                      {' '}· Commissioner
+                    </span>
                   : null}
               </div>
 
@@ -109,8 +133,57 @@ export default async function ChatPage(){
                 {m.message}
               </div>
 
-              <div className="muted" style={{marginTop:6,fontSize:'0.9rem'}}>
+              <div
+                className="muted"
+                style={{
+                  marginTop:6,
+                  fontSize:'0.9rem'
+                }}
+              >
                 {formatTime(m.created_at)} ET
+              </div>
+
+              <div
+                style={{
+                  marginTop:10,
+                  display:'flex',
+                  gap:8,
+                  flexWrap:'wrap'
+                }}
+              >
+                {commissioner && (
+                  <form action={togglePinMessage}>
+                    <input
+                      type="hidden"
+                      name="id"
+                      value={m.id}
+                    />
+
+                    <input
+                      type="hidden"
+                      name="is_pinned"
+                      value={String(m.is_pinned)}
+                    />
+
+                    <button type="submit">
+                      {m.is_pinned ? 'Unpin' : 'Pin'}
+                    </button>
+                  </form>
+                )}
+
+                {(commissioner || m.user_id===user.id) && (
+                  <form action={deleteMessage}>
+                    <input
+                      type="hidden"
+                      name="id"
+                      value={m.id}
+                    />
+
+                    <button type="submit">
+                      Delete
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           })

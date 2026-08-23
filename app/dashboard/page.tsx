@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import KickoffCountdown from '../components/KickoffCountdown'
+
 function fmtSpread(n:any){
   if(n===null || n===undefined) return 'Line pending'
   const x=Number(n)
@@ -9,182 +10,435 @@ function fmtSpread(n:any){
   return x>0?`+${x}`:`${x}`
 }
 
+function formatChatTime(value:string){
+  return new Date(value).toLocaleString('en-US',{
+    timeZone:'America/New_York',
+    month:'short',
+    day:'numeric',
+    hour:'numeric',
+    minute:'2-digit'
+  })
+}
+
 export default async function Dashboard(){
   const supabase=await createClient()
+
   const {data:{user}}=await supabase.auth.getUser()
   if(!user) redirect('/login')
 
-  const {data:profile}=await supabase.from('users').select('role').eq('id',user.id).maybeSingle()
+  const {data:profile}=await supabase
+    .from('users')
+    .select('role')
+    .eq('id',user.id)
+    .maybeSingle()
+
   const commissioner=profile?.role==='commissioner'
 
-  const {data:squad}=await supabase.from('squads')
+  const {data:squad}=await supabase
+    .from('squads')
     .select('id,squad_name,division,nfl_team_id,nfl_teams(name,abbreviation)')
-    .eq('user_id',user.id).eq('season_year',2026).maybeSingle()
+    .eq('user_id',user.id)
+    .eq('season_year',2026)
+    .maybeSingle()
 
-  let game:any=null,pick:any=null,week=1
+  let game:any=null
+  let pick:any=null
+  let week=1
+
   if(squad){
-    const {data:games}=await supabase.from('games')
+    const {data:games}=await supabase
+      .from('games')
       .select('id,nfl_week,kickoff_time,spread,total,status,home_team_id,away_team_id,home_score,away_score,home:nfl_teams!games_home_team_id_fkey(name,abbreviation),away:nfl_teams!games_away_team_id_fkey(name,abbreviation)')
       .eq('season_year',2026)
       .or(`home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`)
       .gte('kickoff_time',new Date(Date.now()-6*3600000).toISOString())
-      .order('kickoff_time',{ascending:true}).limit(1)
+      .order('kickoff_time',{ascending:true})
+      .limit(1)
+
     game=games?.[0]||null
+
     if(game){
       week=game.nfl_week
-      const {data:p}=await supabase.from('picks')
+
+      const {data:p}=await supabase
+        .from('picks')
         .select('selection_team_id,result,ats_margin,is_locked,revealed')
-        .eq('squad_id',squad.id).eq('game_id',game.id).maybeSingle()
+        .eq('squad_id',squad.id)
+        .eq('game_id',game.id)
+        .maybeSingle()
+
       pick=p
     }
   }
 
-  const {data:statusRows}=await supabase.rpc('league_pick_status',{p_season:2026,p_week:week})
-  const submitted=(statusRows||[]).filter((r:any)=>r.submitted).length
+  const {data:divisionNameRow}=squad
+    ? await supabase
+        .from('division_names')
+        .select('division_name')
+        .eq('season_year',2026)
+        .eq('division',squad.division)
+        .maybeSingle()
+    : {data:null}
 
-  const {data:divisionNameRow}=squad ? await supabase.from('division_names').select('division_name').eq('season_year',2026).eq('division',squad.division).maybeSingle() : {data:null}
-  const divisionTitle=divisionNameRow?.division_name || (squad?`Division ${squad.division}`:'')
+  const divisionTitle=
+    divisionNameRow?.division_name ||
+    (squad?`Division ${squad.division}`:'')
 
-  const {data:standings}=await supabase.from('standings')
+  const {data:standings}=await supabase
+    .from('standings')
     .select('wins,losses,pushes,ats_margin,squads!inner(id,squad_name,division)')
     .eq('season_year',2026)
-  const divRows=(standings||[]).filter((r:any)=>r.squads?.division===squad?.division)
-    .sort((a:any,b:any)=>(b.wins-a.wins)||(Number(b.ats_margin)-Number(a.ats_margin)))
-  const myStanding:any=(standings||[]).find((r:any)=>r.squads?.id===squad?.id) 
-  const homeSpread=game?.spread===null||game?.spread===undefined?null:Number(game.spread)
-  const awaySpread=homeSpread===null?null:-homeSpread
-  const ownSpread=game && squad?.nfl_team_id===game.home_team_id?homeSpread:awaySpread
+
+  const divRows=(standings||[])
+    .filter((r:any)=>r.squads?.division===squad?.division)
+    .sort(
+      (a:any,b:any)=>
+        (b.wins-a.wins) ||
+        (Number(b.ats_margin)-Number(a.ats_margin))
+    )
+
+  const myStanding:any=(standings||[])
+    .find((r:any)=>r.squads?.id===squad?.id)
+
+  const homeSpread=
+    game?.spread===null ||
+    game?.spread===undefined
+      ? null
+      : Number(game.spread)
+
+  const awaySpread=
+    homeSpread===null
+      ? null
+      : -homeSpread
+
+  const ownSpread=
+    game &&
+    squad?.nfl_team_id===game.home_team_id
+      ? homeSpread
+      : awaySpread
+
+  const {data:chatMessages}=await supabase
+    .from('chat_messages')
+    .select(`
+      id,
+      message,
+      is_commissioner,
+      is_pinned,
+      created_at,
+      squads(
+        squad_name,
+        owner_name
+      )
+    `)
+    .order('is_pinned',{ascending:false})
+    .order('pinned_at',{ascending:false,nullsFirst:false})
+    .order('created_at',{ascending:false})
+    .limit(5)
 
   return <main className="wrap">
-    <div className="top"><div><div className="big">NFL SQUADS</div><div className="muted">2026 Season</div></div></div>
+
+    <div className="top">
+      <div>
+        <div className="big">NFL SQUADS</div>
+        <div className="muted">2026 Season</div>
+      </div>
+    </div>
+
     <Nav commissioner={commissioner}/>
 
-    {commissioner && <section className="card">
-      <h2>Commissioner</h2>
-      <p><a href="/commissioner/setup"><b>League Setup</b></a> · <a href="/commissioner/live-feed"><b>Live Feed</b></a> · <a href="/commissioner/results"><b>Lines & Results</b></a></p>
-    </section>}
+    {commissioner && (
+      <section className="card">
+        <h2>Commissioner</h2>
+
+        <p>
+          <a href="/commissioner/setup"><b>League Setup</b></a>
+          {' · '}
+          <a href="/commissioner/live-feed"><b>Live Feed</b></a>
+          {' · '}
+          <a href="/commissioner/results"><b>Lines & Results</b></a>
+        </p>
+      </section>
+    )}
 
     <div className="grid">
+
       <section className="card">
-  <h2>My Squad</h2>
-{squad && (
-  <img
-    src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
-    alt={`${(squad as any)?.nfl_teams?.name || 'NFL team'} logo`}
-    width={90}
-    height={90}
-    style={{objectFit:'contain'}}
-  />
-)}
-  <p className="big">{squad?.squad_name || 'Not assigned yet'}</p>
+        <h2>My Squad</h2>
 
-  {squad ? <>
-    <p>{(squad as any)?.nfl_teams?.name || ''}</p>
-    <p><b>{divisionTitle}</b></p>
+        {squad && (
+          <img
+            src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
+            alt={`${(squad as any)?.nfl_teams?.name || 'NFL team'} logo`}
+            width={90}
+            height={90}
+            style={{objectFit:'contain'}}
+          />
+        )}
 
-    <p>
-      <b>Record:</b>{' '}
-      {myStanding
-        ? `${myStanding.wins}-${myStanding.losses}-${myStanding.pushes}`
-        : '0-0-0'}
-    </p>
+        <p className="big">
+          {squad?.squad_name || 'Not assigned yet'}
+        </p>
 
-    <p>
-      <b>ATS Margin:</b>{' '}
-      {myStanding
-        ? `${Number(myStanding.ats_margin) > 0 ? '+' : ''}${myStanding.ats_margin}`
-        : '0'}
-    </p>
-  </> : <>
-    <p className="muted">Waiting for commissioner assignment.</p>
-  </>}
-</section>
-      <section className="card">
-        <h2>{game?`Week ${game.nfl_week} NFL Game`:'My Matchup'}</h2>
-        {game?<>
-         <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:12}}>
-  <div style={{textAlign:'center'}}>
-    <img
-      src={`/helmets/${game.away?.abbreviation}.png`}
-      alt={`${game.away?.name || 'Away team'} logo`}
-      width={64}
-      height={64}
-      style={{objectFit:'contain'}}
-    />
-    <div><b>{game.away?.name}</b></div>
-  </div>
+        {squad ? <>
+          <p>
+            {(squad as any)?.nfl_teams?.name || ''}
+          </p>
 
-  <div><b>at</b></div>
+          <p>
+            <b>{divisionTitle}</b>
+          </p>
 
-  <div style={{textAlign:'center'}}>
-    <img
-      src={`/helmets/${game.home?.abbreviation}.png`}
-      alt={`${game.home?.name || 'Home team'} logo`}
-      width={64}
-      height={64}
-      style={{objectFit:'contain'}}
-    />
-    <div><b>{game.home?.name}</b></div>
-  </div>
-</div>
-          <p><b>Your line:</b> {fmtSpread(ownSpread)}</p>
-          <p><b>Game total:</b> {game.total ?? 'Pending'}</p>
-<p><b>Kickoff:</b> {new Date(game.kickoff_time).toLocaleString('en-US', {
-  timeZone: 'America/New_York',
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  timeZoneName: 'short',
-})}</p>
-<KickoffCountdown kickoffTime={game.kickoff_time} />
-<p><b>Status:</b> {game.status}</p>
-        </>:<p className="muted">No upcoming game found.</p>}
+          <p>
+            <b>Record:</b>{' '}
+            {myStanding
+              ? `${myStanding.wins}-${myStanding.losses}-${myStanding.pushes}`
+              : '0-0-0'}
+          </p>
+
+          <p>
+            <b>ATS Margin:</b>{' '}
+            {myStanding
+              ? `${Number(myStanding.ats_margin)>0?'+':''}${myStanding.ats_margin}`
+              : '0'}
+          </p>
+        </> : <>
+          <p className="muted">
+            Waiting for commissioner assignment.
+          </p>
+        </>}
       </section>
 
       <section className="card">
-  <h2>My Pick</h2>
+        <h2>
+          {game
+            ? `Week ${game.nfl_week} NFL Game`
+            : 'My Matchup'}
+        </h2>
 
-  <p className="big">
-    {pick ? '✓ Pick Submitted' : 'Pick Needed'}
-  </p>
+        {game ? <>
+          <div
+            style={{
+              display:'flex',
+              alignItems:'center',
+              gap:16,
+              marginBottom:12
+            }}
+          >
+            <div style={{textAlign:'center'}}>
+              <img
+                src={`/helmets/${game.away?.abbreviation}.png`}
+                alt={`${game.away?.name || 'Away team'} logo`}
+                width={64}
+                height={64}
+                style={{objectFit:'contain'}}
+              />
 
-  <p className="muted">
-    {pick?.is_locked
-      ? 'Your pick is locked.'
-      : game
-        ? 'You may change your pick until one minute before kickoff.'
-        : 'Waiting for your next matchup.'}
-  </p>
+              <div>
+                <b>{game.away?.name}</b>
+              </div>
+            </div>
 
-  {game && !pick?.is_locked && (
-    <p>
-      <a
-        href="/my-pick"
-        className="submit"
-        style={{
-          display:'inline-block',
-          textDecoration:'none',
-          textAlign:'center'
-        }}
-      >
-        {pick ? 'Review / Update My Pick →' : 'MAKE MY PICK →'}
-      </a>
-    </p>
-  )}
+            <div>
+              <b>at</b>
+            </div>
 
-  {pick?.is_locked && (
-    <p><a href="/my-pick"><b>View My Pick →</b></a></p>
-  )}
-</section>
-</div>
+            <div style={{textAlign:'center'}}>
+              <img
+                src={`/helmets/${game.home?.abbreviation}.png`}
+                alt={`${game.home?.name || 'Home team'} logo`}
+                width={64}
+                height={64}
+                style={{objectFit:'contain'}}
+              />
 
-<div className="grid">
+              <div>
+                <b>{game.home?.name}</b>
+              </div>
+            </div>
+          </div>
+
+          <p>
+            <b>Your line:</b>{' '}
+            {fmtSpread(ownSpread)}
+          </p>
+
+          <p>
+            <b>Game total:</b>{' '}
+            {game.total ?? 'Pending'}
+          </p>
+
+          <p>
+            <b>Kickoff:</b>{' '}
+            {new Date(game.kickoff_time).toLocaleString('en-US',{
+              timeZone:'America/New_York',
+              month:'short',
+              day:'numeric',
+              hour:'numeric',
+              minute:'2-digit',
+              timeZoneName:'short'
+            })}
+          </p>
+
+          <KickoffCountdown kickoffTime={game.kickoff_time}/>
+
+          <p>
+            <b>Status:</b>{' '}
+            {game.status}
+          </p>
+        </> : (
+          <p className="muted">
+            No upcoming game found.
+          </p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>My Pick</h2>
+
+        <p className="big">
+          {pick
+            ? '✓ Pick Submitted'
+            : 'Pick Needed'}
+        </p>
+
+        <p className="muted">
+          {pick?.is_locked
+            ? 'Your pick is locked.'
+            : game
+              ? 'You may change your pick until one minute before kickoff.'
+              : 'Waiting for your next matchup.'}
+        </p>
+
+        {game && !pick?.is_locked && (
+          <p>
+            <a
+              href="/my-pick"
+              className="submit"
+              style={{
+                display:'inline-block',
+                textDecoration:'none',
+                textAlign:'center'
+              }}
+            >
+              {pick
+                ? 'Review / Update My Pick →'
+                : 'MAKE MY PICK →'}
+            </a>
+          </p>
+        )}
+
+        {pick?.is_locked && (
+          <p>
+            <a href="/my-pick">
+              <b>View My Pick →</b>
+            </a>
+          </p>
+        )}
+      </section>
+
+    </div>
+
+    <div className="grid">
+
       <section className="card">
         <h2>{divisionTitle}</h2>
-        {divRows.length===0?<p className="muted">Standings will appear after grading.</p>:
-        divRows.map((r:any,i:number)=><p key={r.squads.id}><b>{i+1}. {r.squads.squad_name}</b> — {r.wins}-{r.losses}-{r.pushes} · ATS {Number(r.ats_margin)>0?'+':''}{r.ats_margin}</p>)}
+
+        {divRows.length===0
+          ? (
+            <p className="muted">
+              Standings will appear after grading.
+            </p>
+          )
+          : divRows.map((r:any,i:number)=>(
+            <p key={r.squads.id}>
+              <b>
+                {i+1}. {r.squads.squad_name}
+              </b>
+              {' — '}
+              {r.wins}-{r.losses}-{r.pushes}
+              {' · ATS '}
+              {Number(r.ats_margin)>0?'+':''}
+              {r.ats_margin}
+            </p>
+          ))
+        }
       </section>
+
     </div>
+
+    <section className="card">
+      <h2>League Chat</h2>
+
+      {!chatMessages?.length
+        ? (
+          <p className="muted">
+            No messages yet.
+          </p>
+        )
+        : chatMessages.map((m:any)=>{
+          const squad=m.squads
+
+          const author=
+            squad?.owner_name ||
+            squad?.squad_name ||
+            (m.is_commissioner
+              ? 'Commissioner'
+              : 'Owner')
+
+          return <div
+            key={m.id}
+            style={{
+              padding:'10px 0',
+              borderBottom:'1px solid #ddd'
+            }}
+          >
+            {m.is_pinned && (
+              <div
+                style={{
+                  fontWeight:700,
+                  marginBottom:4
+                }}
+              >
+                📌 Pinned Announcement
+              </div>
+            )}
+
+            <div>
+              <b>{author}</b>
+
+              {squad?.squad_name &&
+               squad.owner_name
+                ? (
+                  <span className="muted">
+                    {' '}· {squad.squad_name}
+                  </span>
+                )
+                : null}
+            </div>
+
+            <div style={{marginTop:4}}>
+              {m.message}
+            </div>
+
+            <div
+              className="muted"
+              style={{
+                marginTop:4,
+                fontSize:'0.85rem'
+              }}
+            >
+              {formatChatTime(m.created_at)} ET
+            </div>
+          </div>
+        })
+      }
+
+      <p style={{marginTop:14}}>
+        <a href="/chat">
+          <b>Open League Chat →</b>
+        </a>
+      </p>
+    </section>
+
   </main>
 }

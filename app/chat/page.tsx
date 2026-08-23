@@ -143,15 +143,15 @@ export default async function ChatPage(){
                 {formatTime(m.created_at)} ET
               </div>
 
-              <div
-                style={{
-                  marginTop:10,
-                  display:'flex',
-                  gap:8,
-                  flexWrap:'wrap'
-                }}
-              >
-                {commissioner && (
+              {commissioner && (
+                <div
+                  style={{
+                    marginTop:10,
+                    display:'flex',
+                    gap:8,
+                    flexWrap:'wrap'
+                  }}
+                >
                   <form action={togglePinMessage}>
                     <input
                       type="hidden"
@@ -169,9 +169,7 @@ export default async function ChatPage(){
                       {m.is_pinned ? 'Unpin' : 'Pin'}
                     </button>
                   </form>
-                )}
 
-                {(commissioner || m.user_id===user.id) && (
                   <form action={deleteMessage}>
                     <input
                       type="hidden"
@@ -183,8 +181,8 @@ export default async function ChatPage(){
                       Delete
                     </button>
                   </form>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           })
       }

@@ -6,7 +6,7 @@ import { submitPick } from './actions'
 function fmtSpread(n:number|null){
   if(n===null) return 'Line not posted'
   if(n===0) return 'PK'
-  return n>0?`+${n}`:`${n}`
+  return n>0 ? `+${n}` : `${n}`
 }
 
 function fmtEastern(value:string|Date){
@@ -23,13 +23,19 @@ function fmtEastern(value:string|Date){
 export default async function MyPick({
   searchParams
 }:{
-  searchParams:Promise<{saved?:string,error?:string}>
+  searchParams:Promise<{
+    saved?:string,
+    error?:string
+  }>
 }){
   const sp=await searchParams
   const supabase=await createClient()
 
   const {data:{user}}=await supabase.auth.getUser()
-  if(!user) redirect('/login')
+
+  if(!user){
+    redirect('/login')
+  }
 
   const {data:profile}=await supabase
     .from('users')
@@ -37,24 +43,39 @@ export default async function MyPick({
     .eq('id',user.id)
     .maybeSingle()
 
-  const commissioner=profile?.role==='commissioner'
+  const commissioner=
+    profile?.role==='commissioner'
 
   const {data:squad}=await supabase
     .from('squads')
-    .select('id,squad_name,nfl_team_id')
+    .select(
+      'id,squad_name,nfl_team_id'
+    )
     .eq('user_id',user.id)
     .eq('season_year',2026)
     .maybeSingle()
 
   if(!squad){
-    return <main className="wrap">
-      <Nav commissioner={commissioner}/>
-      <h1>My Pick</h1>
+    return (
+      <main className="wrap">
+        <Nav commissioner={commissioner}/>
 
-      <div className="card">
-        Your squad has not been assigned yet.
-      </div>
-    </main>
+        <h1 style={{textAlign:'center'}}>
+          My Pick
+        </h1>
+
+        <div
+          className="card"
+          style={{
+            textAlign:'center',
+            maxWidth:720,
+            margin:'0 auto'
+          }}
+        >
+          Your squad has not been assigned yet.
+        </div>
+      </main>
+    )
   }
 
   const {data:allGames}=await supabase
@@ -67,21 +88,36 @@ export default async function MyPick({
       status,
       home_team_id,
       away_team_id,
-      home:nfl_teams!games_home_team_id_fkey(name,abbreviation),
-      away:nfl_teams!games_away_team_id_fkey(name,abbreviation)
+      home:nfl_teams!games_home_team_id_fkey(
+        name,
+        abbreviation
+      ),
+      away:nfl_teams!games_away_team_id_fkey(
+        name,
+        abbreviation
+      )
     `)
     .eq('season_year',2026)
     .or(
       `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
     )
-    .order('nfl_week',{ascending:true})
-    .order('kickoff_time',{ascending:true})
+    .order(
+      'nfl_week',
+      {ascending:true}
+    )
+    .order(
+      'kickoff_time',
+      {ascending:true}
+    )
 
-  const squadGames=(allGames||[]) as any[]
+  const squadGames=
+    (allGames||[]) as any[]
 
   const weeks=[
     ...new Set(
-      squadGames.map((g:any)=>Number(g.nfl_week))
+      squadGames.map(
+        (g:any)=>Number(g.nfl_week)
+      )
     )
   ]
 
@@ -110,11 +146,14 @@ export default async function MyPick({
   let selectedWeek:number|null=null
 
   for(const week of openWeeks){
-    const hasAvailableGame=squadGames.some(
-      (g:any)=>
-        Number(g.nfl_week)===week &&
-        String(g.status||'').toLowerCase()!=='final'
-    )
+    const hasAvailableGame=
+      squadGames.some(
+        (g:any)=>
+          Number(g.nfl_week)===week &&
+          String(
+            g.status||''
+          ).toLowerCase()!=='final'
+      )
 
     if(hasAvailableGame){
       selectedWeek=week
@@ -128,21 +167,38 @@ export default async function MyPick({
       : squadGames.find(
           (g:any)=>
             Number(g.nfl_week)===selectedWeek &&
-            String(g.status||'').toLowerCase()!=='final'
+            String(
+              g.status||''
+            ).toLowerCase()!=='final'
         )
 
   if(!game){
-    return <main className="wrap">
-      <Nav commissioner={commissioner}/>
-      <h1>My Pick</h1>
+    return (
+      <main className="wrap">
+        <Nav commissioner={commissioner}/>
 
-      <div className="card">
-        No currently open matchup found.
-      </div>
-    </main>
+        <h1 style={{textAlign:'center'}}>
+          My Pick
+        </h1>
+
+        <div
+          className="card"
+          style={{
+            textAlign:'center',
+            maxWidth:720,
+            margin:'0 auto'
+          }}
+        >
+          No currently open matchup found.
+        </div>
+      </main>
+    )
   }
 
-  const [{data:pick},{data:weekOpen}] = await Promise.all([
+  const [
+    {data:pick},
+    {data:weekOpen}
+  ]=await Promise.all([
     supabase
       .from('picks')
       .select(
@@ -163,10 +219,13 @@ export default async function MyPick({
 
   const deadline=
     new Date(
-      new Date(game.kickoff_time).getTime()-60_000
+      new Date(
+        game.kickoff_time
+      ).getTime()-60_000
     )
 
-  const deadlinePassed=new Date()>=deadline
+  const deadlinePassed=
+    new Date()>=deadline
 
   const locked=
     deadlinePassed ||
@@ -187,130 +246,233 @@ export default async function MyPick({
     locked ||
     homeSpread===null
 
-  let buttonText='Submit / Update Pick'
+  let buttonText=
+    'Submit / Update Pick'
 
   if(!weekOpen){
-    buttonText='Week Not Open Yet'
+    buttonText=
+      'Week Not Open Yet'
   }else if(locked){
-    buttonText='Pick Locked'
+    buttonText=
+      'Pick Locked'
   }else if(homeSpread===null){
-    buttonText='Waiting for Closing Line'
+    buttonText=
+      'Waiting for Closing Line'
   }
 
-  return <main className="wrap">
-    <Nav commissioner={commissioner}/>
+  return (
+    <main className="wrap">
 
-    <h1>My Pick</h1>
+      <Nav commissioner={commissioner}/>
 
-    <div className="card">
-      <h2>Week {game.nfl_week}</h2>
+      <h1
+        style={{
+          textAlign:'center'
+        }}
+      >
+        My Pick
+      </h1>
 
-      <p>
-        <b>Kickoff:</b>{' '}
-        {fmtEastern(game.kickoff_time)}
-      </p>
+      <section
+        className="card"
+        style={{
+          textAlign:'center',
+          maxWidth:720,
+          margin:'0 auto'
+        }}
+      >
+        <h2>
+          Week {game.nfl_week}
+        </h2>
 
-      <p>
-        <b>Pick deadline:</b>{' '}
-        {fmtEastern(deadline)}
-      </p>
-
-      {!weekOpen && (
-        <p className="status">
-          Week {game.nfl_week} picks are not open yet.
-          The new week opens one minute after the final
-          Monday Night Football game from the previous week goes final.
+        <p>
+          <b>Kickoff:</b>{' '}
+          {fmtEastern(
+            game.kickoff_time
+          )}
         </p>
-      )}
 
-      {sp.saved && (
-        <p className="status">
-          Pick saved.
+        <p>
+          <b>Pick deadline:</b>{' '}
+          {fmtEastern(deadline)}
         </p>
-      )}
 
-      {sp.error==='week_closed' && (
-        <p className="status">
-          This week's picks are not open yet.
-        </p>
-      )}
+        {!weekOpen && (
+          <p className="status">
+            Week {game.nfl_week} picks are not open yet.
+            The new week opens one minute after the final
+            Monday Night Football game from the previous week goes final.
+          </p>
+        )}
 
-      {sp.error &&
-       sp.error!=='week_closed' && (
-        <p className="status">
-          Unable to save pick: {sp.error}
-        </p>
-      )}
+        {sp.saved && (
+          <p
+            className="status"
+            style={{
+              textAlign:'center'
+            }}
+          >
+            Pick saved.
+          </p>
+        )}
 
-      {pick && !pick.is_missed && (
-        <p className="status">
-          Current pick submitted.
-        </p>
-      )}
+        {sp.error==='week_closed' && (
+          <p
+            className="status"
+            style={{
+              textAlign:'center'
+            }}
+          >
+            This week's picks are not open yet.
+          </p>
+        )}
 
-      {pick?.is_missed && (
-        <p className="status">
-          No pick was submitted for this matchup.
-        </p>
-      )}
+        {sp.error &&
+         sp.error!=='week_closed' && (
+          <p
+            className="status"
+            style={{
+              textAlign:'center'
+            }}
+          >
+            Unable to save pick: {sp.error}
+          </p>
+        )}
 
-      <form action={submitPick}>
-        <input
-          type="hidden"
-          name="squad_id"
-          value={squad.id}
-        />
+        {pick && !pick.is_missed && (
+          <p
+            className="status"
+            style={{
+              textAlign:'center'
+            }}
+          >
+            Current pick submitted.
+          </p>
+        )}
 
-        <input
-          type="hidden"
-          name="game_id"
-          value={game.id}
-        />
+        {pick?.is_missed && (
+          <p
+            className="status"
+            style={{
+              textAlign:'center'
+            }}
+          >
+            No pick was submitted for this matchup.
+          </p>
+        )}
 
-        <label className="pick">
-          <input
-            type="radio"
-            name="selection_team_id"
-            value={game.away_team_id}
-            defaultChecked={
-              pick?.selection_team_id===game.away_team_id
-            }
-            required
-            disabled={!weekOpen || locked}
-          />
-
-          {' '}
-          {game.away?.name}
-          {' '}
-          {fmtSpread(awaySpread)}
-        </label>
-
-        <label className="pick">
-          <input
-            type="radio"
-            name="selection_team_id"
-            value={game.home_team_id}
-            defaultChecked={
-              pick?.selection_team_id===game.home_team_id
-            }
-            required
-            disabled={!weekOpen || locked}
-          />
-
-          {' '}
-          {game.home?.name}
-          {' '}
-          {fmtSpread(homeSpread)}
-        </label>
-
-        <button
-          className="submit"
-          type="submit"
-          disabled={submissionDisabled}
+        <form
+          action={submitPick}
+          style={{
+            display:'grid',
+            gap:14,
+            maxWidth:520,
+            margin:'20px auto 0'
+          }}
         >
-          {buttonText}
-        </button>
-      </form>
-    </div>
-  </main>
+          <input
+            type="hidden"
+            name="squad_id"
+            value={squad.id}
+          />
+
+          <input
+            type="hidden"
+            name="game_id"
+            value={game.id}
+          />
+
+          <label
+            className="pick"
+            style={{
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              gap:8,
+              textAlign:'center'
+            }}
+          >
+            <input
+              type="radio"
+              name="selection_team_id"
+              value={game.away_team_id}
+              defaultChecked={
+                pick?.selection_team_id===
+                game.away_team_id
+              }
+              required
+              disabled={
+                !weekOpen ||
+                locked
+              }
+            />
+
+            <b>
+              {game.away?.name}
+            </b>
+
+            <span>
+              {fmtSpread(
+                awaySpread
+              )}
+            </span>
+          </label>
+
+          <label
+            className="pick"
+            style={{
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              gap:8,
+              textAlign:'center'
+            }}
+          >
+            <input
+              type="radio"
+              name="selection_team_id"
+              value={game.home_team_id}
+              defaultChecked={
+                pick?.selection_team_id===
+                game.home_team_id
+              }
+              required
+              disabled={
+                !weekOpen ||
+                locked
+              }
+            />
+
+            <b>
+              {game.home?.name}
+            </b>
+
+            <span>
+              {fmtSpread(
+                homeSpread
+              )}
+            </span>
+          </label>
+
+          <div
+            style={{
+              textAlign:'center',
+              marginTop:6
+            }}
+          >
+            <button
+              className="submit"
+              type="submit"
+              disabled={
+                submissionDisabled
+              }
+            >
+              {buttonText}
+            </button>
+          </div>
+        </form>
+      </section>
+
+    </main>
+  )
 }

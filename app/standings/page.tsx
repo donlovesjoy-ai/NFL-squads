@@ -94,16 +94,16 @@ export default async function Standings(){
 
   const headCell={
     textAlign:'center' as const,
-    padding:'8px 4px',
+    padding:'8px 3px',
     whiteSpace:'nowrap' as const,
-    fontSize:'0.9rem'
+    fontSize:'0.88rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'8px 4px',
+    padding:'8px 3px',
     verticalAlign:'middle' as const,
-    fontSize:'0.9rem'
+    fontSize:'0.88rem'
   }
 
   return (
@@ -174,8 +174,8 @@ export default async function Standings(){
                 }}
               >
                 <colgroup>
-                  <col style={{width:'20%'}}/>
-                  <col style={{width:'32%'}}/>
+                  <col style={{width:'22%'}}/>
+                  <col style={{width:'30%'}}/>
                   <col style={{width:'8%'}}/>
                   <col style={{width:'8%'}}/>
                   <col style={{width:'8%'}}/>
@@ -231,8 +231,9 @@ export default async function Standings(){
                           <td
                             style={{
                               ...bodyCell,
-                              overflowWrap:'anywhere',
-                              lineHeight:1.2
+                              whiteSpace:'nowrap',
+                              fontSize:'0.76rem',
+                              letterSpacing:'-0.02em'
                             }}
                           >
                             {r.squads
@@ -243,7 +244,8 @@ export default async function Standings(){
                           <td
                             style={{
                               ...bodyCell,
-                              overflowWrap:'anywhere',
+                              overflowWrap:'normal',
+                              wordBreak:'normal',
                               lineHeight:1.2
                             }}
                           >

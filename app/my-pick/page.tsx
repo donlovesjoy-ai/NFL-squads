@@ -57,7 +57,7 @@ export default async function MyPick({
     </main>
   }
 
-  const {data:games}=await supabase
+  const {data:allGames}=await supabase
     .from('games')
     .select(`
       id,
@@ -71,14 +71,65 @@ export default async function MyPick({
       away:nfl_teams!games_away_team_id_fkey(name,abbreviation)
     `)
     .eq('season_year',2026)
-    .neq('status','final')
     .or(
       `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
     )
+    .order('nfl_week',{ascending:true})
     .order('kickoff_time',{ascending:true})
-    .limit(1)
 
-  const game:any=games?.[0]
+  const squadGames=(allGames||[]) as any[]
+
+  const weeks=[
+    ...new Set(
+      squadGames.map((g:any)=>Number(g.nfl_week))
+    )
+  ]
+
+  const weekChecks=await Promise.all(
+    weeks.map(async week=>{
+      const {data:open}=await supabase.rpc(
+        'is_pick_week_open',
+        {
+          p_season:2026,
+          p_week:week
+        }
+      )
+
+      return {
+        week,
+        open:open===true
+      }
+    })
+  )
+
+  const openWeeks=weekChecks
+    .filter(w=>w.open)
+    .map(w=>w.week)
+    .sort((a,b)=>b-a)
+
+  let selectedWeek:number|null=null
+
+  for(const week of openWeeks){
+    const hasAvailableGame=squadGames.some(
+      (g:any)=>
+        Number(g.nfl_week)===week &&
+        String(g.status||'').toLowerCase()!=='final'
+    )
+
+    if(hasAvailableGame){
+      selectedWeek=week
+      break
+    }
+  }
+
+  const game:any=
+    selectedWeek===null
+      ? null
+      : squadGames.find(
+          (g:any)=>
+            Number(g.nfl_week)===selectedWeek &&
+            String(g.status||'').toLowerCase()!=='final'
+        )
 
   if(!game){
     return <main className="wrap">
@@ -86,7 +137,7 @@ export default async function MyPick({
       <h1>My Pick</h1>
 
       <div className="card">
-        No upcoming game found.
+        No currently open matchup found.
       </div>
     </main>
   }
@@ -94,15 +145,20 @@ export default async function MyPick({
   const [{data:pick},{data:weekOpen}] = await Promise.all([
     supabase
       .from('picks')
-      .select('selection_team_id,result,ats_margin,is_locked')
+      .select(
+        'selection_team_id,result,ats_margin,is_locked,revealed,is_missed'
+      )
       .eq('squad_id',squad.id)
       .eq('game_id',game.id)
       .maybeSingle(),
 
-    supabase.rpc('is_pick_week_open',{
-      p_season:2026,
-      p_week:game.nfl_week
-    })
+    supabase.rpc(
+      'is_pick_week_open',
+      {
+        p_season:2026,
+        p_week:game.nfl_week
+      }
+    )
   ])
 
   const deadline=
@@ -111,6 +167,7 @@ export default async function MyPick({
     )
 
   const deadlinePassed=new Date()>=deadline
+
   const locked=
     deadlinePassed ||
     pick?.is_locked===true
@@ -185,9 +242,15 @@ export default async function MyPick({
         </p>
       )}
 
-      {pick && (
+      {pick && !pick.is_missed && (
         <p className="status">
           Current pick submitted.
+        </p>
+      )}
+
+      {pick?.is_missed && (
+        <p className="status">
+          No pick was submitted for this matchup.
         </p>
       )}
 

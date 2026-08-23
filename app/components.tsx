@@ -7,6 +7,8 @@ export function Nav({ commissioner=false }:{ commissioner?:boolean }){
     <Link href="/schedule">Schedule</Link>
     <Link href="/standings">Standings</Link>
     <Link href="/playoffs">Playoffs</Link>
+    <Link href="/chat">Chat</Link>
+
     {commissioner && <Link href="/commissioner/setup">League Setup</Link>}
     {commissioner && <Link href="/commissioner/results">Lines & Results</Link>}
     {commissioner && <Link href="/commissioner/live-feed">Live Feed</Link>}

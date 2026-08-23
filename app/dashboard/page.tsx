@@ -44,6 +44,15 @@ function ordinal(n:number){
   }
 }
 
+function sameStanding(a:any,b:any){
+  return (
+    a.wins===b.wins &&
+    a.losses===b.losses &&
+    a.pushes===b.pushes &&
+    Number(a.ats_margin)===Number(b.ats_margin)
+  )
+}
+
 export default async function Dashboard(){
   const supabase=await createClient()
 
@@ -174,31 +183,49 @@ export default async function Dashboard(){
     .sort(
       (a:any,b:any)=>
         (b.wins-a.wins) ||
-        (
-          Number(b.ats_margin)-
-          Number(a.ats_margin)
-        ) ||
-        (
-          a.squads.id-
-          b.squads.id
-        )
+        (Number(b.ats_margin)-Number(a.ats_margin)) ||
+        (a.squads.id-b.squads.id)
     )
 
-  const myStanding:any=(standings||[])
+  const rankedDivRows=divRows.map((row:any,index:number)=>{
+    const previous=divRows[index-1]
+
+    let rank=1
+
+    if(index>0){
+      if(sameStanding(row,previous)){
+        rank=(divRows
+          .slice(0,index)
+          .findIndex((r:any)=>sameStanding(r,row))
+        )+1
+      }else{
+        rank=index+1
+      }
+    }
+
+    const tied=
+      divRows.some(
+        (other:any)=>
+          other.squads.id!==row.squads.id &&
+          sameStanding(other,row)
+      )
+
+    return {
+      ...row,
+      displayRank:rank,
+      tied
+    }
+  })
+
+  const myStanding:any=rankedDivRows
     .find(
       (r:any)=>
         r.squads?.id===squad?.id
     )
 
-  const myPlaceIndex=
-    divRows.findIndex(
-      (r:any)=>
-        r.squads?.id===squad?.id
-    )
-
   const myPlace=
-    myPlaceIndex>=0
-      ? ordinal(myPlaceIndex+1)
+    myStanding
+      ? `${myStanding.tied?'T-':''}${ordinal(myStanding.displayRank)}`
       : null
 
   const homeSpread=
@@ -305,8 +332,6 @@ export default async function Dashboard(){
 
       <div className="grid">
 
-        {/* MY SQUAD */}
-
         <section
           className="card"
           style={{
@@ -378,13 +403,10 @@ export default async function Dashboard(){
             </>
           ) : (
             <p className="muted">
-              Waiting for commissioner
-              assignment.
+              Waiting for commissioner assignment.
             </p>
           )}
         </section>
-
-        {/* NFL MATCHUP */}
 
         <section
           className="card"
@@ -513,8 +535,6 @@ export default async function Dashboard(){
           )}
         </section>
 
-        {/* MY PICK */}
-
         <section
           className="card"
           style={{
@@ -572,8 +592,6 @@ export default async function Dashboard(){
 
       </div>
 
-      {/* DIVISION STANDINGS */}
-
       <section
         className="card"
         style={{
@@ -584,7 +602,7 @@ export default async function Dashboard(){
           {divisionTitle}
         </h2>
 
-        {divRows.length===0 ? (
+        {rankedDivRows.length===0 ? (
           <p className="muted">
             Standings will appear
             after grading.
@@ -603,106 +621,51 @@ export default async function Dashboard(){
             >
               <thead>
                 <tr>
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
+                  <th style={{textAlign:'center'}}>
                     Place
                   </th>
 
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
+                  <th style={{textAlign:'center'}}>
                     Team
                   </th>
 
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
+                  <th style={{textAlign:'center'}}>
                     Record
                   </th>
 
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
+                  <th style={{textAlign:'center'}}>
                     Margin
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {divRows.map(
-                  (r:any,i:number)=>(
-                    <tr
-                      key={
-                        r.squads.id
-                      }
-                    >
-                      <td
-                        style={{
-                          textAlign:
-                            'center'
-                        }}
-                      >
-                        {i+1}
-                      </td>
+                {rankedDivRows.map((r:any)=>(
+                  <tr key={r.squads.id}>
+                    <td style={{textAlign:'center'}}>
+                      {r.tied?'T-':''}
+                      {ordinal(r.displayRank)}
+                    </td>
 
-                      <td
-                        style={{
-                          textAlign:
-                            'center'
-                        }}
-                      >
-                        <b>
-                          {
-                            r.squads
-                              .squad_name
-                          }
-                        </b>
-                      </td>
+                    <td style={{textAlign:'center'}}>
+                      <b>{r.squads.squad_name}</b>
+                    </td>
 
-                      <td
-                        style={{
-                          textAlign:
-                            'center'
-                        }}
-                      >
-                        {r.wins}-
-                        {r.losses}-
-                        {r.pushes}
-                      </td>
+                    <td style={{textAlign:'center'}}>
+                      {r.wins}-{r.losses}-{r.pushes}
+                    </td>
 
-                      <td
-                        style={{
-                          textAlign:
-                            'center'
-                        }}
-                      >
-                        {Number(
-                          r.ats_margin
-                        )>0
-                          ? '+'
-                          : ''}
-
-                        {r.ats_margin}
-                      </td>
-                    </tr>
-                  )
-                )}
+                    <td style={{textAlign:'center'}}>
+                      {Number(r.ats_margin)>0?'+':''}
+                      {r.ats_margin}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </section>
-
-      {/* LEAGUE CHAT */}
 
       <section
         className="card"
@@ -729,7 +692,6 @@ export default async function Dashboard(){
             {chatMessages.map(
               (m:any)=>{
                 const squad=m.squads
-
                 const isSystem=
                   m.is_system===true
 
@@ -760,8 +722,7 @@ export default async function Dashboard(){
                           marginBottom:4
                         }}
                       >
-                        📌 Pinned
-                        Announcement
+                        📌 Pinned Announcement
                       </div>
                     )}
 
@@ -779,11 +740,7 @@ export default async function Dashboard(){
                        squad.owner_name
                         ? (
                           <span className="muted">
-                            {' '}
-                            ·{' '}
-                            {
-                              squad.squad_name
-                            }
+                            {' '}· {squad.squad_name}
                           </span>
                         )
                         : null}
@@ -801,8 +758,7 @@ export default async function Dashboard(){
                       className="muted"
                       style={{
                         marginTop:4,
-                        fontSize:
-                          '0.85rem'
+                        fontSize:'0.85rem'
                       }}
                     >
                       {formatChatTime(

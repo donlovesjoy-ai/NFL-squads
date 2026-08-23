@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import { submitPick } from './actions'
@@ -57,8 +57,6 @@ export default async function MyPick({
     </main>
   }
 
-  const now=new Date().toISOString()
-
   const {data:games}=await supabase
     .from('games')
     .select(`
@@ -66,13 +64,14 @@ export default async function MyPick({
       nfl_week,
       kickoff_time,
       spread,
+      status,
       home_team_id,
       away_team_id,
       home:nfl_teams!games_home_team_id_fkey(name,abbreviation),
       away:nfl_teams!games_away_team_id_fkey(name,abbreviation)
     `)
     .eq('season_year',2026)
-    .gte('kickoff_time',now)
+    .neq('status','final')
     .or(
       `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
     )

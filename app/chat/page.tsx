@@ -35,6 +35,7 @@ export default async function ChatPage(){
         user_id,
         message,
         is_commissioner,
+        is_system,
         is_pinned,
         pinned_at,
         created_at,
@@ -64,6 +65,7 @@ export default async function ChatPage(){
 
     <section className="card">
       <h1>League Chat</h1>
+
       <p className="muted">
         Talk league business, talk trash, or post updates.
       </p>
@@ -75,10 +77,16 @@ export default async function ChatPage(){
           maxLength={500}
           required
           rows={3}
-          style={{width:'100%',resize:'vertical'}}
+          style={{
+            width:'100%',
+            resize:'vertical'
+          }}
         />
 
-        <button className="submit" type="submit">
+        <button
+          className="submit"
+          type="submit"
+        >
           Post Message
         </button>
       </form>
@@ -91,10 +99,15 @@ export default async function ChatPage(){
         ? <p className="muted">No messages yet.</p>
         : messages.map((m:any)=>{
             const squad=m.squads
+
             const author =
               squad?.owner_name ||
               squad?.squad_name ||
-              (m.is_commissioner ? 'Commissioner' : 'Owner')
+              (m.is_commissioner
+                ? 'Commissioner'
+                : 'Owner')
+
+            const isSystem=m.is_system===true
 
             return <div
               key={m.id}
@@ -103,33 +116,59 @@ export default async function ChatPage(){
                 marginBottom:10,
                 border:m.is_pinned
                   ? '2px solid #999'
-                  : '1px solid #ddd',
-                borderRadius:8
+                  : isSystem
+                    ? '2px solid #bbb'
+                    : '1px solid #ddd',
+                borderRadius:8,
+                background:isSystem
+                  ? '#f7f7f7'
+                  : undefined
               }}
             >
               {m.is_pinned && (
-                <div style={{fontWeight:700,marginBottom:6}}>
+                <div
+                  style={{
+                    fontWeight:700,
+                    marginBottom:6
+                  }}
+                >
                   📌 Pinned Announcement
                 </div>
               )}
 
-              <div>
-                <b>{author}</b>
+              {isSystem ? (
+                <div>
+                  <b>🏈 NFL SQUADS · League Update</b>
+                </div>
+              ) : (
+                <div>
+                  <b>{author}</b>
 
-                {squad?.squad_name && squad.owner_name
-                  ? <span className="muted">
-                      {' '}· {squad.squad_name}
-                    </span>
-                  : null}
+                  {squad?.squad_name &&
+                   squad.owner_name
+                    ? (
+                      <span className="muted">
+                        {' '}· {squad.squad_name}
+                      </span>
+                    )
+                    : null}
 
-                {m.is_commissioner
-                  ? <span className="muted">
-                      {' '}· Commissioner
-                    </span>
-                  : null}
-              </div>
+                  {m.is_commissioner
+                    ? (
+                      <span className="muted">
+                        {' '}· Commissioner
+                      </span>
+                    )
+                    : null}
+                </div>
+              )}
 
-              <div style={{marginTop:6}}>
+              <div
+                style={{
+                  marginTop:6,
+                  fontWeight:isSystem?600:400
+                }}
+              >
                 {m.message}
               </div>
 

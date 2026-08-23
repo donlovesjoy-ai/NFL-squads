@@ -245,6 +245,9 @@ export default async function Dashboard(){
       ? homeSpread
       : awaySpread
 
+  const ownTeamName=
+    (squad as any)?.nfl_teams?.name || 'Team'
+
   const {data:chatMessages}=await supabase
     .from('chat_messages')
     .select(`
@@ -488,7 +491,7 @@ export default async function Dashboard(){
               </div>
 
               <p>
-                <b>Your line:</b>{' '}
+                <b>{ownTeamName}:</b>{' '}
                 {fmtSpread(ownSpread)}
               </p>
 

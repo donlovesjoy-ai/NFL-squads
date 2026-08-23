@@ -94,14 +94,16 @@ export default async function Standings(){
 
   const headCell={
     textAlign:'center' as const,
-    padding:'9px 6px',
-    whiteSpace:'nowrap' as const
+    padding:'8px 4px',
+    whiteSpace:'nowrap' as const,
+    fontSize:'0.9rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'9px 6px',
-    verticalAlign:'middle' as const
+    padding:'8px 4px',
+    verticalAlign:'middle' as const,
+    fontSize:'0.9rem'
   }
 
   return (
@@ -163,147 +165,124 @@ export default async function Standings(){
                 No teams assigned yet.
               </p>
             ) : (
-              <div
+              <table
                 style={{
-                  overflowX:'auto',
-                  width:'100%'
+                  width:'100%',
+                  textAlign:'center',
+                  borderCollapse:'collapse',
+                  tableLayout:'fixed'
                 }}
               >
-                <table
-                  style={{
-                    width:'100%',
-                    textAlign:'center',
-                    borderCollapse:'collapse',
-                    tableLayout:'fixed',
-                    minWidth:560
-                  }}
-                >
-                  <colgroup>
-                    <col style={{width:'22%'}}/>
-                    <col style={{width:'34%'}}/>
-                    <col style={{width:'9%'}}/>
-                    <col style={{width:'9%'}}/>
-                    <col style={{width:'9%'}}/>
-                    <col style={{width:'17%'}}/>
-                  </colgroup>
+                <colgroup>
+                  <col style={{width:'20%'}}/>
+                  <col style={{width:'32%'}}/>
+                  <col style={{width:'8%'}}/>
+                  <col style={{width:'8%'}}/>
+                  <col style={{width:'8%'}}/>
+                  <col style={{width:'24%'}}/>
+                </colgroup>
 
-                  <thead>
-                    <tr>
-                      <th style={headCell}>
-                        Owner
-                      </th>
+                <thead>
+                  <tr>
+                    <th style={headCell}>
+                      Owner
+                    </th>
 
-                      <th style={headCell}>
-                        Team
-                      </th>
+                    <th style={headCell}>
+                      Team
+                    </th>
 
-                      <th style={headCell}>
-                        W
-                      </th>
+                    <th style={headCell}>
+                      W
+                    </th>
 
-                      <th style={headCell}>
-                        L
-                      </th>
+                    <th style={headCell}>
+                      L
+                    </th>
 
-                      <th style={headCell}>
-                        T
-                      </th>
+                    <th style={headCell}>
+                      T
+                    </th>
 
-                      <th style={headCell}>
-                        Margin
-                      </th>
-                    </tr>
-                  </thead>
+                    <th style={headCell}>
+                      Margin
+                    </th>
+                  </tr>
+                </thead>
 
-                  <tbody>
-                    {rows.map(
-                      (r:any,i:number)=>{
-                        const isMe=
-                          r.squads
-                            ?.user_id===user.id
+                <tbody>
+                  {rows.map(
+                    (r:any,i:number)=>{
+                      const isMe=
+                        r.squads
+                          ?.user_id===user.id
 
-                        return (
-                          <tr
-                            key={i}
-                            style={
-                              isMe
-                                ? {
-                                    fontWeight:700
-                                  }
-                                : undefined
-                            }
-                          >
-                            <td
-                              style={{
-                                ...bodyCell,
-                                overflowWrap:'anywhere'
-                              }}
-                            >
-                              {r.squads
-                                .owner_name
-                                || '—'}
-                            </td>
-
-                            <td
-                              style={{
-                                ...bodyCell,
-                                overflowWrap:'anywhere',
-                                lineHeight:1.25
-                              }}
-                            >
-                              <b>
-                                {
-                                  r.squads
-                                    .squad_name
+                      return (
+                        <tr
+                          key={i}
+                          style={
+                            isMe
+                              ? {
+                                  fontWeight:700
                                 }
-                              </b>
-                            </td>
+                              : undefined
+                          }
+                        >
+                          <td
+                            style={{
+                              ...bodyCell,
+                              overflowWrap:'anywhere',
+                              lineHeight:1.2
+                            }}
+                          >
+                            {r.squads
+                              .owner_name
+                              || '—'}
+                          </td>
 
-                            <td
-                              style={{
-                                ...bodyCell,
-                                whiteSpace:'nowrap'
-                              }}
-                            >
-                              {r.wins}
-                            </td>
+                          <td
+                            style={{
+                              ...bodyCell,
+                              overflowWrap:'anywhere',
+                              lineHeight:1.2
+                            }}
+                          >
+                            <b>
+                              {
+                                r.squads
+                                  .squad_name
+                              }
+                            </b>
+                          </td>
 
-                            <td
-                              style={{
-                                ...bodyCell,
-                                whiteSpace:'nowrap'
-                              }}
-                            >
-                              {r.losses}
-                            </td>
+                          <td style={bodyCell}>
+                            {r.wins}
+                          </td>
 
-                            <td
-                              style={{
-                                ...bodyCell,
-                                whiteSpace:'nowrap'
-                              }}
-                            >
-                              {r.pushes}
-                            </td>
+                          <td style={bodyCell}>
+                            {r.losses}
+                          </td>
 
-                            <td
-                              style={{
-                                ...bodyCell,
-                                whiteSpace:'nowrap',
-                                minWidth:76
-                              }}
-                            >
-                              {signed(
-                                r.ats_margin
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      }
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          <td style={bodyCell}>
+                            {r.pushes}
+                          </td>
+
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
+                            {signed(
+                              r.ats_margin
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    }
+                  )}
+                </tbody>
+              </table>
             )}
           </section>
         )

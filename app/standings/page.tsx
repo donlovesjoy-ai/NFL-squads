@@ -94,13 +94,13 @@ export default async function Standings(){
 
   const headCell={
     textAlign:'center' as const,
-    padding:'9px 8px',
+    padding:'9px 6px',
     whiteSpace:'nowrap' as const
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'9px 8px',
+    padding:'9px 6px',
     verticalAlign:'middle' as const
   }
 
@@ -165,16 +165,28 @@ export default async function Standings(){
             ) : (
               <div
                 style={{
-                  overflowX:'auto'
+                  overflowX:'auto',
+                  width:'100%'
                 }}
               >
                 <table
                   style={{
                     width:'100%',
                     textAlign:'center',
-                    borderCollapse:'collapse'
+                    borderCollapse:'collapse',
+                    tableLayout:'fixed',
+                    minWidth:560
                   }}
                 >
+                  <colgroup>
+                    <col style={{width:'22%'}}/>
+                    <col style={{width:'34%'}}/>
+                    <col style={{width:'9%'}}/>
+                    <col style={{width:'9%'}}/>
+                    <col style={{width:'9%'}}/>
+                    <col style={{width:'17%'}}/>
+                  </colgroup>
+
                   <thead>
                     <tr>
                       <th style={headCell}>
@@ -221,13 +233,24 @@ export default async function Standings(){
                                 : undefined
                             }
                           >
-                            <td style={bodyCell}>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                overflowWrap:'anywhere'
+                              }}
+                            >
                               {r.squads
                                 .owner_name
                                 || '—'}
                             </td>
 
-                            <td style={bodyCell}>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                overflowWrap:'anywhere',
+                                lineHeight:1.25
+                              }}
+                            >
                               <b>
                                 {
                                   r.squads
@@ -236,19 +259,40 @@ export default async function Standings(){
                               </b>
                             </td>
 
-                            <td style={bodyCell}>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
                               {r.wins}
                             </td>
 
-                            <td style={bodyCell}>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
                               {r.losses}
                             </td>
 
-                            <td style={bodyCell}>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
                               {r.pushes}
                             </td>
 
-                            <td style={bodyCell}>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap',
+                                minWidth:76
+                              }}
+                            >
                               {signed(
                                 r.ats_margin
                               )}

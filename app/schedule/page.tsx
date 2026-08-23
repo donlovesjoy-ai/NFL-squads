@@ -1,294 +1,788 @@
-import { redirect } from 'next/navigation'
+ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import WeekSelector from './week-selector'
 
 function signed(n:any){
   if(n===null || n===undefined) return 'Pending'
-  const x=Number(n)
-  if(x===0) return 'PK'
-  return x>0?`+${x}`:`${x}`
-}
 
-function firstName(name:any){
-  const text=String(name||'').trim()
-  return text ? text.split(/\s+/)[0] : '—'
+  const x=Number(n)
+
+  if(x===0) return 'PK'
+
+  return x>0
+    ? `+${x}`
+    : `${x}`
 }
 
 export default async function Schedule({
   searchParams
-}:{searchParams:Promise<{week?:string}>}){
+}:{
+  searchParams:Promise<{week?:string}>
+}){
   const sp=await searchParams
-  const week=Math.min(18,Math.max(1,Number(sp.week||1)))
+
+  const week=
+    Math.min(
+      18,
+      Math.max(
+        1,
+        Number(sp.week||1)
+      )
+    )
 
   const supabase=await createClient()
-  const {data:{user}}=await supabase.auth.getUser()
-  if(!user) redirect('/login')
 
-  const {data:profile}=await supabase.from('users')
-    .select('role').eq('id',user.id).maybeSingle()
-  const commissioner=profile?.role==='commissioner'
+  const {data:{user}}=
+    await supabase.auth.getUser()
 
- const [{data:squads},{data:games},{data:divisionNames}] = await Promise.all([
-  supabase.from('squads')
-    .select('id,user_id,owner_name,squad_name,nfl_team_id,division,nfl_teams(name,abbreviation)')
-    .eq('season_year',2026)
-    .order('division')
-    .order('squad_name'),
+  if(!user){
+    redirect('/login')
+  }
 
-  supabase.from('games')
-    .select('id,nfl_week,kickoff_time,spread,total,status,home_score,away_score,home_team_id,away_team_id,home:nfl_teams!games_home_team_id_fkey(name,abbreviation),away:nfl_teams!games_away_team_id_fkey(name,abbreviation)')
-    .eq('season_year',2026)
-    .eq('nfl_week',week)
-    .order('kickoff_time'),
+  const {data:profile}=await supabase
+    .from('users')
+    .select('role')
+    .eq('id',user.id)
+    .maybeSingle()
 
-  supabase.from('division_names')
-    .select('division,division_name')
-    .eq('season_year',2026)
-    .order('division')
-])
+  const commissioner=
+    profile?.role==='commissioner'
 
-const gameIds=(games||[]).map((g:any)=>g.id)
+  const [
+    {data:squads},
+    {data:games},
+    {data:divisionNames}
+  ]=await Promise.all([
+    supabase
+      .from('squads')
+      .select(`
+        id,
+        user_id,
+        owner_name,
+        squad_name,
+        nfl_team_id,
+        division,
+        nfl_teams(
+          name,
+          abbreviation
+        )
+      `)
+      .eq('season_year',2026)
+      .order('division')
+      .order('squad_name'),
 
-let weekPicks:any[]=[]
+    supabase
+      .from('games')
+      .select(`
+        id,
+        nfl_week,
+        kickoff_time,
+        spread,
+        total,
+        status,
+        home_score,
+        away_score,
+        home_team_id,
+        away_team_id,
+        home:nfl_teams!games_home_team_id_fkey(
+          name,
+          abbreviation
+        ),
+        away:nfl_teams!games_away_team_id_fkey(
+          name,
+          abbreviation
+        )
+      `)
+      .eq('season_year',2026)
+      .eq('nfl_week',week)
+      .order('kickoff_time'),
 
-if(gameIds.length){
-  const {data:picks}=await supabase
-    .from('picks')
-    .select('squad_id,game_id,selection_team_id,result,revealed,is_missed,ats_margin')
-    .in('game_id',gameIds)
-
-  weekPicks=picks||[]
-}
-
-const pickBySquadGame=new Map(
-  weekPicks.map((p:any)=>[
-    `${p.squad_id}:${p.game_id}`,
-    p
+    supabase
+      .from('division_names')
+      .select(
+        'division,division_name'
+      )
+      .eq('season_year',2026)
+      .order('division')
   ])
-)
-const mySquad = (squads || []).find((s:any) => s.user_id === user.id)
-  const squadByNflTeam=new Map<number,any>()
+
+  const gameIds=
+    (games||[]).map(
+      (g:any)=>g.id
+    )
+
+  let weekPicks:any[]=[]
+
+  if(gameIds.length){
+    const {data:picks}=await supabase
+      .from('picks')
+      .select(`
+        squad_id,
+        game_id,
+        selection_team_id,
+        result,
+        revealed,
+        is_missed,
+        ats_margin
+      `)
+      .in(
+        'game_id',
+        gameIds
+      )
+
+    weekPicks=picks||[]
+  }
+
+  const pickBySquadGame=
+    new Map(
+      weekPicks.map(
+        (p:any)=>[
+          `${p.squad_id}:${p.game_id}`,
+          p
+        ]
+      )
+    )
+
+  const mySquad=
+    (squads||[]).find(
+      (s:any)=>
+        s.user_id===user.id
+    )
+
+  const squadByNflTeam=
+    new Map<number,any>()
+
   for(const s of squads||[]){
-    squadByNflTeam.set(Number(s.nfl_team_id),s)
+    squadByNflTeam.set(
+      Number(s.nfl_team_id),
+      s
+    )
   }
-const divisionOrder = mySquad
-  ? [mySquad.division, ...[1,2,3,4].filter(d => d !== mySquad.division)]
-  : [1,2,3,4]
 
-  const squadsByDivision = divisionOrder.map(division => ({
-  division,
-  divisionName:
-    (divisionNames || []).find((d:any) => d.division === division)?.division_name
-    || `Division ${division}`,
-  squads: (squads || [])
-    .filter((s:any) => s.division === division)
-    .sort((a:any,b:any) => {
-      if (a.id === mySquad?.id) return -1
-      if (b.id === mySquad?.id) return 1
-      return String(a.squad_name).localeCompare(String(b.squad_name))
-    })
-}))
+  const divisionOrder=
+    mySquad
+      ? [
+          mySquad.division,
+          ...[1,2,3,4].filter(
+            d=>
+              d!==mySquad.division
+          )
+        ]
+      : [1,2,3,4]
+
+  const squadsByDivision=
+    divisionOrder.map(
+      division=>({
+        division,
+
+        divisionName:
+          (divisionNames||[])
+            .find(
+              (d:any)=>
+                d.division===division
+            )
+            ?.division_name
+          || `Division ${division}`,
+
+        squads:
+          (squads||[])
+            .filter(
+              (s:any)=>
+                s.division===division
+            )
+            .sort(
+              (a:any,b:any)=>{
+                if(a.id===mySquad?.id){
+                  return -1
+                }
+
+                if(b.id===mySquad?.id){
+                  return 1
+                }
+
+                return String(
+                  a.squad_name
+                ).localeCompare(
+                  String(b.squad_name)
+                )
+              }
+            )
+      })
+    )
+
   const gameForTeam=(teamId:number)=>{
-    return (games||[]).find((g:any)=>g.home_team_id===teamId || g.away_team_id===teamId)
+    return (games||[])
+      .find(
+        (g:any)=>
+          g.home_team_id===teamId ||
+          g.away_team_id===teamId
+      )
   }
 
-  return <main className="wrap">
-    <div className="top">
-      <div>
-        <div className="big">NFL SQUADS</div>
-        <div className="muted">2026 Schedule & Results</div>
+  const headCell={
+    textAlign:'center' as const,
+    padding:'8px 6px',
+    whiteSpace:'nowrap' as const,
+    fontSize:'0.9rem'
+  }
+
+  const bodyCell={
+    textAlign:'center' as const,
+    padding:'8px 6px',
+    fontSize:'0.9rem',
+    verticalAlign:'middle' as const
+  }
+
+  return (
+    <main className="wrap">
+
+      <div
+        className="top"
+        style={{
+          justifyContent:'center',
+          textAlign:'center'
+        }}
+      >
+        <div>
+          <div className="big">
+            NFL SQUADS
+          </div>
+
+          <div className="muted">
+            2026 Schedule & Results
+          </div>
+        </div>
       </div>
-    </div>
-    <Nav commissioner={commissioner}/>
 
-    <section className="card">
-      <h1>Schedule & Results</h1>
-      <p className="muted">
-        Select any NFL week to view every league squad's opponent, spread, kickoff and result.
-      </p>
-      <WeekSelector week={week}/>
-    </section>
+      <Nav commissioner={commissioner}/>
 
-    <section className="card">
-      <h2>Week {week}</h2>
-      <div style={{overflowX:'auto'}}>
-        <table>
-        <thead>
-  <tr>
-    <th>Owner</th>
-    <th>Team name</th>
-    <th>Opponent</th>
-    <th>Line</th>
-    <th>Kickoff</th>
-    <th>Score</th>
-    <th>Result</th>
-  </tr>
-</thead>  
+      <section
+        className="card"
+        style={{
+          textAlign:'center'
+        }}
+      >
+        <h1>
+          Schedule & Results
+        </h1>
 
-          <tbody>
-{squadsByDivision.flatMap(({division, divisionName, squads: divisionSquads}) => [
-  <tr key={`division-${division}`}>
-    <td colSpan={7}>
-      <strong>{divisionName}</strong>
-    </td>
-  </tr>,
+        <p className="muted">
+          Select any NFL week to view every
+          league squad&apos;s opponent, spread,
+          kickoff and result.
+        </p>
 
-  ...divisionSquads.map((s:any) => {
-    const g:any = gameForTeam(Number(s.nfl_team_id))
+        <div
+          style={{
+            display:'flex',
+            justifyContent:'center'
+          }}
+        >
+          <WeekSelector week={week}/>
+        </div>
+      </section>
 
- if(!g){
-  return <tr key={s.id}>
-    <td>{firstName(s.owner_name)}</td>
+      <section className="card">
 
-    <td>
-      <div style={{display:'flex',alignItems:'center',gap:8}}>
-        <img
-          src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
-          alt=""
-          width={32}
-          height={32}
-          style={{objectFit:'contain'}}
-        />
-        <b>{s.squad_name}</b>
-      </div>
-    </td>
+        <h2
+          style={{
+            textAlign:'center'
+          }}
+        >
+          Week {week}
+        </h2>
 
-    <td colSpan={5}><b>BYE</b></td>
-  </tr>
-}
+        <div
+          style={{
+            overflowX:'auto',
+            width:'100%'
+          }}
+        >
+          <table
+            style={{
+              width:'100%',
+              borderCollapse:'collapse',
+              tableLayout:'auto'
+            }}
+          >
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:125
+                  }}
+                >
+                  Team
+                </th>
 
-    const isHome = g.home_team_id === s.nfl_team_id
-    const opponentTeamId = isHome ? g.away_team_id : g.home_team_id
-    const opponentNfl = isHome ? g.away : g.home
-    const opponentSquad = squadByNflTeam.get(Number(opponentTeamId))
-    const opponentLabel = opponentSquad?.squad_name || opponentNfl?.name || '—'
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:135
+                  }}
+                >
+                  Opponent
+                </th>
 
-    const ownedSpread =
-      g.spread === null
-        ? null
-        : (isHome ? Number(g.spread) : -Number(g.spread))
+                <th
+                  style={{
+                    ...headCell,
+                    width:70
+                  }}
+                >
+                  Line
+                </th>
 
-    let result = 'Scheduled'
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:135
+                  }}
+                >
+                  Kickoff
+                </th>
 
-    if(g.status === 'live'){
-      const ownScore = isHome ? g.home_score : g.away_score
-      const oppScore = isHome ? g.away_score : g.home_score
-      result = `Live ${ownScore ?? 0}-${oppScore ?? 0}`
-    }else if(g.status === 'final'){
-      const ownScore = isHome ? g.home_score : g.away_score
-      const oppScore = isHome ? g.away_score : g.home_score
-      const wl = ownScore > oppScore ? 'W' : ownScore < oppScore ? 'L' : 'T'
-      result = `${wl} ${ownScore}-${oppScore}`
-    }
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:95
+                  }}
+                >
+                  Score
+                </th>
 
-    return <tr key={s.id}>
-      <td>{firstName(s.owner_name)}</td>
-     <td>
-  <div style={{display:'flex',alignItems:'center',gap:8}}>
-    <img
-      src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
-      alt=""
-      width={32}
-      height={32}
-      style={{objectFit:'contain'}}
-    />
-    <b>{s.squad_name}</b>
-  </div>
-</td>
-      <td>
-  <div style={{display:'flex',alignItems:'center',gap:8}}>
-    <img
-      src={`/helmets/${opponentNfl?.abbreviation}.png`}
-      alt=""
-      width={32}
-      height={32}
-      style={{objectFit:'contain'}}
-    />
-    <span>{isHome ? 'vs ' : '@ '}{opponentLabel}</span>
-  </div>
-</td>
-      <td>{signed(ownedSpread)}</td>
-      <td>{new Date(g.kickoff_time).toLocaleString('en-US', {
-        timeZone: 'America/New_York',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZoneName: 'short',
-      })}</td>
-      <td>{result}</td>
-    <td style={{textAlign:'center'}}>
-  {(() => {
-    const pick:any = pickBySquadGame.get(`${s.id}:${g.id}`)
-    const kickedOff =
-      g.status === 'live' ||
-      g.status === 'final' ||
-      new Date(g.kickoff_time) <= new Date()
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:100
+                  }}
+                >
+                  Result
+                </th>
+              </tr>
+            </thead>
 
-    // Before kickoff: only show submitted status
-    if(!kickedOff){
-      return pick && !pick.is_missed
-        ? <span style={{color:'green',fontWeight:700,fontSize:'1.2rem'}}>✓</span>
-        : <span className="muted">—</span>
-    }
+            <tbody>
 
-    // Missed pick
-    if(pick?.is_missed){
-      if(g.status === 'final'){
-        const margin = pick.ats_margin ?? 0
-        return <b style={{color: margin < 0 ? 'red' : undefined}}>
-          NO PICK {margin > 0 ? '+' : ''}{margin}
-        </b>
-      }
+              {squadsByDivision.flatMap(
+                ({
+                  division,
+                  divisionName,
+                  squads:divisionSquads
+                })=>[
+                  <tr
+                    key={`division-${division}`}
+                  >
+                    <td
+                      colSpan={6}
+                      style={{
+                        textAlign:'center',
+                        padding:'12px 6px 8px'
+                      }}
+                    >
+                      <strong>
+                        {divisionName}
+                      </strong>
+                    </td>
+                  </tr>,
 
-      return <b>NO PICK</b>
-    }
+                  ...divisionSquads.map(
+                    (s:any)=>{
+                      const g:any=
+                        gameForTeam(
+                          Number(
+                            s.nfl_team_id
+                          )
+                        )
 
-    // No pick record
-    if(!pick){
-      return <span className="muted">—</span>
-    }
+                      if(!g){
+                        return (
+                          <tr key={s.id}>
 
-    const pickedHome = pick.selection_team_id === g.home_team_id
-    const pickedTeam = pickedHome ? g.home : g.away
+                            <td style={bodyCell}>
+                              <div
+                                style={{
+                                  display:'flex',
+                                  alignItems:'center',
+                                  justifyContent:'center',
+                                  gap:6
+                                }}
+                              >
+                                <img
+                                  src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
+                                  alt=""
+                                  width={28}
+                                  height={28}
+                                  style={{
+                                    objectFit:'contain',
+                                    flexShrink:0
+                                  }}
+                                />
 
-    const pickedSpread =
-      g.spread === null
-        ? null
-        : pickedHome
-          ? Number(g.spread)
-          : -Number(g.spread)
+                                <b>
+                                  {s.squad_name}
+                                </b>
+                              </div>
+                            </td>
 
-    const teamLabel =
-      pickedTeam?.abbreviation || pickedTeam?.name || 'Pick'
+                            <td
+                              colSpan={5}
+                              style={{
+                                ...bodyCell,
+                                fontWeight:700
+                              }}
+                            >
+                              BYE
+                            </td>
 
-    // Final: team name + ATS margin
-    if(g.status === 'final'){
-      const margin = Number(pick.ats_margin ?? 0)
+                          </tr>
+                        )
+                      }
 
-      const color =
-        margin > 0 ? 'green' :
-        margin < 0 ? 'red' :
-        undefined
+                      const isHome=
+                        g.home_team_id===
+                        s.nfl_team_id
 
-      return <b style={{color}}>
-        {teamLabel} {margin > 0 ? '+' : ''}{margin}
-      </b>
-    }
+                      const opponentTeamId=
+                        isHome
+                          ? g.away_team_id
+                          : g.home_team_id
 
-    // Live: team name + original line
-    return <b>
-      {teamLabel} {signed(pickedSpread)}
-    </b>
-  })()}
-</td>
-    </tr>
-  })
-])}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+                      const opponentNfl=
+                        isHome
+                          ? g.away
+                          : g.home
+
+                      const opponentSquad=
+                        squadByNflTeam.get(
+                          Number(
+                            opponentTeamId
+                          )
+                        )
+
+                      const opponentLabel=
+                        opponentSquad
+                          ?.squad_name ||
+                        opponentNfl
+                          ?.name ||
+                        '—'
+
+                      const ownedSpread=
+                        g.spread===null
+                          ? null
+                          : (
+                              isHome
+                                ? Number(g.spread)
+                                : -Number(g.spread)
+                            )
+
+                      let score='Scheduled'
+
+                      if(
+                        g.status==='live'
+                      ){
+                        const ownScore=
+                          isHome
+                            ? g.home_score
+                            : g.away_score
+
+                        const oppScore=
+                          isHome
+                            ? g.away_score
+                            : g.home_score
+
+                        score=
+                          `Live ${ownScore ?? 0}-${oppScore ?? 0}`
+                      }
+                      else if(
+                        g.status==='final'
+                      ){
+                        const ownScore=
+                          isHome
+                            ? g.home_score
+                            : g.away_score
+
+                        const oppScore=
+                          isHome
+                            ? g.away_score
+                            : g.home_score
+
+                        score=
+                          `${ownScore}-${oppScore}`
+                      }
+
+                      return (
+                        <tr key={s.id}>
+
+                          <td style={bodyCell}>
+                            <div
+                              style={{
+                                display:'flex',
+                                alignItems:'center',
+                                justifyContent:'center',
+                                gap:6
+                              }}
+                            >
+                              <img
+                                src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
+                                alt=""
+                                width={28}
+                                height={28}
+                                style={{
+                                  objectFit:'contain',
+                                  flexShrink:0
+                                }}
+                              />
+
+                              <b>
+                                {s.squad_name}
+                              </b>
+                            </div>
+                          </td>
+
+                          <td style={bodyCell}>
+                            <div
+                              style={{
+                                display:'flex',
+                                alignItems:'center',
+                                justifyContent:'center',
+                                gap:6
+                              }}
+                            >
+                              <img
+                                src={`/helmets/${opponentNfl?.abbreviation}.png`}
+                                alt=""
+                                width={28}
+                                height={28}
+                                style={{
+                                  objectFit:'contain',
+                                  flexShrink:0
+                                }}
+                              />
+
+                              <span>
+                                {isHome
+                                  ? 'vs '
+                                  : '@ '}
+
+                                {opponentLabel}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
+                            {signed(
+                              ownedSpread
+                            )}
+                          </td>
+
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap',
+                              fontSize:'0.82rem'
+                            }}
+                          >
+                            {new Date(
+                              g.kickoff_time
+                            ).toLocaleString(
+                              'en-US',
+                              {
+                                timeZone:
+                                  'America/New_York',
+                                month:'short',
+                                day:'numeric',
+                                hour:'numeric',
+                                minute:'2-digit',
+                                timeZoneName:'short'
+                              }
+                            )}
+                          </td>
+
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
+                            {score}
+                          </td>
+
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
+                            {(()=>{
+                              const pick:any=
+                                pickBySquadGame.get(
+                                  `${s.id}:${g.id}`
+                                )
+
+                              const kickedOff=
+                                g.status==='live' ||
+                                g.status==='final' ||
+                                new Date(
+                                  g.kickoff_time
+                                )<=new Date()
+
+                              if(!kickedOff){
+                                return (
+                                  pick &&
+                                  !pick.is_missed
+                                    ? (
+                                      <span
+                                        style={{
+                                          color:'green',
+                                          fontWeight:700,
+                                          fontSize:'1.2rem'
+                                        }}
+                                      >
+                                        ✓
+                                      </span>
+                                    )
+                                    : (
+                                      <span className="muted">
+                                        —
+                                      </span>
+                                    )
+                                )
+                              }
+
+                              if(
+                                pick?.is_missed
+                              ){
+                                if(
+                                  g.status==='final'
+                                ){
+                                  const margin=
+                                    Number(
+                                      pick.ats_margin ??
+                                      0
+                                    )
+
+                                  return (
+                                    <b
+                                      style={{
+                                        color:
+                                          margin<0
+                                            ? 'red'
+                                            : undefined
+                                      }}
+                                    >
+                                      NO PICK{' '}
+                                      {margin>0
+                                        ? '+'
+                                        : ''}
+                                      {margin}
+                                    </b>
+                                  )
+                                }
+
+                                return (
+                                  <b>
+                                    NO PICK
+                                  </b>
+                                )
+                              }
+
+                              if(!pick){
+                                return (
+                                  <span className="muted">
+                                    —
+                                  </span>
+                                )
+                              }
+
+                              const pickedHome=
+                                pick.selection_team_id===
+                                g.home_team_id
+
+                              const pickedTeam=
+                                pickedHome
+                                  ? g.home
+                                  : g.away
+
+                              const pickedSpread=
+                                g.spread===null
+                                  ? null
+                                  : pickedHome
+                                    ? Number(
+                                        g.spread
+                                      )
+                                    : -Number(
+                                        g.spread
+                                      )
+
+                              const teamLabel=
+                                pickedTeam
+                                  ?.abbreviation ||
+                                pickedTeam
+                                  ?.name ||
+                                'Pick'
+
+                              if(
+                                g.status==='final'
+                              ){
+                                const margin=
+                                  Number(
+                                    pick.ats_margin ??
+                                    0
+                                  )
+
+                                const color=
+                                  margin>0
+                                    ? 'green'
+                                    : margin<0
+                                      ? 'red'
+                                      : undefined
+
+                                return (
+                                  <b
+                                    style={{
+                                      color
+                                    }}
+                                  >
+                                    {teamLabel}{' '}
+                                    {margin>0
+                                      ? '+'
+                                      : ''}
+                                    {margin}
+                                  </b>
+                                )
+                              }
+
+                              return (
+                                <b>
+                                  {teamLabel}{' '}
+                                  {signed(
+                                    pickedSpread
+                                  )}
+                                </b>
+                              )
+                            })()}
+                          </td>
+
+                        </tr>
+                      )
+                    }
+                  )
+                ]
+              )}
+
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  )
 }

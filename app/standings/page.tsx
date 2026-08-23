@@ -96,14 +96,14 @@ export default async function Standings(){
     textAlign:'center' as const,
     padding:'8px 3px',
     whiteSpace:'nowrap' as const,
-    fontSize:'0.88rem'
+    fontSize:'0.86rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
     padding:'8px 3px',
     verticalAlign:'middle' as const,
-    fontSize:'0.88rem'
+    fontSize:'0.86rem'
   }
 
   return (
@@ -120,6 +120,7 @@ export default async function Standings(){
       </h1>
 
       {divisionOrder.map(d=>{
+
         const title=
           (names||[])
             .find(
@@ -152,6 +153,7 @@ export default async function Standings(){
               textAlign:'center'
             }}
           >
+
             <h2
               style={{
                 textAlign:'center'
@@ -161,10 +163,13 @@ export default async function Standings(){
             </h2>
 
             {rows.length===0 ? (
+
               <p className="muted">
                 No teams assigned yet.
               </p>
+
             ) : (
+
               <table
                 style={{
                   width:'100%',
@@ -173,17 +178,19 @@ export default async function Standings(){
                   tableLayout:'fixed'
                 }}
               >
+
                 <colgroup>
-                  <col style={{width:'22%'}}/>
-                  <col style={{width:'30%'}}/>
-                  <col style={{width:'8%'}}/>
-                  <col style={{width:'8%'}}/>
-                  <col style={{width:'8%'}}/>
-                  <col style={{width:'24%'}}/>
+                  <col style={{width:'27%'}}/>
+                  <col style={{width:'34%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'7%'}}/>
+                  <col style={{width:'18%'}}/>
                 </colgroup>
 
                 <thead>
                   <tr>
+
                     <th style={headCell}>
                       Owner
                     </th>
@@ -205,14 +212,17 @@ export default async function Standings(){
                     </th>
 
                     <th style={headCell}>
-                      Margin
+                      ATS
                     </th>
+
                   </tr>
                 </thead>
 
                 <tbody>
+
                   {rows.map(
                     (r:any,i:number)=>{
+
                       const isMe=
                         r.squads
                           ?.user_id===user.id
@@ -228,12 +238,14 @@ export default async function Standings(){
                               : undefined
                           }
                         >
+
                           <td
                             style={{
                               ...bodyCell,
-                              whiteSpace:'nowrap',
-                              fontSize:'0.76rem',
-                              letterSpacing:'-0.02em'
+                              whiteSpace:'normal',
+                              wordBreak:'normal',
+                              overflowWrap:'normal',
+                              lineHeight:1.2
                             }}
                           >
                             {r.squads
@@ -244,8 +256,9 @@ export default async function Standings(){
                           <td
                             style={{
                               ...bodyCell,
-                              overflowWrap:'normal',
+                              whiteSpace:'normal',
                               wordBreak:'normal',
+                              overflowWrap:'break-word',
                               lineHeight:1.2
                             }}
                           >
@@ -257,15 +270,30 @@ export default async function Standings(){
                             </b>
                           </td>
 
-                          <td style={bodyCell}>
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
                             {r.wins}
                           </td>
 
-                          <td style={bodyCell}>
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
                             {r.losses}
                           </td>
 
-                          <td style={bodyCell}>
+                          <td
+                            style={{
+                              ...bodyCell,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
                             {r.pushes}
                           </td>
 
@@ -279,13 +307,17 @@ export default async function Standings(){
                               r.ats_margin
                             )}
                           </td>
+
                         </tr>
                       )
                     }
                   )}
+
                 </tbody>
+
               </table>
             )}
+
           </section>
         )
       })}

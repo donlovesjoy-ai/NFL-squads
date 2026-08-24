@@ -49,10 +49,28 @@ function ordinal(n:number){
   }
 }
 
+function signedScore(n:any){
+  if(
+    n===null ||
+    n===undefined
+  ){
+    return '—'
+  }
+
+  const x=Number(n)
+
+  if(x>0){
+    return `+${x}`
+  }
+
+  return `${x}`
+}
+
 export default async function Playoffs(){
   const supabase=await createClient()
 
-  const {data:{user}}=await supabase.auth.getUser()
+  const {data:{user}}=
+    await supabase.auth.getUser()
 
   if(!user){
     redirect('/login')
@@ -72,8 +90,10 @@ export default async function Playoffs(){
     {data:placements},
     {data:seedState},
     {data:squads},
-    {data:divisionNames}
+    {data:divisionNames},
+    {data:playoffPicks}
   ]=await Promise.all([
+
     supabase
       .from('playoff_matchups')
       .select(`
@@ -83,26 +103,34 @@ export default async function Playoffs(){
         round_name,
         matchup_slot,
         status,
+        squad_a_id,
+        squad_b_id,
+        winner_squad_id,
+        loser_squad_id,
         final_place_winner,
         final_place_loser,
 
         squad_a:
           squads!playoff_matchups_squad_a_id_fkey(
+            id,
             squad_name
           ),
 
         squad_b:
           squads!playoff_matchups_squad_b_id_fkey(
+            id,
             squad_name
           ),
 
         winner:
           squads!playoff_matchups_winner_squad_id_fkey(
+            id,
             squad_name
           ),
 
         loser:
           squads!playoff_matchups_loser_squad_id_fkey(
+            id,
             squad_name
           )
       `)
@@ -149,7 +177,20 @@ export default async function Playoffs(){
         division_name
       `)
       .eq('season_year',2026)
-      .order('division')
+      .order('division'),
+
+    supabase
+      .from('picks')
+      .select(`
+        squad_id,
+        ats_margin,
+        games!inner(
+          nfl_week,
+          season_year
+        )
+      `)
+      .eq('games.season_year',2026)
+      .in('games.nfl_week',[16,17,18])
   ])
 
   const matchList=
@@ -164,6 +205,43 @@ export default async function Playoffs(){
         ]
       )
     )
+
+  const scoreMap=
+    new Map<string,number|null>()
+
+  for(
+    const p of
+    (playoffPicks||[]) as any[]
+  ){
+    const week=
+      Number(
+        p.games?.nfl_week
+      )
+
+    scoreMap.set(
+      `${p.squad_id}:${week}`,
+      p.ats_margin===null ||
+      p.ats_margin===undefined
+        ? null
+        : Number(p.ats_margin)
+    )
+  }
+
+  const getScore=(
+    squadId:number|null|undefined,
+    week:number
+  )=>{
+    if(!squadId){
+      return null
+    }
+
+    return (
+      scoreMap.get(
+        `${squadId}:${week}`
+      )
+      ?? null
+    )
+  }
 
   const divisionName=(division:number)=>{
     return (
@@ -261,8 +339,13 @@ export default async function Playoffs(){
         </h1>
 
         <p className="muted">
-          Division positions populate with squad names
-          only when that exact seed is mathematically locked.
+          Weekly ATS margin is the playoff score.
+          Highest score advances.
+        </p>
+
+        <p className="muted">
+          Exact division seeds populate automatically
+          once mathematically locked.
         </p>
       </section>
 
@@ -277,6 +360,7 @@ export default async function Playoffs(){
         payouts={championshipPayouts}
         seedLabel={seedLabel}
         getMatch={getMatch}
+        getScore={getScore}
         championLabel
       />
 
@@ -291,6 +375,7 @@ export default async function Playoffs(){
         payouts={consolationPayouts}
         seedLabel={seedLabel}
         getMatch={getMatch}
+        getScore={getScore}
       />
 
       {placements &&
@@ -380,6 +465,7 @@ function PlayoffMatrix({
   payouts,
   seedLabel,
   getMatch,
+  getScore,
   championLabel=false
 }:{
   title:string
@@ -392,6 +478,10 @@ function PlayoffMatrix({
   payouts:Record<number,number>
   seedLabel:(division:number,seed:number)=>string
   getMatch:(week:number,band:string,slot:number)=>any
+  getScore:(
+    squadId:number|null|undefined,
+    week:number
+  )=>number|null
   championLabel?:boolean
 }){
   const g1=getMatch(16,week16Band,1)
@@ -415,7 +505,7 @@ function PlayoffMatrix({
     <section
       className="card"
       style={{
-        paddingBottom:24
+        paddingBottom:28
       }}
     >
       <h2
@@ -435,18 +525,19 @@ function PlayoffMatrix({
       >
         <div
           style={{
-            minWidth:1080
+            minWidth:1100,
+            padding:'0 10px 12px'
           }}
         >
           <div
             style={{
               display:'grid',
               gridTemplateColumns:
-                '290px 250px 250px 220px',
-              columnGap:32,
+                '290px 255px 255px 220px',
+              columnGap:38,
               textAlign:'center',
               fontWeight:700,
-              marginBottom:20
+              marginBottom:18
             }}
           >
             <div>
@@ -470,12 +561,10 @@ function PlayoffMatrix({
             style={{
               display:'grid',
               gridTemplateColumns:
-                '290px 250px 250px 220px',
-              columnGap:32
+                '290px 255px 255px 220px',
+              columnGap:38
             }}
           >
-
-            {/* WEEK 16 */}
 
             <div
               style={{
@@ -483,8 +572,9 @@ function PlayoffMatrix({
                 gap:24
               }}
             >
-              <SeedGame
+              <BracketGame
                 gameNumber={1}
+                week={16}
                 a={
                   g1?.squad_a?.squad_name
                   || seedLabel(1,seedA)
@@ -493,11 +583,15 @@ function PlayoffMatrix({
                   g1?.squad_b?.squad_name
                   || seedLabel(1,seedB)
                 }
+                aId={g1?.squad_a_id}
+                bId={g1?.squad_b_id}
                 match={g1}
+                getScore={getScore}
               />
 
-              <SeedGame
+              <BracketGame
                 gameNumber={2}
+                week={16}
                 a={
                   g2?.squad_a?.squad_name
                   || seedLabel(2,seedA)
@@ -506,11 +600,15 @@ function PlayoffMatrix({
                   g2?.squad_b?.squad_name
                   || seedLabel(2,seedB)
                 }
+                aId={g2?.squad_a_id}
+                bId={g2?.squad_b_id}
                 match={g2}
+                getScore={getScore}
               />
 
-              <SeedGame
+              <BracketGame
                 gameNumber={3}
+                week={16}
                 a={
                   g3?.squad_a?.squad_name
                   || seedLabel(3,seedA)
@@ -519,11 +617,15 @@ function PlayoffMatrix({
                   g3?.squad_b?.squad_name
                   || seedLabel(3,seedB)
                 }
+                aId={g3?.squad_a_id}
+                bId={g3?.squad_b_id}
                 match={g3}
+                getScore={getScore}
               />
 
-              <SeedGame
+              <BracketGame
                 gameNumber={4}
+                week={16}
                 a={
                   g4?.squad_a?.squad_name
                   || seedLabel(4,seedA)
@@ -532,21 +634,23 @@ function PlayoffMatrix({
                   g4?.squad_b?.squad_name
                   || seedLabel(4,seedB)
                 }
+                aId={g4?.squad_a_id}
+                bId={g4?.squad_b_id}
                 match={g4}
+                getScore={getScore}
               />
             </div>
-
-            {/* WEEK 17 */}
 
             <div
               style={{
                 display:'grid',
                 gap:34,
-                paddingTop:42
+                paddingTop:44
               }}
             >
-              <FlowGame
+              <BracketGame
                 gameNumber={5}
+                week={17}
                 a={
                   g5?.squad_a?.squad_name
                   || 'Game #1 Winner'
@@ -555,11 +659,15 @@ function PlayoffMatrix({
                   g5?.squad_b?.squad_name
                   || 'Game #2 Winner'
                 }
+                aId={g5?.squad_a_id}
+                bId={g5?.squad_b_id}
                 match={g5}
+                getScore={getScore}
               />
 
-              <FlowGame
+              <BracketGame
                 gameNumber={6}
+                week={17}
                 a={
                   g6?.squad_a?.squad_name
                   || 'Game #3 Winner'
@@ -568,11 +676,15 @@ function PlayoffMatrix({
                   g6?.squad_b?.squad_name
                   || 'Game #4 Winner'
                 }
+                aId={g6?.squad_a_id}
+                bId={g6?.squad_b_id}
                 match={g6}
+                getScore={getScore}
               />
 
-              <FlowGame
+              <BracketGame
                 gameNumber={7}
+                week={17}
                 a={
                   g7?.squad_a?.squad_name
                   || 'Game #1 Loser'
@@ -581,11 +693,15 @@ function PlayoffMatrix({
                   g7?.squad_b?.squad_name
                   || 'Game #2 Loser'
                 }
+                aId={g7?.squad_a_id}
+                bId={g7?.squad_b_id}
                 match={g7}
+                getScore={getScore}
               />
 
-              <FlowGame
+              <BracketGame
                 gameNumber={8}
+                week={17}
                 a={
                   g8?.squad_a?.squad_name
                   || 'Game #3 Loser'
@@ -594,21 +710,23 @@ function PlayoffMatrix({
                   g8?.squad_b?.squad_name
                   || 'Game #4 Loser'
                 }
+                aId={g8?.squad_a_id}
+                bId={g8?.squad_b_id}
                 match={g8}
+                getScore={getScore}
               />
             </div>
-
-            {/* WEEK 18 */}
 
             <div
               style={{
                 display:'grid',
                 gap:34,
-                paddingTop:84
+                paddingTop:88
               }}
             >
-              <FlowGame
+              <BracketGame
                 gameNumber={9}
+                week={18}
                 a={
                   g9?.squad_a?.squad_name
                   || 'Game #5 Winner'
@@ -617,11 +735,15 @@ function PlayoffMatrix({
                   g9?.squad_b?.squad_name
                   || 'Game #6 Winner'
                 }
+                aId={g9?.squad_a_id}
+                bId={g9?.squad_b_id}
                 match={g9}
+                getScore={getScore}
               />
 
-              <FlowGame
+              <BracketGame
                 gameNumber={10}
+                week={18}
                 a={
                   g10?.squad_a?.squad_name
                   || 'Game #5 Loser'
@@ -630,11 +752,15 @@ function PlayoffMatrix({
                   g10?.squad_b?.squad_name
                   || 'Game #6 Loser'
                 }
+                aId={g10?.squad_a_id}
+                bId={g10?.squad_b_id}
                 match={g10}
+                getScore={getScore}
               />
 
-              <FlowGame
+              <BracketGame
                 gameNumber={11}
+                week={18}
                 a={
                   g11?.squad_a?.squad_name
                   || 'Game #7 Winner'
@@ -643,11 +769,15 @@ function PlayoffMatrix({
                   g11?.squad_b?.squad_name
                   || 'Game #8 Winner'
                 }
+                aId={g11?.squad_a_id}
+                bId={g11?.squad_b_id}
                 match={g11}
+                getScore={getScore}
               />
 
-              <FlowGame
+              <BracketGame
                 gameNumber={12}
+                week={18}
                 a={
                   g12?.squad_a?.squad_name
                   || 'Game #7 Loser'
@@ -656,17 +786,18 @@ function PlayoffMatrix({
                   g12?.squad_b?.squad_name
                   || 'Game #8 Loser'
                 }
+                aId={g12?.squad_a_id}
+                bId={g12?.squad_b_id}
                 match={g12}
+                getScore={getScore}
               />
             </div>
-
-            {/* FINAL RESULTS */}
 
             <div
               style={{
                 display:'grid',
                 gap:24,
-                paddingTop:78
+                paddingTop:82
               }}
             >
               <FinalPair
@@ -706,130 +837,113 @@ function PlayoffMatrix({
   )
 }
 
-function SeedGame({
-  gameNumber,
-  a,
-  b,
-  match
-}:{
-  gameNumber:number
-  a:string
-  b:string
-  match:any
-}){
-  return (
-    <BracketGame
-      gameNumber={gameNumber}
-      a={a}
-      b={b}
-      match={match}
-    />
-  )
-}
-
-function FlowGame({
-  gameNumber,
-  a,
-  b,
-  match
-}:{
-  gameNumber:number
-  a:string
-  b:string
-  match:any
-}){
-  return (
-    <BracketGame
-      gameNumber={gameNumber}
-      a={a}
-      b={b}
-      match={match}
-    />
-  )
-}
-
 function BracketGame({
   gameNumber,
+  week,
   a,
   b,
-  match
+  aId,
+  bId,
+  match,
+  getScore
 }:{
   gameNumber:number
+  week:number
   a:string
   b:string
+  aId:number|null|undefined
+  bId:number|null|undefined
   match:any
+  getScore:(
+    squadId:number|null|undefined,
+    week:number
+  )=>number|null
 }){
-  const winner=
-    match?.winner?.squad_name
+  const aScore=
+    getScore(
+      aId,
+      week
+    )
+
+  const bScore=
+    getScore(
+      bId,
+      week
+    )
+
+  const winnerId=
+    Number(
+      match?.winner_squad_id
+      || 0
+    )
+
+  const loserId=
+    Number(
+      match?.loser_squad_id
+      || 0
+    )
+
+  const lineColor=(
+    squadId:number|null|undefined
+  )=>{
+    if(!match || match.status!=='final'){
+      return undefined
+    }
+
+    if(Number(squadId)===winnerId){
+      return 'green'
+    }
+
+    if(Number(squadId)===loserId){
+      return 'red'
+    }
+
+    return undefined
+  }
+
+  const aColor=
+    lineColor(aId)
+
+  const bColor=
+    lineColor(bId)
 
   return (
     <div
       style={{
         position:'relative',
-        paddingRight:22
+        paddingRight:26
       }}
     >
       <div
         style={{
           fontSize:'0.74rem',
           fontWeight:700,
-          marginBottom:4
+          marginBottom:4,
+          textAlign:'center'
         }}
       >
         Game #{gameNumber}
       </div>
 
-      <div
-        style={{
-          minHeight:30,
-          display:'flex',
-          alignItems:'end'
-        }}
-      >
-        <div
-          style={{
-            width:'100%',
-            borderBottom:'2px solid #555',
-            padding:'0 4px 3px',
-            fontWeight:
-              winner===a
-                ? 800
-                : 500
-          }}
-        >
-          {a}
-        </div>
-      </div>
+      <TeamLine
+        name={a}
+        score={aScore}
+        color={aColor}
+      />
 
-      <div
-        style={{
-          minHeight:34,
-          display:'flex',
-          alignItems:'end'
-        }}
-      >
-        <div
-          style={{
-            width:'100%',
-            borderBottom:'2px solid #555',
-            padding:'0 4px 3px',
-            fontWeight:
-              winner===b
-                ? 800
-                : 500
-          }}
-        >
-          {b}
-        </div>
-      </div>
+      <TeamLine
+        name={b}
+        score={bScore}
+        color={bColor}
+      />
 
       <div
         style={{
           position:'absolute',
           right:0,
-          top:26,
-          width:22,
-          height:36,
+          top:28,
+          width:26,
+          height:38,
           borderRight:'2px solid #555',
           borderTop:'2px solid #555',
           borderBottom:'2px solid #555'
@@ -839,14 +953,58 @@ function BracketGame({
       {match?.status==='needs_tiebreaker' && (
         <div
           style={{
-            marginTop:4,
-            fontSize:'0.7rem',
-            fontWeight:700
+            marginTop:5,
+            textAlign:'center',
+            fontSize:'0.72rem',
+            fontWeight:800
           }}
         >
-          Tiebreaker required
+          O/U Tiebreaker Required
         </div>
       )}
+    </div>
+  )
+}
+
+function TeamLine({
+  name,
+  score,
+  color
+}:{
+  name:string
+  score:number|null
+  color?:string
+}){
+  return (
+    <div
+      style={{
+        minHeight:34,
+        display:'grid',
+        gridTemplateColumns:'1fr 56px',
+        alignItems:'end',
+        gap:6,
+        borderBottom:
+          `2px solid ${color || '#555'}`,
+        color:color,
+        fontWeight:
+          color
+            ? 800
+            : 500,
+        padding:'0 4px 3px'
+      }}
+    >
+      <div>
+        {name}
+      </div>
+
+      <div
+        style={{
+          textAlign:'right',
+          fontWeight:800
+        }}
+      >
+        {signedScore(score)}
+      </div>
     </div>
   )
 }
@@ -887,6 +1045,11 @@ function FinalPair({
         name={winnerName}
         place={winnerPlace}
         payout={payouts[winnerPlace]}
+        color={
+          match?.status==='final'
+            ? 'green'
+            : undefined
+        }
         champion={
           championLabel &&
           winnerPlace===1
@@ -897,6 +1060,11 @@ function FinalPair({
         name={loserName}
         place={loserPlace}
         payout={payouts[loserPlace]}
+        color={
+          match?.status==='final'
+            ? 'red'
+            : undefined
+        }
       />
     </div>
   )
@@ -906,21 +1074,28 @@ function FinishLine({
   name,
   place,
   payout,
+  color,
   champion=false
 }:{
   name:string
   place:number
   payout:number
+  color?:string
   champion?:boolean
 }){
   return (
     <div>
       <div
         style={{
-          borderBottom:'2px solid #555',
+          borderBottom:
+            `2px solid ${color || '#555'}`,
           padding:'0 4px 4px',
           textAlign:'center',
-          fontWeight:champion?800:700
+          color:color,
+          fontWeight:
+            champion
+              ? 900
+              : 700
         }}
       >
         {name}

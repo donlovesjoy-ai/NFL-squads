@@ -1,4 +1,4 @@
- import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 
@@ -38,32 +38,23 @@ function ordinal(n:number){
   }
 
   switch(n%10){
-    case 1:
-      return `${n}st`
-    case 2:
-      return `${n}nd`
-    case 3:
-      return `${n}rd`
-    default:
-      return `${n}th`
+    case 1: return `${n}st`
+    case 2: return `${n}nd`
+    case 3: return `${n}rd`
+    default: return `${n}th`
   }
 }
 
 function signedScore(n:any){
-  if(
-    n===null ||
-    n===undefined
-  ){
+  if(n===null || n===undefined){
     return '—'
   }
 
   const x=Number(n)
 
-  if(x>0){
-    return `+${x}`
-  }
-
-  return `${x}`
+  return x>0
+    ? `+${x}`
+    : `${x}`
 }
 
 export default async function Playoffs(){
@@ -193,8 +184,7 @@ export default async function Playoffs(){
       .in('games.nfl_week',[16,17,18])
   ])
 
-  const matchList=
-    (matches||[]) as any[]
+  const matchList=(matches||[]) as any[]
 
   const squadMap=
     new Map(
@@ -209,10 +199,7 @@ export default async function Playoffs(){
   const scoreMap=
     new Map<string,number|null>()
 
-  for(
-    const p of
-    (playoffPicks||[]) as any[]
-  ){
+  for(const p of (playoffPicks||[]) as any[]){
     const week=
       Number(
         p.games?.nfl_week
@@ -238,8 +225,7 @@ export default async function Playoffs(){
     return (
       scoreMap.get(
         `${squadId}:${week}`
-      )
-      ?? null
+      ) ?? null
     )
   }
 
@@ -344,12 +330,12 @@ export default async function Playoffs(){
         </p>
 
         <p className="muted">
-          Exact division seeds populate automatically
-          once mathematically locked.
+          Exact division positions populate only
+          when that specific seed is mathematically locked.
         </p>
       </section>
 
-      <PlayoffMatrix
+      <BracketMatrix
         title="Championship Playoff Matrix"
         seedA={1}
         seedB={2}
@@ -364,7 +350,7 @@ export default async function Playoffs(){
         championLabel
       />
 
-      <PlayoffMatrix
+      <BracketMatrix
         title="Consolation Playoff Matrix"
         seedA={3}
         seedB={4}
@@ -415,9 +401,7 @@ export default async function Playoffs(){
             <tbody>
               {placements.map(
                 (p:any)=>(
-                  <tr
-                    key={p.final_place}
-                  >
+                  <tr key={p.final_place}>
                     <td style={{textAlign:'center'}}>
                       {ordinal(
                         Number(
@@ -454,7 +438,7 @@ export default async function Playoffs(){
   )
 }
 
-function PlayoffMatrix({
+function BracketMatrix({
   title,
   seedA,
   seedB,
@@ -501,18 +485,41 @@ function PlayoffMatrix({
   const g11=getMatch(18,lowerBand,1)
   const g12=getMatch(18,lowerBand,2)
 
+  const WIDTH=1180
+  const HEIGHT=1040
+
+  const x16=20
+  const x17=350
+  const x18=690
+  const xFinal=980
+
+  const gameWidth=250
+  const finalWidth=180
+
+  const y1=50
+  const y2=205
+  const y3=365
+  const y4=520
+
+  const y5=125
+  const y6=445
+
+  const y7=675
+  const y8=835
+
+  const y9=285
+  const y10=565
+  const y11=755
+  const y12=925
+
   return (
-    <section
-      className="card"
-      style={{
-        paddingBottom:28
-      }}
-    >
+    <section className="card">
+
       <h2
         style={{
           textAlign:'center',
           textDecoration:'underline',
-          marginBottom:22
+          marginBottom:20
         }}
       >
         {title}
@@ -520,324 +527,433 @@ function PlayoffMatrix({
 
       <div
         style={{
-          overflowX:'auto'
+          overflowX:'auto',
+          paddingBottom:8
         }}
       >
         <div
           style={{
-            minWidth:1100,
-            padding:'0 10px 12px'
+            position:'relative',
+            width:WIDTH,
+            height:HEIGHT,
+            margin:'0 auto'
           }}
         >
-          <div
+
+          <ColumnHeader
+            left={x16}
+            width={gameWidth}
+          >
+            Week #16
+          </ColumnHeader>
+
+          <ColumnHeader
+            left={x17}
+            width={gameWidth}
+          >
+            Week #17
+          </ColumnHeader>
+
+          <ColumnHeader
+            left={x18}
+            width={gameWidth}
+          >
+            Week #18
+          </ColumnHeader>
+
+          <ColumnHeader
+            left={xFinal}
+            width={finalWidth}
+          >
+            Final Place
+          </ColumnHeader>
+
+          <svg
+            width={WIDTH}
+            height={HEIGHT}
             style={{
-              display:'grid',
-              gridTemplateColumns:
-                '290px 255px 255px 220px',
-              columnGap:38,
-              textAlign:'center',
-              fontWeight:700,
-              marginBottom:18
+              position:'absolute',
+              inset:0,
+              pointerEvents:'none'
             }}
           >
-            <div>
-              Week #16
-            </div>
+            <BracketConnector
+              fromX={x16+gameWidth}
+              fromY1={y1+53}
+              fromY2={y2+53}
+              toX={x17}
+              toY={y5+53}
+            />
 
-            <div>
-              Week #17
-            </div>
+            <BracketConnector
+              fromX={x16+gameWidth}
+              fromY1={y3+53}
+              fromY2={y4+53}
+              toX={x17}
+              toY={y6+53}
+            />
 
-            <div>
-              Week #18
-            </div>
+            <BracketConnector
+              fromX={x17+gameWidth}
+              fromY1={y5+53}
+              fromY2={y6+53}
+              toX={x18}
+              toY={y9+53}
+            />
 
-            <div>
-              Final Place
-            </div>
-          </div>
+            <BracketConnector
+              fromX={x17+gameWidth}
+              fromY1={y7+53}
+              fromY2={y8+53}
+              toX={x18}
+              toY={y11+53}
+            />
 
-          <div
-            style={{
-              display:'grid',
-              gridTemplateColumns:
-                '290px 255px 255px 220px',
-              columnGap:38
-            }}
-          >
+            <SingleConnector
+              fromX={x18+gameWidth}
+              fromY={y9+53}
+              toX={xFinal}
+              toY={y9+53}
+            />
 
-            <div
-              style={{
-                display:'grid',
-                gap:24
-              }}
-            >
-              <BracketGame
-                gameNumber={1}
-                week={16}
-                a={
-                  g1?.squad_a?.squad_name
-                  || seedLabel(1,seedA)
-                }
-                b={
-                  g1?.squad_b?.squad_name
-                  || seedLabel(1,seedB)
-                }
-                aId={g1?.squad_a_id}
-                bId={g1?.squad_b_id}
-                match={g1}
-                getScore={getScore}
-              />
+            <SingleConnector
+              fromX={x18+gameWidth}
+              fromY={y10+53}
+              toX={xFinal}
+              toY={y10+53}
+            />
 
-              <BracketGame
-                gameNumber={2}
-                week={16}
-                a={
-                  g2?.squad_a?.squad_name
-                  || seedLabel(2,seedA)
-                }
-                b={
-                  g2?.squad_b?.squad_name
-                  || seedLabel(2,seedB)
-                }
-                aId={g2?.squad_a_id}
-                bId={g2?.squad_b_id}
-                match={g2}
-                getScore={getScore}
-              />
+            <SingleConnector
+              fromX={x18+gameWidth}
+              fromY={y11+53}
+              toX={xFinal}
+              toY={y11+53}
+            />
 
-              <BracketGame
-                gameNumber={3}
-                week={16}
-                a={
-                  g3?.squad_a?.squad_name
-                  || seedLabel(3,seedA)
-                }
-                b={
-                  g3?.squad_b?.squad_name
-                  || seedLabel(3,seedB)
-                }
-                aId={g3?.squad_a_id}
-                bId={g3?.squad_b_id}
-                match={g3}
-                getScore={getScore}
-              />
+            <SingleConnector
+              fromX={x18+gameWidth}
+              fromY={y12+53}
+              toX={xFinal}
+              toY={y12+53}
+            />
+          </svg>
 
-              <BracketGame
-                gameNumber={4}
-                week={16}
-                a={
-                  g4?.squad_a?.squad_name
-                  || seedLabel(4,seedA)
-                }
-                b={
-                  g4?.squad_b?.squad_name
-                  || seedLabel(4,seedB)
-                }
-                aId={g4?.squad_a_id}
-                bId={g4?.squad_b_id}
-                match={g4}
-                getScore={getScore}
-              />
-            </div>
+          <GameNode
+            left={x16}
+            top={y1}
+            width={gameWidth}
+            gameNumber={1}
+            week={16}
+            a={
+              g1?.squad_a?.squad_name
+              || seedLabel(1,seedA)
+            }
+            b={
+              g1?.squad_b?.squad_name
+              || seedLabel(1,seedB)
+            }
+            aId={g1?.squad_a_id}
+            bId={g1?.squad_b_id}
+            match={g1}
+            getScore={getScore}
+          />
 
-            <div
-              style={{
-                display:'grid',
-                gap:34,
-                paddingTop:44
-              }}
-            >
-              <BracketGame
-                gameNumber={5}
-                week={17}
-                a={
-                  g5?.squad_a?.squad_name
-                  || 'Game #1 Winner'
-                }
-                b={
-                  g5?.squad_b?.squad_name
-                  || 'Game #2 Winner'
-                }
-                aId={g5?.squad_a_id}
-                bId={g5?.squad_b_id}
-                match={g5}
-                getScore={getScore}
-              />
+          <GameNode
+            left={x16}
+            top={y2}
+            width={gameWidth}
+            gameNumber={2}
+            week={16}
+            a={
+              g2?.squad_a?.squad_name
+              || seedLabel(2,seedA)
+            }
+            b={
+              g2?.squad_b?.squad_name
+              || seedLabel(2,seedB)
+            }
+            aId={g2?.squad_a_id}
+            bId={g2?.squad_b_id}
+            match={g2}
+            getScore={getScore}
+          />
 
-              <BracketGame
-                gameNumber={6}
-                week={17}
-                a={
-                  g6?.squad_a?.squad_name
-                  || 'Game #3 Winner'
-                }
-                b={
-                  g6?.squad_b?.squad_name
-                  || 'Game #4 Winner'
-                }
-                aId={g6?.squad_a_id}
-                bId={g6?.squad_b_id}
-                match={g6}
-                getScore={getScore}
-              />
+          <GameNode
+            left={x16}
+            top={y3}
+            width={gameWidth}
+            gameNumber={3}
+            week={16}
+            a={
+              g3?.squad_a?.squad_name
+              || seedLabel(3,seedA)
+            }
+            b={
+              g3?.squad_b?.squad_name
+              || seedLabel(3,seedB)
+            }
+            aId={g3?.squad_a_id}
+            bId={g3?.squad_b_id}
+            match={g3}
+            getScore={getScore}
+          />
 
-              <BracketGame
-                gameNumber={7}
-                week={17}
-                a={
-                  g7?.squad_a?.squad_name
-                  || 'Game #1 Loser'
-                }
-                b={
-                  g7?.squad_b?.squad_name
-                  || 'Game #2 Loser'
-                }
-                aId={g7?.squad_a_id}
-                bId={g7?.squad_b_id}
-                match={g7}
-                getScore={getScore}
-              />
+          <GameNode
+            left={x16}
+            top={y4}
+            width={gameWidth}
+            gameNumber={4}
+            week={16}
+            a={
+              g4?.squad_a?.squad_name
+              || seedLabel(4,seedA)
+            }
+            b={
+              g4?.squad_b?.squad_name
+              || seedLabel(4,seedB)
+            }
+            aId={g4?.squad_a_id}
+            bId={g4?.squad_b_id}
+            match={g4}
+            getScore={getScore}
+          />
 
-              <BracketGame
-                gameNumber={8}
-                week={17}
-                a={
-                  g8?.squad_a?.squad_name
-                  || 'Game #3 Loser'
-                }
-                b={
-                  g8?.squad_b?.squad_name
-                  || 'Game #4 Loser'
-                }
-                aId={g8?.squad_a_id}
-                bId={g8?.squad_b_id}
-                match={g8}
-                getScore={getScore}
-              />
-            </div>
+          <GameNode
+            left={x17}
+            top={y5}
+            width={gameWidth}
+            gameNumber={5}
+            week={17}
+            a={
+              g5?.squad_a?.squad_name
+              || 'Game #1 Winner'
+            }
+            b={
+              g5?.squad_b?.squad_name
+              || 'Game #2 Winner'
+            }
+            aId={g5?.squad_a_id}
+            bId={g5?.squad_b_id}
+            match={g5}
+            getScore={getScore}
+          />
 
-            <div
-              style={{
-                display:'grid',
-                gap:34,
-                paddingTop:88
-              }}
-            >
-              <BracketGame
-                gameNumber={9}
-                week={18}
-                a={
-                  g9?.squad_a?.squad_name
-                  || 'Game #5 Winner'
-                }
-                b={
-                  g9?.squad_b?.squad_name
-                  || 'Game #6 Winner'
-                }
-                aId={g9?.squad_a_id}
-                bId={g9?.squad_b_id}
-                match={g9}
-                getScore={getScore}
-              />
+          <GameNode
+            left={x17}
+            top={y6}
+            width={gameWidth}
+            gameNumber={6}
+            week={17}
+            a={
+              g6?.squad_a?.squad_name
+              || 'Game #3 Winner'
+            }
+            b={
+              g6?.squad_b?.squad_name
+              || 'Game #4 Winner'
+            }
+            aId={g6?.squad_a_id}
+            bId={g6?.squad_b_id}
+            match={g6}
+            getScore={getScore}
+          />
 
-              <BracketGame
-                gameNumber={10}
-                week={18}
-                a={
-                  g10?.squad_a?.squad_name
-                  || 'Game #5 Loser'
-                }
-                b={
-                  g10?.squad_b?.squad_name
-                  || 'Game #6 Loser'
-                }
-                aId={g10?.squad_a_id}
-                bId={g10?.squad_b_id}
-                match={g10}
-                getScore={getScore}
-              />
+          <GameNode
+            left={x17}
+            top={y7}
+            width={gameWidth}
+            gameNumber={7}
+            week={17}
+            a={
+              g7?.squad_a?.squad_name
+              || 'Game #1 Loser'
+            }
+            b={
+              g7?.squad_b?.squad_name
+              || 'Game #2 Loser'
+            }
+            aId={g7?.squad_a_id}
+            bId={g7?.squad_b_id}
+            match={g7}
+            getScore={getScore}
+          />
 
-              <BracketGame
-                gameNumber={11}
-                week={18}
-                a={
-                  g11?.squad_a?.squad_name
-                  || 'Game #7 Winner'
-                }
-                b={
-                  g11?.squad_b?.squad_name
-                  || 'Game #8 Winner'
-                }
-                aId={g11?.squad_a_id}
-                bId={g11?.squad_b_id}
-                match={g11}
-                getScore={getScore}
-              />
+          <GameNode
+            left={x17}
+            top={y8}
+            width={gameWidth}
+            gameNumber={8}
+            week={17}
+            a={
+              g8?.squad_a?.squad_name
+              || 'Game #3 Loser'
+            }
+            b={
+              g8?.squad_b?.squad_name
+              || 'Game #4 Loser'
+            }
+            aId={g8?.squad_a_id}
+            bId={g8?.squad_b_id}
+            match={g8}
+            getScore={getScore}
+          />
 
-              <BracketGame
-                gameNumber={12}
-                week={18}
-                a={
-                  g12?.squad_a?.squad_name
-                  || 'Game #7 Loser'
-                }
-                b={
-                  g12?.squad_b?.squad_name
-                  || 'Game #8 Loser'
-                }
-                aId={g12?.squad_a_id}
-                bId={g12?.squad_b_id}
-                match={g12}
-                getScore={getScore}
-              />
-            </div>
+          <GameNode
+            left={x18}
+            top={y9}
+            width={gameWidth}
+            gameNumber={9}
+            week={18}
+            a={
+              g9?.squad_a?.squad_name
+              || 'Game #5 Winner'
+            }
+            b={
+              g9?.squad_b?.squad_name
+              || 'Game #6 Winner'
+            }
+            aId={g9?.squad_a_id}
+            bId={g9?.squad_b_id}
+            match={g9}
+            getScore={getScore}
+          />
 
-            <div
-              style={{
-                display:'grid',
-                gap:24,
-                paddingTop:82
-              }}
-            >
-              <FinalPair
-                match={g9}
-                winnerPlace={firstPlace}
-                loserPlace={firstPlace+1}
-                payouts={payouts}
-                championLabel={championLabel}
-              />
+          <GameNode
+            left={x18}
+            top={y10}
+            width={gameWidth}
+            gameNumber={10}
+            week={18}
+            a={
+              g10?.squad_a?.squad_name
+              || 'Game #5 Loser'
+            }
+            b={
+              g10?.squad_b?.squad_name
+              || 'Game #6 Loser'
+            }
+            aId={g10?.squad_a_id}
+            bId={g10?.squad_b_id}
+            match={g10}
+            getScore={getScore}
+          />
 
-              <FinalPair
-                match={g10}
-                winnerPlace={firstPlace+2}
-                loserPlace={firstPlace+3}
-                payouts={payouts}
-              />
+          <GameNode
+            left={x18}
+            top={y11}
+            width={gameWidth}
+            gameNumber={11}
+            week={18}
+            a={
+              g11?.squad_a?.squad_name
+              || 'Game #7 Winner'
+            }
+            b={
+              g11?.squad_b?.squad_name
+              || 'Game #8 Winner'
+            }
+            aId={g11?.squad_a_id}
+            bId={g11?.squad_b_id}
+            match={g11}
+            getScore={getScore}
+          />
 
-              <FinalPair
-                match={g11}
-                winnerPlace={firstPlace+4}
-                loserPlace={firstPlace+5}
-                payouts={payouts}
-              />
+          <GameNode
+            left={x18}
+            top={y12}
+            width={gameWidth}
+            gameNumber={12}
+            week={18}
+            a={
+              g12?.squad_a?.squad_name
+              || 'Game #7 Loser'
+            }
+            b={
+              g12?.squad_b?.squad_name
+              || 'Game #8 Loser'
+            }
+            aId={g12?.squad_a_id}
+            bId={g12?.squad_b_id}
+            match={g12}
+            getScore={getScore}
+          />
 
-              <FinalPair
-                match={g12}
-                winnerPlace={firstPlace+6}
-                loserPlace={firstPlace+7}
-                payouts={payouts}
-              />
-            </div>
+          <FinalNode
+            left={xFinal}
+            top={y9-18}
+            width={finalWidth}
+            match={g9}
+            winnerPlace={firstPlace}
+            loserPlace={firstPlace+1}
+            payouts={payouts}
+            championLabel={championLabel}
+          />
 
-          </div>
+          <FinalNode
+            left={xFinal}
+            top={y10-18}
+            width={finalWidth}
+            match={g10}
+            winnerPlace={firstPlace+2}
+            loserPlace={firstPlace+3}
+            payouts={payouts}
+          />
+
+          <FinalNode
+            left={xFinal}
+            top={y11-18}
+            width={finalWidth}
+            match={g11}
+            winnerPlace={firstPlace+4}
+            loserPlace={firstPlace+5}
+            payouts={payouts}
+          />
+
+          <FinalNode
+            left={xFinal}
+            top={y12-18}
+            width={finalWidth}
+            match={g12}
+            winnerPlace={firstPlace+6}
+            loserPlace={firstPlace+7}
+            payouts={payouts}
+          />
+
         </div>
       </div>
     </section>
   )
 }
 
-function BracketGame({
+function ColumnHeader({
+  left,
+  width,
+  children
+}:{
+  left:number
+  width:number
+  children:React.ReactNode
+}){
+  return (
+    <div
+      style={{
+        position:'absolute',
+        left,
+        top:0,
+        width,
+        textAlign:'center',
+        fontWeight:800
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function GameNode({
+  left,
+  top,
+  width,
   gameNumber,
   week,
   a,
@@ -847,6 +963,9 @@ function BracketGame({
   match,
   getScore
 }:{
+  left:number
+  top:number
+  width:number
   gameNumber:number
   week:number
   a:string
@@ -873,20 +992,18 @@ function BracketGame({
 
   const winnerId=
     Number(
-      match?.winner_squad_id
-      || 0
+      match?.winner_squad_id || 0
     )
 
   const loserId=
     Number(
-      match?.loser_squad_id
-      || 0
+      match?.loser_squad_id || 0
     )
 
-  const lineColor=(
+  const colorFor=(
     squadId:number|null|undefined
   )=>{
-    if(!match || match.status!=='final'){
+    if(match?.status!=='final'){
       return undefined
     }
 
@@ -901,62 +1018,45 @@ function BracketGame({
     return undefined
   }
 
-  const aColor=
-    lineColor(aId)
-
-  const bColor=
-    lineColor(bId)
-
   return (
     <div
       style={{
-        position:'relative',
-        paddingRight:26
+        position:'absolute',
+        left,
+        top,
+        width
       }}
     >
       <div
         style={{
-          fontSize:'0.74rem',
-          fontWeight:700,
-          marginBottom:4,
-          textAlign:'center'
+          textAlign:'center',
+          fontSize:'0.72rem',
+          fontWeight:800,
+          marginBottom:5
         }}
       >
         Game #{gameNumber}
       </div>
 
-      <TeamLine
+      <ParticipantLine
         name={a}
         score={aScore}
-        color={aColor}
+        color={colorFor(aId)}
       />
 
-      <TeamLine
+      <ParticipantLine
         name={b}
         score={bScore}
-        color={bColor}
-      />
-
-      <div
-        style={{
-          position:'absolute',
-          right:0,
-          top:28,
-          width:26,
-          height:38,
-          borderRight:'2px solid #555',
-          borderTop:'2px solid #555',
-          borderBottom:'2px solid #555'
-        }}
+        color={colorFor(bId)}
       />
 
       {match?.status==='needs_tiebreaker' && (
         <div
           style={{
-            marginTop:5,
             textAlign:'center',
-            fontSize:'0.72rem',
-            fontWeight:800
+            fontSize:'0.7rem',
+            fontWeight:800,
+            marginTop:5
           }}
         >
           O/U Tiebreaker Required
@@ -966,7 +1066,7 @@ function BracketGame({
   )
 }
 
-function TeamLine({
+function ParticipantLine({
   name,
   score,
   color
@@ -978,19 +1078,16 @@ function TeamLine({
   return (
     <div
       style={{
-        minHeight:34,
+        height:32,
         display:'grid',
-        gridTemplateColumns:'1fr 56px',
+        gridTemplateColumns:'1fr 52px',
         alignItems:'end',
         gap:6,
         borderBottom:
           `2px solid ${color || '#555'}`,
-        color:color,
-        fontWeight:
-          color
-            ? 800
-            : 500,
-        padding:'0 4px 3px'
+        color,
+        padding:'0 4px 3px',
+        fontWeight:color?800:500
       }}
     >
       <div>
@@ -1009,13 +1106,19 @@ function TeamLine({
   )
 }
 
-function FinalPair({
+function FinalNode({
+  left,
+  top,
+  width,
   match,
   winnerPlace,
   loserPlace,
   payouts,
   championLabel=false
 }:{
+  left:number
+  top:number
+  width:number
   match:any
   winnerPlace:number
   loserPlace:number
@@ -1037,11 +1140,13 @@ function FinalPair({
   return (
     <div
       style={{
-        display:'grid',
-        gap:16
+        position:'absolute',
+        left,
+        top,
+        width
       }}
     >
-      <FinishLine
+      <PlacementLine
         name={winnerName}
         place={winnerPlace}
         payout={payouts[winnerPlace]}
@@ -1050,13 +1155,11 @@ function FinalPair({
             ? 'green'
             : undefined
         }
-        champion={
-          championLabel &&
-          winnerPlace===1
-        }
       />
 
-      <FinishLine
+      <div style={{height:14}}/>
+
+      <PlacementLine
         name={loserName}
         place={loserPlace}
         payout={payouts[loserPlace]}
@@ -1070,18 +1173,16 @@ function FinalPair({
   )
 }
 
-function FinishLine({
+function PlacementLine({
   name,
   place,
   payout,
-  color,
-  champion=false
+  color
 }:{
   name:string
   place:number
   payout:number
   color?:string
-  champion?:boolean
 }){
   return (
     <div>
@@ -1089,13 +1190,10 @@ function FinishLine({
         style={{
           borderBottom:
             `2px solid ${color || '#555'}`,
-          padding:'0 4px 4px',
+          color,
           textAlign:'center',
-          color:color,
-          fontWeight:
-            champion
-              ? 900
-              : 700
+          fontWeight:800,
+          paddingBottom:4
         }}
       >
         {name}
@@ -1104,7 +1202,7 @@ function FinishLine({
       <div
         style={{
           textAlign:'center',
-          fontSize:'0.78rem',
+          fontSize:'0.76rem',
           marginTop:3
         }}
       >
@@ -1115,5 +1213,86 @@ function FinishLine({
         </b>
       </div>
     </div>
+  )
+}
+
+function BracketConnector({
+  fromX,
+  fromY1,
+  fromY2,
+  toX,
+  toY
+}:{
+  fromX:number
+  fromY1:number
+  fromY2:number
+  toX:number
+  toY:number
+}){
+  const midX=
+    fromX+
+    ((toX-fromX)/2)
+
+  return (
+    <>
+      <line
+        x1={fromX}
+        y1={fromY1}
+        x2={midX}
+        y2={fromY1}
+        stroke="#555"
+        strokeWidth="2"
+      />
+
+      <line
+        x1={fromX}
+        y1={fromY2}
+        x2={midX}
+        y2={fromY2}
+        stroke="#555"
+        strokeWidth="2"
+      />
+
+      <line
+        x1={midX}
+        y1={fromY1}
+        x2={midX}
+        y2={fromY2}
+        stroke="#555"
+        strokeWidth="2"
+      />
+
+      <line
+        x1={midX}
+        y1={toY}
+        x2={toX}
+        y2={toY}
+        stroke="#555"
+        strokeWidth="2"
+      />
+    </>
+  )
+}
+
+function SingleConnector({
+  fromX,
+  fromY,
+  toX,
+  toY
+}:{
+  fromX:number
+  fromY:number
+  toX:number
+  toY:number
+}){
+  return (
+    <line
+      x1={fromX}
+      y1={fromY}
+      x2={toX}
+      y2={toY}
+      stroke="#555"
+      strokeWidth="2"
+    />
   )
 }

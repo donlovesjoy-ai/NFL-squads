@@ -1,27 +1,15 @@
-import { redirect } from 'next/navigation'
+ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 
 const championshipPayouts:Record<number,number>={
-  1:250,
-  2:200,
-  3:175,
-  4:150,
-  5:125,
-  6:100,
-  7:75,
-  8:50
+  1:250, 2:200, 3:175, 4:150,
+  5:125, 6:100, 7:75, 8:50
 }
 
 const consolationPayouts:Record<number,number>={
-  9:-50,
-  10:-75,
-  11:-100,
-  12:-125,
-  13:-150,
-  14:-175,
-  15:-200,
-  16:-250
+  9:-50, 10:-75, 11:-100, 12:-125,
+  13:-150, 14:-175, 15:-200, 16:-250
 }
 
 function money(n:number){
@@ -51,10 +39,35 @@ function signedScore(n:any){
   }
 
   const x=Number(n)
+  return x>0 ? `+${x}` : `${x}`
+}
 
-  return x>0
-    ? `+${x}`
-    : `${x}`
+function participant(
+  source:any,
+  outcome:'winner'|'loser',
+  fallback:string
+){
+  if(!source){
+    return {
+      id:null,
+      name:fallback
+    }
+  }
+
+  const id=
+    outcome==='winner'
+      ? source.winner_squad_id
+      : source.loser_squad_id
+
+  const name=
+    outcome==='winner'
+      ? source.winner?.squad_name
+      : source.loser?.squad_name
+
+  return {
+    id:id || null,
+    name:name || fallback
+  }
 }
 
 export default async function Playoffs(){
@@ -186,24 +199,21 @@ export default async function Playoffs(){
 
   const matchList=(matches||[]) as any[]
 
-  const squadMap=
-    new Map(
-      (squads||[]).map(
-        (s:any)=>[
-          Number(s.id),
-          s
-        ]
-      )
+  const squadMap=new Map(
+    (squads||[]).map(
+      (s:any)=>[
+        Number(s.id),
+        s
+      ]
     )
+  )
 
   const scoreMap=
     new Map<string,number|null>()
 
   for(const p of (playoffPicks||[]) as any[]){
     const week=
-      Number(
-        p.games?.nfl_week
-      )
+      Number(p.games?.nfl_week)
 
     scoreMap.set(
       `${p.squad_id}:${week}`,
@@ -269,10 +279,7 @@ export default async function Playoffs(){
     seed:number
   )=>{
     return (
-      lockedSeed(
-        division,
-        seed
-      )
+      lockedSeed(division,seed)
       ||
       `${divisionName(division)} ${ordinal(seed)} Place`
     )
@@ -316,9 +323,7 @@ export default async function Playoffs(){
 
       <section
         className="card"
-        style={{
-          textAlign:'center'
-        }}
+        style={{textAlign:'center'}}
       >
         <h1>
           Playoff Matrix
@@ -368,9 +373,7 @@ export default async function Playoffs(){
        placements.length>0 && (
         <section
           className="card"
-          style={{
-            textAlign:'center'
-          }}
+          style={{textAlign:'center'}}
         >
           <h2>
             Final Placements & Payouts
@@ -404,9 +407,7 @@ export default async function Playoffs(){
                   <tr key={p.final_place}>
                     <td style={{textAlign:'center'}}>
                       {ordinal(
-                        Number(
-                          p.final_place
-                        )
+                        Number(p.final_place)
                       )}
                     </td>
 
@@ -421,9 +422,7 @@ export default async function Playoffs(){
                       }}
                     >
                       {money(
-                        Number(
-                          p.payout
-                        )
+                        Number(p.payout)
                       )}
                     </td>
                   </tr>
@@ -473,44 +472,189 @@ function BracketMatrix({
   const g3=getMatch(16,week16Band,3)
   const g4=getMatch(16,week16Band,4)
 
-  const g5=getMatch(17,upperBand,1)
-  const g6=getMatch(17,upperBand,2)
+  const row5=getMatch(17,upperBand,1)
+  const row6=getMatch(17,upperBand,2)
 
-  const g7=getMatch(17,lowerBand,1)
-  const g8=getMatch(17,lowerBand,2)
+  const row7=getMatch(17,lowerBand,1)
+  const row8=getMatch(17,lowerBand,2)
 
-  const g9=getMatch(18,upperBand,1)
-  const g10=getMatch(18,upperBand,2)
+  const row9=getMatch(18,upperBand,1)
+  const row10=getMatch(18,upperBand,2)
 
-  const g11=getMatch(18,lowerBand,1)
-  const g12=getMatch(18,lowerBand,2)
+  const row11=getMatch(18,lowerBand,1)
+  const row12=getMatch(18,lowerBand,2)
 
-  const WIDTH=1180
-  const HEIGHT=1040
+  const g5a=participant(
+    g1,
+    'winner',
+    'Game #1 Winner'
+  )
+
+  const g5b=participant(
+    g2,
+    'winner',
+    'Game #2 Winner'
+  )
+
+  const g6a=participant(
+    g3,
+    'winner',
+    'Game #3 Winner'
+  )
+
+  const g6b=participant(
+    g4,
+    'winner',
+    'Game #4 Winner'
+  )
+
+  const g7a=participant(
+    g1,
+    'loser',
+    'Game #1 Loser'
+  )
+
+  const g7b=participant(
+    g2,
+    'loser',
+    'Game #2 Loser'
+  )
+
+  const g8a=participant(
+    g3,
+    'loser',
+    'Game #3 Loser'
+  )
+
+  const g8b=participant(
+    g4,
+    'loser',
+    'Game #4 Loser'
+  )
+
+  const g5=derivedMatch(
+    row5,
+    g5a,
+    g5b
+  )
+
+  const g6=derivedMatch(
+    row6,
+    g6a,
+    g6b
+  )
+
+  const g7=derivedMatch(
+    row7,
+    g7a,
+    g7b
+  )
+
+  const g8=derivedMatch(
+    row8,
+    g8a,
+    g8b
+  )
+
+  const g9a=participant(
+    g5,
+    'winner',
+    'Game #5 Winner'
+  )
+
+  const g9b=participant(
+    g6,
+    'winner',
+    'Game #6 Winner'
+  )
+
+  const g10a=participant(
+    g5,
+    'loser',
+    'Game #5 Loser'
+  )
+
+  const g10b=participant(
+    g6,
+    'loser',
+    'Game #6 Loser'
+  )
+
+  const g11a=participant(
+    g7,
+    'winner',
+    'Game #7 Winner'
+  )
+
+  const g11b=participant(
+    g8,
+    'winner',
+    'Game #8 Winner'
+  )
+
+  const g12a=participant(
+    g7,
+    'loser',
+    'Game #7 Loser'
+  )
+
+  const g12b=participant(
+    g8,
+    'loser',
+    'Game #8 Loser'
+  )
+
+  const g9=derivedMatch(
+    row9,
+    g9a,
+    g9b
+  )
+
+  const g10=derivedMatch(
+    row10,
+    g10a,
+    g10b
+  )
+
+  const g11=derivedMatch(
+    row11,
+    g11a,
+    g11b
+  )
+
+  const g12=derivedMatch(
+    row12,
+    g12a,
+    g12b
+  )
+
+  const WIDTH=1200
+  const HEIGHT=1100
 
   const x16=20
-  const x17=350
-  const x18=690
-  const xFinal=980
+  const x17=360
+  const x18=715
+  const xFinal=1005
 
   const gameWidth=250
-  const finalWidth=180
+  const finalWidth=175
 
-  const y1=50
-  const y2=205
-  const y3=365
-  const y4=520
+  const y1=60
+  const y2=230
+  const y3=430
+  const y4=600
 
-  const y5=125
-  const y6=445
+  const y5=145
+  const y6=515
 
-  const y7=675
-  const y8=835
+  const y7=745
+  const y8=915
 
-  const y9=285
-  const y10=565
-  const y11=755
-  const y12=925
+  const y9=330
+  const y10=600
+
+  const y11=830
+  const y12=1000
 
   return (
     <section className="card">
@@ -577,65 +721,179 @@ function BracketMatrix({
               pointerEvents:'none'
             }}
           >
-            <BracketConnector
-              fromX={x16+gameWidth}
-              fromY1={y1+53}
-              fromY2={y2+53}
-              toX={x17}
-              toY={y5+53}
+
+            {/* GAME 1 + GAME 2 WINNERS -> GAME 5 */}
+
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y1+50}
+              bendX={315}
+              endX={x17}
+              endY={y5+42}
             />
 
-            <BracketConnector
-              fromX={x16+gameWidth}
-              fromY1={y3+53}
-              fromY2={y4+53}
-              toX={x17}
-              toY={y6+53}
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y2+50}
+              bendX={315}
+              endX={x17}
+              endY={y5+74}
             />
 
-            <BracketConnector
-              fromX={x17+gameWidth}
-              fromY1={y5+53}
-              fromY2={y6+53}
-              toX={x18}
-              toY={y9+53}
+            {/* GAME 3 + GAME 4 WINNERS -> GAME 6 */}
+
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y3+50}
+              bendX={315}
+              endX={x17}
+              endY={y6+42}
             />
 
-            <BracketConnector
-              fromX={x17+gameWidth}
-              fromY1={y7+53}
-              fromY2={y8+53}
-              toX={x18}
-              toY={y11+53}
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y4+50}
+              bendX={315}
+              endX={x17}
+              endY={y6+74}
             />
 
-            <SingleConnector
-              fromX={x18+gameWidth}
-              fromY={y9+53}
-              toX={xFinal}
-              toY={y9+53}
+            {/* GAME 1 + GAME 2 LOSERS -> GAME 7 */}
+
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y1+82}
+              bendX={300}
+              endX={x17}
+              endY={y7+42}
             />
 
-            <SingleConnector
-              fromX={x18+gameWidth}
-              fromY={y10+53}
-              toX={xFinal}
-              toY={y10+53}
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y2+82}
+              bendX={300}
+              endX={x17}
+              endY={y7+74}
             />
 
-            <SingleConnector
-              fromX={x18+gameWidth}
-              fromY={y11+53}
-              toX={xFinal}
-              toY={y11+53}
+            {/* GAME 3 + GAME 4 LOSERS -> GAME 8 */}
+
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y3+82}
+              bendX={300}
+              endX={x17}
+              endY={y8+42}
             />
 
-            <SingleConnector
-              fromX={x18+gameWidth}
-              fromY={y12+53}
-              toX={xFinal}
-              toY={y12+53}
+            <PathConnector
+              startX={x16+gameWidth}
+              startY={y4+82}
+              bendX={300}
+              endX={x17}
+              endY={y8+74}
             />
+
+            {/* GAME 5 + GAME 6 WINNERS -> GAME 9 */}
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y5+50}
+              bendX={665}
+              endX={x18}
+              endY={y9+42}
+            />
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y6+50}
+              bendX={665}
+              endX={x18}
+              endY={y9+74}
+            />
+
+            {/* GAME 5 + GAME 6 LOSERS -> GAME 10 */}
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y5+82}
+              bendX={650}
+              endX={x18}
+              endY={y10+42}
+            />
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y6+82}
+              bendX={650}
+              endX={x18}
+              endY={y10+74}
+            />
+
+            {/* GAME 7 + GAME 8 WINNERS -> GAME 11 */}
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y7+50}
+              bendX={665}
+              endX={x18}
+              endY={y11+42}
+            />
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y8+50}
+              bendX={665}
+              endX={x18}
+              endY={y11+74}
+            />
+
+            {/* GAME 7 + GAME 8 LOSERS -> GAME 12 */}
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y7+82}
+              bendX={650}
+              endX={x18}
+              endY={y12+42}
+            />
+
+            <PathConnector
+              startX={x17+gameWidth}
+              startY={y8+82}
+              bendX={650}
+              endX={x18}
+              endY={y12+74}
+            />
+
+            <StraightConnector
+              startX={x18+gameWidth}
+              startY={y9+58}
+              endX={xFinal}
+              endY={y9+58}
+            />
+
+            <StraightConnector
+              startX={x18+gameWidth}
+              startY={y10+58}
+              endX={xFinal}
+              endY={y10+58}
+            />
+
+            <StraightConnector
+              startX={x18+gameWidth}
+              startY={y11+58}
+              endX={xFinal}
+              endY={y11+58}
+            />
+
+            <StraightConnector
+              startX={x18+gameWidth}
+              startY={y12+58}
+              endX={xFinal}
+              endY={y12+58}
+            />
+
           </svg>
 
           <GameNode
@@ -724,16 +982,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={5}
             week={17}
-            a={
-              g5?.squad_a?.squad_name
-              || 'Game #1 Winner'
-            }
-            b={
-              g5?.squad_b?.squad_name
-              || 'Game #2 Winner'
-            }
-            aId={g5?.squad_a_id}
-            bId={g5?.squad_b_id}
+            a={g5a.name}
+            b={g5b.name}
+            aId={g5a.id}
+            bId={g5b.id}
             match={g5}
             getScore={getScore}
           />
@@ -744,16 +996,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={6}
             week={17}
-            a={
-              g6?.squad_a?.squad_name
-              || 'Game #3 Winner'
-            }
-            b={
-              g6?.squad_b?.squad_name
-              || 'Game #4 Winner'
-            }
-            aId={g6?.squad_a_id}
-            bId={g6?.squad_b_id}
+            a={g6a.name}
+            b={g6b.name}
+            aId={g6a.id}
+            bId={g6b.id}
             match={g6}
             getScore={getScore}
           />
@@ -764,16 +1010,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={7}
             week={17}
-            a={
-              g7?.squad_a?.squad_name
-              || 'Game #1 Loser'
-            }
-            b={
-              g7?.squad_b?.squad_name
-              || 'Game #2 Loser'
-            }
-            aId={g7?.squad_a_id}
-            bId={g7?.squad_b_id}
+            a={g7a.name}
+            b={g7b.name}
+            aId={g7a.id}
+            bId={g7b.id}
             match={g7}
             getScore={getScore}
           />
@@ -784,16 +1024,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={8}
             week={17}
-            a={
-              g8?.squad_a?.squad_name
-              || 'Game #3 Loser'
-            }
-            b={
-              g8?.squad_b?.squad_name
-              || 'Game #4 Loser'
-            }
-            aId={g8?.squad_a_id}
-            bId={g8?.squad_b_id}
+            a={g8a.name}
+            b={g8b.name}
+            aId={g8a.id}
+            bId={g8b.id}
             match={g8}
             getScore={getScore}
           />
@@ -804,16 +1038,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={9}
             week={18}
-            a={
-              g9?.squad_a?.squad_name
-              || 'Game #5 Winner'
-            }
-            b={
-              g9?.squad_b?.squad_name
-              || 'Game #6 Winner'
-            }
-            aId={g9?.squad_a_id}
-            bId={g9?.squad_b_id}
+            a={g9a.name}
+            b={g9b.name}
+            aId={g9a.id}
+            bId={g9b.id}
             match={g9}
             getScore={getScore}
           />
@@ -824,16 +1052,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={10}
             week={18}
-            a={
-              g10?.squad_a?.squad_name
-              || 'Game #5 Loser'
-            }
-            b={
-              g10?.squad_b?.squad_name
-              || 'Game #6 Loser'
-            }
-            aId={g10?.squad_a_id}
-            bId={g10?.squad_b_id}
+            a={g10a.name}
+            b={g10b.name}
+            aId={g10a.id}
+            bId={g10b.id}
             match={g10}
             getScore={getScore}
           />
@@ -844,16 +1066,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={11}
             week={18}
-            a={
-              g11?.squad_a?.squad_name
-              || 'Game #7 Winner'
-            }
-            b={
-              g11?.squad_b?.squad_name
-              || 'Game #8 Winner'
-            }
-            aId={g11?.squad_a_id}
-            bId={g11?.squad_b_id}
+            a={g11a.name}
+            b={g11b.name}
+            aId={g11a.id}
+            bId={g11b.id}
             match={g11}
             getScore={getScore}
           />
@@ -864,16 +1080,10 @@ function BracketMatrix({
             width={gameWidth}
             gameNumber={12}
             week={18}
-            a={
-              g12?.squad_a?.squad_name
-              || 'Game #7 Loser'
-            }
-            b={
-              g12?.squad_b?.squad_name
-              || 'Game #8 Loser'
-            }
-            aId={g12?.squad_a_id}
-            bId={g12?.squad_b_id}
+            a={g12a.name}
+            b={g12b.name}
+            aId={g12a.id}
+            bId={g12b.id}
             match={g12}
             getScore={getScore}
           />
@@ -923,6 +1133,53 @@ function BracketMatrix({
       </div>
     </section>
   )
+}
+
+function derivedMatch(
+  row:any,
+  a:{
+    id:number|null
+    name:string
+  },
+  b:{
+    id:number|null
+    name:string
+  }
+){
+  if(!row){
+    return {
+      squad_a_id:a.id,
+      squad_b_id:b.id,
+      squad_a:{
+        squad_name:a.name
+      },
+      squad_b:{
+        squad_name:b.name
+      },
+      winner_squad_id:null,
+      loser_squad_id:null,
+      winner:null,
+      loser:null,
+      status:'waiting'
+    }
+  }
+
+  return {
+    ...row,
+
+    squad_a_id:a.id,
+    squad_b_id:b.id,
+
+    squad_a:{
+      id:a.id,
+      squad_name:a.name
+    },
+
+    squad_b:{
+      id:b.id,
+      squad_name:b.name
+    }
+  }
 }
 
 function ColumnHeader({
@@ -978,17 +1235,8 @@ function GameNode({
     week:number
   )=>number|null
 }){
-  const aScore=
-    getScore(
-      aId,
-      week
-    )
-
-  const bScore=
-    getScore(
-      bId,
-      week
-    )
+  const aScore=getScore(aId,week)
+  const bScore=getScore(bId,week)
 
   const winnerId=
     Number(
@@ -1007,11 +1255,15 @@ function GameNode({
       return undefined
     }
 
-    if(Number(squadId)===winnerId){
+    if(
+      Number(squadId)===winnerId
+    ){
       return 'green'
     }
 
-    if(Number(squadId)===loserId){
+    if(
+      Number(squadId)===loserId
+    ){
       return 'red'
     }
 
@@ -1216,81 +1468,52 @@ function PlacementLine({
   )
 }
 
-function BracketConnector({
-  fromX,
-  fromY1,
-  fromY2,
-  toX,
-  toY
+function PathConnector({
+  startX,
+  startY,
+  bendX,
+  endX,
+  endY
 }:{
-  fromX:number
-  fromY1:number
-  fromY2:number
-  toX:number
-  toY:number
+  startX:number
+  startY:number
+  bendX:number
+  endX:number
+  endY:number
 }){
-  const midX=
-    fromX+
-    ((toX-fromX)/2)
-
   return (
-    <>
-      <line
-        x1={fromX}
-        y1={fromY1}
-        x2={midX}
-        y2={fromY1}
-        stroke="#555"
-        strokeWidth="2"
-      />
-
-      <line
-        x1={fromX}
-        y1={fromY2}
-        x2={midX}
-        y2={fromY2}
-        stroke="#555"
-        strokeWidth="2"
-      />
-
-      <line
-        x1={midX}
-        y1={fromY1}
-        x2={midX}
-        y2={fromY2}
-        stroke="#555"
-        strokeWidth="2"
-      />
-
-      <line
-        x1={midX}
-        y1={toY}
-        x2={toX}
-        y2={toY}
-        stroke="#555"
-        strokeWidth="2"
-      />
-    </>
+    <polyline
+      points={`
+        ${startX},${startY}
+        ${bendX},${startY}
+        ${bendX},${endY}
+        ${endX},${endY}
+      `}
+      fill="none"
+      stroke="#555"
+      strokeWidth="2"
+      strokeLinejoin="miter"
+    />
   )
 }
 
-function SingleConnector({
-  fromX,
-  fromY,
-  toX,
-  toY
+function StraightConnector({
+  startX,
+  startY,
+  endX,
+  endY
 }:{
-  fromX:number
-  fromY:number
-  toX:number
-  toY:number
+  startX:number
+  startY:number
+  endX:number
+  endY:number
 }){
   return (
     <line
-      x1={fromX}
-      y1={fromY}
-      x2={toX}
-      y2={toY}
+      x1={startX}
+      y1={startY}
+      x2={endX}
+      y2={endY}
       stroke="#555"
       strokeWidth="2"
     />

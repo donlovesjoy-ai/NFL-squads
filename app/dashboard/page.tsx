@@ -53,10 +53,33 @@ function sameStanding(a:any,b:any){
   )
 }
 
+function shortOwnerName(value:any){
+  const fullName=String(value||'').trim()
+
+  if(!fullName){
+    return ''
+  }
+
+  const parts=
+    fullName
+      .split(/\s+/)
+      .filter(Boolean)
+
+  if(parts.length===1){
+    return parts[0]
+  }
+
+  const firstName=parts[0]
+  const lastName=parts[parts.length-1]
+
+  return `${firstName} ${lastName.charAt(0).toUpperCase()}.`
+}
+
 export default async function Dashboard(){
   const supabase=await createClient()
 
-  const {data:{user}}=await supabase.auth.getUser()
+  const {data:{user}}=
+    await supabase.auth.getUser()
 
   if(!user){
     redirect('/login')
@@ -76,6 +99,7 @@ export default async function Dashboard(){
     .select(`
       id,
       squad_name,
+      owner_name,
       division,
       nfl_team_id,
       nfl_teams(
@@ -183,49 +207,82 @@ export default async function Dashboard(){
     .sort(
       (a:any,b:any)=>
         (b.wins-a.wins) ||
-        (Number(b.ats_margin)-Number(a.ats_margin)) ||
-        (a.squads.id-b.squads.id)
+        (
+          Number(b.ats_margin)-
+          Number(a.ats_margin)
+        ) ||
+        (
+          a.squads.id-
+          b.squads.id
+        )
     )
 
-  const rankedDivRows=divRows.map((row:any,index:number)=>{
-    const previous=divRows[index-1]
+  const rankedDivRows=
+    divRows.map(
+      (row:any,index:number)=>{
+        const previous=
+          divRows[index-1]
 
-    let rank=1
+        let rank=1
 
-    if(index>0){
-      if(sameStanding(row,previous)){
-        rank=(divRows
-          .slice(0,index)
-          .findIndex((r:any)=>sameStanding(r,row))
-        )+1
-      }else{
-        rank=index+1
+        if(index>0){
+          if(
+            sameStanding(
+              row,
+              previous
+            )
+          ){
+            rank=
+              (
+                divRows
+                  .slice(0,index)
+                  .findIndex(
+                    (r:any)=>
+                      sameStanding(
+                        r,
+                        row
+                      )
+                  )
+              )+1
+          }else{
+            rank=index+1
+          }
+        }
+
+        const tied=
+          divRows.some(
+            (other:any)=>
+              other.squads.id!==
+                row.squads.id &&
+              sameStanding(
+                other,
+                row
+              )
+          )
+
+        return {
+          ...row,
+          displayRank:rank,
+          tied
+        }
       }
-    }
+    )
 
-    const tied=
-      divRows.some(
-        (other:any)=>
-          other.squads.id!==row.squads.id &&
-          sameStanding(other,row)
-      )
-
-    return {
-      ...row,
-      displayRank:rank,
-      tied
-    }
-  })
-
-  const myStanding:any=rankedDivRows
-    .find(
+  const myStanding:any=
+    rankedDivRows.find(
       (r:any)=>
         r.squads?.id===squad?.id
     )
 
   const myPlace=
     myStanding
-      ? `${myStanding.tied?'T-':''}${ordinal(myStanding.displayRank)}`
+      ? `${
+          myStanding.tied
+            ? 'T-'
+            : ''
+        }${ordinal(
+          myStanding.displayRank
+        )}`
       : null
 
   const homeSpread=
@@ -241,12 +298,15 @@ export default async function Dashboard(){
 
   const ownSpread=
     game &&
-    squad?.nfl_team_id===game.home_team_id
+    squad?.nfl_team_id===
+      game.home_team_id
       ? homeSpread
       : awaySpread
 
   const ownTeamName=
-    (squad as any)?.nfl_teams?.name || 'Team'
+    (squad as any)
+      ?.nfl_teams
+      ?.name || 'Team'
 
   const {data:chatMessages}=await supabase
     .from('chat_messages')
@@ -335,16 +395,14 @@ export default async function Dashboard(){
 
       <div className="grid">
 
+        {/* SQUAD CARD */}
+
         <section
           className="card"
           style={{
             textAlign:'center'
           }}
         >
-          <h2>
-            My Squad
-          </h2>
-
           {squad && (
             <img
               src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
@@ -354,15 +412,33 @@ export default async function Dashboard(){
               style={{
                 objectFit:'contain',
                 display:'block',
-                margin:'0 auto'
+                margin:'0 auto 6px'
               }}
             />
           )}
 
-          <p className="big">
+          <div
+            className="big"
+            style={{
+              marginTop:4
+            }}
+          >
             {squad?.squad_name ||
               'Not assigned yet'}
-          </p>
+          </div>
+
+          {squad?.owner_name && (
+            <div
+              className="muted"
+              style={{
+                marginTop:3,
+                marginBottom:14,
+                fontSize:'0.8rem'
+              }}
+            >
+              {squad.owner_name}, Owner
+            </div>
+          )}
 
           {squad ? (
             <>
@@ -410,6 +486,8 @@ export default async function Dashboard(){
             </p>
           )}
         </section>
+
+        {/* NFL MATCHUP */}
 
         <section
           className="card"
@@ -538,6 +616,8 @@ export default async function Dashboard(){
           )}
         </section>
 
+        {/* MY PICK */}
+
         <section
           className="card"
           style={{
@@ -595,6 +675,8 @@ export default async function Dashboard(){
 
       </div>
 
+      {/* DIVISION STANDINGS */}
+
       <section
         className="card"
         style={{
@@ -607,8 +689,7 @@ export default async function Dashboard(){
 
         {rankedDivRows.length===0 ? (
           <p className="muted">
-            Standings will appear
-            after grading.
+            Standings will appear after grading.
           </p>
         ) : (
           <div
@@ -643,32 +724,40 @@ export default async function Dashboard(){
               </thead>
 
               <tbody>
-                {rankedDivRows.map((r:any)=>(
-                  <tr key={r.squads.id}>
-                    <td style={{textAlign:'center'}}>
-                      {r.tied?'T-':''}
-                      {ordinal(r.displayRank)}
-                    </td>
+                {rankedDivRows.map(
+                  (r:any)=>(
+                    <tr key={r.squads.id}>
+                      <td style={{textAlign:'center'}}>
+                        {r.tied?'T-':''}
+                        {ordinal(r.displayRank)}
+                      </td>
 
-                    <td style={{textAlign:'center'}}>
-                      <b>{r.squads.squad_name}</b>
-                    </td>
+                      <td style={{textAlign:'center'}}>
+                        <b>
+                          {r.squads.squad_name}
+                        </b>
+                      </td>
 
-                    <td style={{textAlign:'center'}}>
-                      {r.wins}-{r.losses}-{r.pushes}
-                    </td>
+                      <td style={{textAlign:'center'}}>
+                        {r.wins}-{r.losses}-{r.pushes}
+                      </td>
 
-                    <td style={{textAlign:'center'}}>
-                      {Number(r.ats_margin)>0?'+':''}
-                      {r.ats_margin}
-                    </td>
-                  </tr>
-                ))}
+                      <td style={{textAlign:'center'}}>
+                        {Number(r.ats_margin)>0
+                          ? '+'
+                          : ''}
+                        {r.ats_margin}
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
           </div>
         )}
       </section>
+
+      {/* LEAGUE CHAT */}
 
       <section
         className="card"
@@ -694,15 +783,22 @@ export default async function Dashboard(){
           >
             {chatMessages.map(
               (m:any)=>{
-                const squad=m.squads
+                const chatSquad=
+                  m.squads
+
                 const isSystem=
                   m.is_system===true
+
+                const formattedOwner=
+                  shortOwnerName(
+                    chatSquad?.owner_name
+                  )
 
                 const author=
                   isSystem
                     ? 'NFL SQUADS · League Update'
-                    : squad?.owner_name ||
-                      squad?.squad_name ||
+                    : formattedOwner ||
+                      chatSquad?.squad_name ||
                       (
                         m.is_commissioner
                           ? 'Commissioner'
@@ -739,11 +835,13 @@ export default async function Dashboard(){
                       </b>
 
                       {!isSystem &&
-                       squad?.squad_name &&
-                       squad.owner_name
+                       chatSquad?.squad_name &&
+                       chatSquad.owner_name
                         ? (
                           <span className="muted">
-                            {' '}· {squad.squad_name}
+                            {' '}
+                            ·{' '}
+                            {chatSquad.squad_name}
                           </span>
                         )
                         : null}

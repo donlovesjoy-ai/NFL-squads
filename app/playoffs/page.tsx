@@ -334,26 +334,50 @@ export default async function Playoffs(){
       <section
         className="card"
         style={{
-          textAlign:'center'
+          textAlign:'center',
+          paddingTop:22,
+          paddingBottom:22
         }}
       >
-        <h1>
+        <div
+          style={{
+            fontSize:'0.72rem',
+            fontWeight:900,
+            letterSpacing:'0.14em',
+            textTransform:'uppercase',
+            opacity:0.6,
+            marginBottom:6
+          }}
+        >
+          Postseason
+        </div>
+
+        <h1
+          style={{
+            margin:'0 0 10px'
+          }}
+        >
           Playoff Matrix
         </h1>
 
-        <p className="muted">
+        <p
+          className="muted"
+          style={{
+            maxWidth:620,
+            margin:'0 auto',
+            lineHeight:1.5
+          }}
+        >
           Weekly ATS margin is the playoff score.
-          Highest score advances.
-        </p>
-
-        <p className="muted">
-          Exact division positions populate only
-          when that specific seed is mathematically locked.
+          Highest score advances. Exact division
+          positions populate when each seed is
+          mathematically locked.
         </p>
       </section>
 
       <BracketMatrix
         title="Championship Playoff Matrix"
+        subtitle="Places 1–8"
         seedA={1}
         seedB={2}
         week16Band="1-4"
@@ -369,6 +393,7 @@ export default async function Playoffs(){
 
       <BracketMatrix
         title="Consolation Playoff Matrix"
+        subtitle="Places 9–16"
         seedA={3}
         seedB={4}
         week16Band="9-12"
@@ -389,67 +414,100 @@ export default async function Playoffs(){
             textAlign:'center'
           }}
         >
-          <h2>
-            Final Placements & Payouts
-          </h2>
-
-          <table
+          <div
             style={{
-              width:'100%',
-              textAlign:'center'
+              fontSize:'0.72rem',
+              fontWeight:900,
+              letterSpacing:'0.12em',
+              textTransform:'uppercase',
+              opacity:0.6,
+              marginBottom:5
             }}
           >
-            <thead>
-              <tr>
-                <th style={{textAlign:'center'}}>
-                  Place
-                </th>
+            Final Results
+          </div>
 
-                <th style={{textAlign:'center'}}>
-                  Squad
-                </th>
+          <h2
+            style={{
+              marginTop:0
+            }}
+          >
+            Placements & Payouts
+          </h2>
 
-                <th style={{textAlign:'center'}}>
-                  Payout
-                </th>
-              </tr>
-            </thead>
+          <div
+            style={{
+              overflowX:'auto'
+            }}
+          >
+            <table
+              style={{
+                width:'100%',
+                textAlign:'center'
+              }}
+            >
+              <thead>
+                <tr>
+                  <th style={{textAlign:'center'}}>
+                    Place
+                  </th>
 
-            <tbody>
-              {placements.map(
-                (p:any)=>(
-                  <tr
-                    key={p.final_place}
-                  >
-                    <td style={{textAlign:'center'}}>
-                      {ordinal(
-                        Number(
-                          p.final_place
-                        )
-                      )}
-                    </td>
+                  <th style={{textAlign:'center'}}>
+                    Squad
+                  </th>
 
-                    <td style={{textAlign:'center'}}>
-                      {p.squads?.squad_name}
-                    </td>
+                  <th style={{textAlign:'center'}}>
+                    Payout
+                  </th>
+                </tr>
+              </thead>
 
-                    <td
-                      style={{
-                        textAlign:'center',
-                        fontWeight:700
-                      }}
+              <tbody>
+                {placements.map(
+                  (p:any)=>(
+                    <tr
+                      key={p.final_place}
                     >
-                      {money(
-                        Number(
-                          p.payout
-                        )
-                      )}
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
+                      <td
+                        style={{
+                          textAlign:'center',
+                          fontWeight:800
+                        }}
+                      >
+                        {ordinal(
+                          Number(
+                            p.final_place
+                          )
+                        )}
+                      </td>
+
+                      <td
+                        style={{
+                          textAlign:'center',
+                          fontWeight:700
+                        }}
+                      >
+                        {p.squads?.squad_name}
+                      </td>
+
+                      <td
+                        style={{
+                          textAlign:'center',
+                          fontWeight:800
+                        }}
+                      >
+                        {money(
+                          Number(
+                            p.payout
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -459,6 +517,7 @@ export default async function Playoffs(){
 
 function BracketMatrix({
   title,
+  subtitle,
   seedA,
   seedB,
   week16Band,
@@ -472,6 +531,7 @@ function BracketMatrix({
   championLabel=false
 }:{
   title:string
+  subtitle:string
   seedA:number
   seedB:number
   week16Band:string
@@ -648,89 +708,136 @@ function BracketMatrix({
     g12b
   )
 
-  const WIDTH=1200
-  const HEIGHT=1100
+  const WIDTH=1260
+  const HEIGHT=1110
 
-  const x16=20
-  const x17=360
-  const x18=715
-  const xFinal=1005
+  const x16=18
+  const x17=350
+  const x18=700
+  const xFinal=1035
 
-  const gameWidth=250
-  const finalWidth=175
+  const gameWidth=270
+  const finalWidth=205
 
-  const y1=60
-  const y2=230
-  const y3=430
-  const y4=600
+  const y1=75
+  const y2=245
+  const y3=435
+  const y4=605
 
-  const y5=145
-  const y6=515
+  const y5=160
+  const y6=520
 
-  const y7=745
-  const y8=915
+  const y7=750
+  const y8=920
 
-  const y9=330
-  const y10=600
+  const y9=340
+  const y10=610
 
-  const y11=830
-  const y12=1000
+  const y11=835
+  const y12=1005
 
   return (
-    <section className="card">
-
-      <h2
+    <section
+      className="card"
+      style={{
+        paddingLeft:0,
+        paddingRight:0,
+        overflow:'hidden'
+      }}
+    >
+      <div
         style={{
           textAlign:'center',
-          textDecoration:'underline',
-          marginBottom:20
+          padding:'4px 18px 16px'
         }}
       >
-        {title}
-      </h2>
+        <div
+          style={{
+            fontSize:'0.7rem',
+            fontWeight:900,
+            letterSpacing:'0.12em',
+            textTransform:'uppercase',
+            opacity:0.55,
+            marginBottom:4
+          }}
+        >
+          {subtitle}
+        </div>
+
+        <h2
+          style={{
+            margin:'0 0 6px'
+          }}
+        >
+          {title}
+        </h2>
+
+        <div
+          className="muted"
+          style={{
+            fontSize:'0.82rem'
+          }}
+        >
+          Follow the bracket to the right
+          <span
+            aria-hidden="true"
+            style={{
+              marginLeft:7,
+              fontWeight:900,
+              letterSpacing:2
+            }}
+          >
+            ››
+          </span>
+        </div>
+      </div>
 
       <div
         style={{
           overflowX:'auto',
-          paddingBottom:8
+          WebkitOverflowScrolling:'touch',
+          padding:'0 10px 14px',
+          scrollbarWidth:'thin'
         }}
       >
         <div
           style={{
             position:'relative',
             width:WIDTH,
-            height:HEIGHT,
-            margin:'0 auto'
+            height:HEIGHT
           }}
         >
 
-          <ColumnHeader
+          <RoundHeader
             left={x16}
             width={gameWidth}
-          >
-            Week #16
-          </ColumnHeader>
+            label="Week 16"
+            detail="Opening Round"
+            showArrow
+          />
 
-          <ColumnHeader
+          <RoundHeader
             left={x17}
             width={gameWidth}
-          >
-            Week #17
-          </ColumnHeader>
+            label="Week 17"
+            detail="Second Round"
+            showArrow
+          />
 
-          <ColumnHeader
+          <RoundHeader
             left={x18}
             width={gameWidth}
-          >
-            Week #18
-          </ColumnHeader>
+            label="Week 18"
+            detail="Placement Round"
+            showArrow
+          />
 
-          <ColumnHeader
+          <RoundHeader
             left={xFinal}
             width={finalWidth}
-          >
-            Final Place
-          </ColumnHeader>
+            label="Final Place"
+            detail="Payout"
+          />
 
           <svg
             width={WIDTH}
@@ -738,164 +845,165 @@ function BracketMatrix({
             style={{
               position:'absolute',
               inset:0,
-              pointerEvents:'none'
+              pointerEvents:'none',
+              overflow:'visible'
             }}
           >
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y1+50}
-              bendX={315}
+              startY={y1+58}
+              bendX={319}
               endX={x17}
-              endY={y5+42}
+              endY={y5+50}
             />
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y2+50}
-              bendX={315}
+              startY={y2+58}
+              bendX={319}
               endX={x17}
-              endY={y5+74}
+              endY={y5+88}
             />
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y3+50}
-              bendX={315}
+              startY={y3+58}
+              bendX={319}
               endX={x17}
-              endY={y6+42}
+              endY={y6+50}
             />
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y4+50}
-              bendX={315}
+              startY={y4+58}
+              bendX={319}
               endX={x17}
-              endY={y6+74}
+              endY={y6+88}
             />
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y1+82}
-              bendX={300}
+              startY={y1+96}
+              bendX={306}
               endX={x17}
-              endY={y7+42}
+              endY={y7+50}
             />
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y2+82}
-              bendX={300}
+              startY={y2+96}
+              bendX={306}
               endX={x17}
-              endY={y7+74}
+              endY={y7+88}
             />
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y3+82}
-              bendX={300}
+              startY={y3+96}
+              bendX={306}
               endX={x17}
-              endY={y8+42}
+              endY={y8+50}
             />
 
             <PathConnector
               startX={x16+gameWidth}
-              startY={y4+82}
-              bendX={300}
+              startY={y4+96}
+              bendX={306}
               endX={x17}
-              endY={y8+74}
+              endY={y8+88}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y5+50}
-              bendX={665}
+              startY={y5+58}
+              bendX={670}
               endX={x18}
-              endY={y9+42}
+              endY={y9+50}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y6+50}
-              bendX={665}
+              startY={y6+58}
+              bendX={670}
               endX={x18}
-              endY={y9+74}
+              endY={y9+88}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y5+82}
-              bendX={650}
+              startY={y5+96}
+              bendX={656}
               endX={x18}
-              endY={y10+42}
+              endY={y10+50}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y6+82}
-              bendX={650}
+              startY={y6+96}
+              bendX={656}
               endX={x18}
-              endY={y10+74}
+              endY={y10+88}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y7+50}
-              bendX={665}
+              startY={y7+58}
+              bendX={670}
               endX={x18}
-              endY={y11+42}
+              endY={y11+50}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y8+50}
-              bendX={665}
+              startY={y8+58}
+              bendX={670}
               endX={x18}
-              endY={y11+74}
+              endY={y11+88}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y7+82}
-              bendX={650}
+              startY={y7+96}
+              bendX={656}
               endX={x18}
-              endY={y12+42}
+              endY={y12+50}
             />
 
             <PathConnector
               startX={x17+gameWidth}
-              startY={y8+82}
-              bendX={650}
+              startY={y8+96}
+              bendX={656}
               endX={x18}
-              endY={y12+74}
+              endY={y12+88}
             />
 
             <StraightConnector
               startX={x18+gameWidth}
-              startY={y9+58}
+              startY={y9+69}
               endX={xFinal}
-              endY={y9+58}
+              endY={y9+69}
             />
 
             <StraightConnector
               startX={x18+gameWidth}
-              startY={y10+58}
+              startY={y10+69}
               endX={xFinal}
-              endY={y10+58}
+              endY={y10+69}
             />
 
             <StraightConnector
               startX={x18+gameWidth}
-              startY={y11+58}
+              startY={y11+69}
               endX={xFinal}
-              endY={y11+58}
+              endY={y11+69}
             />
 
             <StraightConnector
               startX={x18+gameWidth}
-              startY={y12+58}
+              startY={y12+69}
               endX={xFinal}
-              endY={y12+58}
+              endY={y12+69}
             />
 
           </svg>
@@ -1094,7 +1202,7 @@ function BracketMatrix({
 
           <FinalNode
             left={xFinal}
-            top={y9-18}
+            top={y9-10}
             width={finalWidth}
             match={g9}
             winnerPlace={firstPlace}
@@ -1105,7 +1213,7 @@ function BracketMatrix({
 
           <FinalNode
             left={xFinal}
-            top={y10-18}
+            top={y10-10}
             width={finalWidth}
             match={g10}
             winnerPlace={firstPlace+2}
@@ -1115,7 +1223,7 @@ function BracketMatrix({
 
           <FinalNode
             left={xFinal}
-            top={y11-18}
+            top={y11-10}
             width={finalWidth}
             match={g11}
             winnerPlace={firstPlace+4}
@@ -1125,7 +1233,7 @@ function BracketMatrix({
 
           <FinalNode
             left={xFinal}
-            top={y12-18}
+            top={y12-10}
             width={finalWidth}
             match={g12}
             winnerPlace={firstPlace+6}
@@ -1189,27 +1297,72 @@ function derivedMatch(
   }
 }
 
-function ColumnHeader({
+function RoundHeader({
   left,
   width,
-  children
+  label,
+  detail,
+  showArrow=false
 }:{
   left:number
   width:number
-  children:React.ReactNode
+  label:string
+  detail:string
+  showArrow?:boolean
 }){
   return (
     <div
       style={{
         position:'absolute',
         left,
-        top:0,
+        top:4,
         width,
-        textAlign:'center',
-        fontWeight:800
+        textAlign:'center'
       }}
     >
-      {children}
+      <div
+        style={{
+          display:'flex',
+          alignItems:'center',
+          justifyContent:'center',
+          gap:8
+        }}
+      >
+        <span
+          style={{
+            fontWeight:900,
+            fontSize:'0.92rem'
+          }}
+        >
+          {label}
+        </span>
+
+        {showArrow && (
+          <span
+            aria-hidden="true"
+            style={{
+              fontWeight:900,
+              opacity:0.42,
+              letterSpacing:1
+            }}
+          >
+            ››
+          </span>
+        )}
+      </div>
+
+      <div
+        style={{
+          marginTop:2,
+          fontSize:'0.68rem',
+          fontWeight:700,
+          opacity:0.5,
+          textTransform:'uppercase',
+          letterSpacing:'0.08em'
+        }}
+      >
+        {detail}
+      </div>
     </div>
   )
 }
@@ -1274,13 +1427,13 @@ function GameNode({
     if(
       Number(squadId)===winnerId
     ){
-      return 'green'
+      return '#16803c'
     }
 
     if(
       Number(squadId)===loserId
     ){
-      return 'red'
+      return '#b42318'
     }
 
     return undefined
@@ -1292,15 +1445,24 @@ function GameNode({
         position:'absolute',
         left,
         top,
-        width
+        width,
+        border:'1px solid rgba(120,120,120,0.28)',
+        borderRadius:10,
+        background:'var(--card, rgba(255,255,255,0.03))',
+        boxShadow:'0 2px 8px rgba(0,0,0,0.06)',
+        overflow:'hidden'
       }}
     >
       <div
         style={{
           textAlign:'center',
-          fontSize:'0.72rem',
-          fontWeight:800,
-          marginBottom:5
+          fontSize:'0.67rem',
+          fontWeight:900,
+          letterSpacing:'0.08em',
+          textTransform:'uppercase',
+          padding:'7px 8px 5px',
+          borderBottom:'1px solid rgba(120,120,120,0.18)',
+          opacity:0.65
         }}
       >
         Game #{gameNumber}
@@ -1322,9 +1484,10 @@ function GameNode({
         <div
           style={{
             textAlign:'center',
-            fontSize:'0.7rem',
-            fontWeight:800,
-            marginTop:5
+            fontSize:'0.68rem',
+            fontWeight:900,
+            padding:'6px 8px',
+            borderTop:'1px solid rgba(120,120,120,0.18)'
           }}
         >
           O/U Tiebreaker Required
@@ -1346,29 +1509,39 @@ function ParticipantLine({
   return (
     <div
       style={{
-        height:32,
+        minHeight:38,
         display:'grid',
-        gridTemplateColumns:'1fr 52px',
-        alignItems:'end',
-        gap:6,
-        borderBottom:
-          `2px solid ${color || '#555'}`,
+        gridTemplateColumns:'minmax(0,1fr) 50px',
+        alignItems:'center',
+        gap:8,
+        borderBottom:'1px solid rgba(120,120,120,0.18)',
         color,
-        padding:'0 4px 3px',
+        padding:'4px 10px',
         fontWeight:
           color
-            ? 800
-            : 500
+            ? 900
+            : 650
       }}
     >
-      <div>
+      <div
+        style={{
+          minWidth:0,
+          whiteSpace:'nowrap',
+          overflow:'hidden',
+          textOverflow:'ellipsis',
+          fontSize:'0.82rem'
+        }}
+        title={name}
+      >
         {name}
       </div>
 
       <div
         style={{
           textAlign:'right',
-          fontWeight:800
+          fontWeight:900,
+          fontVariantNumeric:'tabular-nums',
+          minHeight:'1em'
         }}
       >
         {signedScore(score)}
@@ -1425,14 +1598,18 @@ function FinalNode({
         }
         color={
           match?.status==='final'
-            ? 'green'
+            ? '#16803c'
             : undefined
+        }
+        featured={
+          championLabel &&
+          winnerPlace===1
         }
       />
 
       <div
         style={{
-          height:14
+          height:12
         }}
       />
 
@@ -1444,7 +1621,7 @@ function FinalNode({
         }
         color={
           match?.status==='final'
-            ? 'red'
+            ? '#b42318'
             : undefined
         }
       />
@@ -1456,24 +1633,43 @@ function PlacementLine({
   name,
   place,
   payout,
-  color
+  color,
+  featured=false
 }:{
   name:string
   place:number
   payout:number
   color?:string
+  featured?:boolean
 }){
   return (
-    <div>
+    <div
+      style={{
+        border:'1px solid rgba(120,120,120,0.28)',
+        borderRadius:9,
+        overflow:'hidden',
+        background:'var(--card, rgba(255,255,255,0.03))',
+        boxShadow:
+          featured
+            ? '0 3px 12px rgba(0,0,0,0.09)'
+            : '0 2px 6px rgba(0,0,0,0.05)'
+      }}
+    >
       <div
         style={{
-          borderBottom:
-            `2px solid ${color || '#555'}`,
           color,
           textAlign:'center',
-          fontWeight:800,
-          paddingBottom:4
+          fontWeight:900,
+          padding:'8px 7px 5px',
+          fontSize:
+            featured
+              ? '0.84rem'
+              : '0.8rem',
+          whiteSpace:'nowrap',
+          overflow:'hidden',
+          textOverflow:'ellipsis'
         }}
+        title={name}
       >
         {name}
       </div>
@@ -1481,8 +1677,9 @@ function PlacementLine({
       <div
         style={{
           textAlign:'center',
-          fontSize:'0.76rem',
-          marginTop:3
+          fontSize:'0.7rem',
+          padding:'0 6px 7px',
+          opacity:0.72
         }}
       >
         {ordinal(place)}
@@ -1518,9 +1715,9 @@ function PathConnector({
         ${endX},${endY}
       `}
       fill="none"
-      stroke="#555"
-      strokeWidth="2"
-      strokeLinejoin="miter"
+      stroke="rgba(110,110,110,0.48)"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
     />
   )
 }
@@ -1542,8 +1739,8 @@ function StraightConnector({
       y1={startY}
       x2={endX}
       y2={endY}
-      stroke="#555"
-      strokeWidth="2"
+      stroke="rgba(110,110,110,0.48)"
+      strokeWidth="1.5"
     />
   )
 }

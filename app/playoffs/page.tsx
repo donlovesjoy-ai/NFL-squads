@@ -373,6 +373,18 @@ export default async function Playoffs(){
           positions populate when each seed is
           mathematically locked.
         </p>
+
+        <p
+          style={{
+            maxWidth:620,
+            margin:'12px auto 0',
+            lineHeight:1.5,
+            fontWeight:900
+          }}
+        >
+          All 16 teams compete in all three weeks
+          of the playoffs to determine final payout.
+        </p>
       </section>
 
       <BracketMatrix
@@ -838,175 +850,6 @@ function BracketMatrix({
             label="Final Place"
             detail="Payout"
           />
-
-          <svg
-            width={WIDTH}
-            height={HEIGHT}
-            style={{
-              position:'absolute',
-              inset:0,
-              pointerEvents:'none',
-              overflow:'visible'
-            }}
-          >
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y1+58}
-              bendX={319}
-              endX={x17}
-              endY={y5+50}
-            />
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y2+58}
-              bendX={319}
-              endX={x17}
-              endY={y5+88}
-            />
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y3+58}
-              bendX={319}
-              endX={x17}
-              endY={y6+50}
-            />
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y4+58}
-              bendX={319}
-              endX={x17}
-              endY={y6+88}
-            />
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y1+96}
-              bendX={306}
-              endX={x17}
-              endY={y7+50}
-            />
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y2+96}
-              bendX={306}
-              endX={x17}
-              endY={y7+88}
-            />
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y3+96}
-              bendX={306}
-              endX={x17}
-              endY={y8+50}
-            />
-
-            <PathConnector
-              startX={x16+gameWidth}
-              startY={y4+96}
-              bendX={306}
-              endX={x17}
-              endY={y8+88}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y5+58}
-              bendX={670}
-              endX={x18}
-              endY={y9+50}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y6+58}
-              bendX={670}
-              endX={x18}
-              endY={y9+88}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y5+96}
-              bendX={656}
-              endX={x18}
-              endY={y10+50}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y6+96}
-              bendX={656}
-              endX={x18}
-              endY={y10+88}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y7+58}
-              bendX={670}
-              endX={x18}
-              endY={y11+50}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y8+58}
-              bendX={670}
-              endX={x18}
-              endY={y11+88}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y7+96}
-              bendX={656}
-              endX={x18}
-              endY={y12+50}
-            />
-
-            <PathConnector
-              startX={x17+gameWidth}
-              startY={y8+96}
-              bendX={656}
-              endX={x18}
-              endY={y12+88}
-            />
-
-            <StraightConnector
-              startX={x18+gameWidth}
-              startY={y9+69}
-              endX={xFinal}
-              endY={y9+69}
-            />
-
-            <StraightConnector
-              startX={x18+gameWidth}
-              startY={y10+69}
-              endX={xFinal}
-              endY={y10+69}
-            />
-
-            <StraightConnector
-              startX={x18+gameWidth}
-              startY={y11+69}
-              endX={xFinal}
-              endY={y11+69}
-            />
-
-            <StraightConnector
-              startX={x18+gameWidth}
-              startY={y12+69}
-              endX={xFinal}
-              endY={y12+69}
-            />
-
-          </svg>
 
           <GameNode
             left={x16}
@@ -1690,57 +1533,5 @@ function PlacementLine({
         </b>
       </div>
     </div>
-  )
-}
-
-function PathConnector({
-  startX,
-  startY,
-  bendX,
-  endX,
-  endY
-}:{
-  startX:number
-  startY:number
-  bendX:number
-  endX:number
-  endY:number
-}){
-  return (
-    <polyline
-      points={`
-        ${startX},${startY}
-        ${bendX},${startY}
-        ${bendX},${endY}
-        ${endX},${endY}
-      `}
-      fill="none"
-      stroke="rgba(110,110,110,0.48)"
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-    />
-  )
-}
-
-function StraightConnector({
-  startX,
-  startY,
-  endX,
-  endY
-}:{
-  startX:number
-  startY:number
-  endX:number
-  endY:number
-}){
-  return (
-    <line
-      x1={startX}
-      y1={startY}
-      x2={endX}
-      y2={endY}
-      stroke="rgba(110,110,110,0.48)"
-      strokeWidth="1.5"
-    />
   )
 }

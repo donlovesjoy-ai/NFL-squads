@@ -20,7 +20,31 @@ function signed(n:any){
 }
 
 function kickoffEastern(value:string|Date){
-  return new Date(value).toLocaleString(
+  const kickoff=new Date(value)
+
+  const millisecondsUntilKickoff=
+    kickoff.getTime()-Date.now()
+
+  const sevenDays=
+    7*24*60*60*1000
+
+  const withinSevenDays=
+    millisecondsUntilKickoff>0 &&
+    millisecondsUntilKickoff<sevenDays
+
+  if(withinSevenDays){
+    return kickoff.toLocaleString(
+      'en-US',
+      {
+        timeZone:'America/New_York',
+        weekday:'short',
+        hour:'numeric',
+        minute:'2-digit'
+      }
+    )
+  }
+
+  return kickoff.toLocaleString(
     'en-US',
     {
       timeZone:'America/New_York',
@@ -380,32 +404,43 @@ export default async function Schedule({
                     <td
                       colSpan={3}
                       style={{
-                        textAlign:'center',
-                        padding:'12px 4px 8px',
-                        fontWeight:800
+                        padding:'12px 4px 8px'
                       }}
                     >
-                      {divisionName}
+                      <div
+                        style={{
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          gap:8,
+                          whiteSpace:'nowrap'
+                        }}
+                      >
+                        <strong>
+                          {divisionName}
+                        </strong>
+
+                        <span
+                          className="muted"
+                          aria-label="More information to the right"
+                          style={{
+                            fontSize:'0.9rem',
+                            fontWeight:800,
+                            letterSpacing:'-0.1em',
+                            opacity:0.7
+                          }}
+                        >
+                          ››
+                        </span>
+                      </div>
                     </td>
 
                     <td
                       colSpan={2}
                       style={{
-                        textAlign:'left',
-                        padding:'12px 8px 8px',
-                        whiteSpace:'nowrap'
+                        padding:'12px 4px 8px'
                       }}
-                    >
-                      <span
-                        className="muted"
-                        style={{
-                          fontSize:'0.72rem',
-                          fontWeight:700
-                        }}
-                      >
-                        Swipe →
-                      </span>
-                    </td>
+                    />
                   </tr>,
 
                   ...divisionSquads.map(

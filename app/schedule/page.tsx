@@ -239,15 +239,15 @@ export default async function Schedule({
 
   const headCell={
     textAlign:'center' as const,
-    padding:'8px 4px',
+    padding:'8px 2px',
     whiteSpace:'nowrap' as const,
-    fontSize:'0.82rem'
+    fontSize:'0.8rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'8px 4px',
-    fontSize:'0.82rem',
+    padding:'8px 2px',
+    fontSize:'0.8rem',
     verticalAlign:'middle' as const
   }
 
@@ -330,16 +330,16 @@ export default async function Schedule({
             style={{
               borderCollapse:'collapse',
               tableLayout:'fixed',
-              width:620,
-              minWidth:620
+              width:550,
+              minWidth:550
             }}
           >
             <colgroup>
-              <col style={{width:145}}/>
-              <col style={{width:55}}/>
-              <col style={{width:145}}/>
+              <col style={{width:115}}/>
+              <col style={{width:45}}/>
               <col style={{width:130}}/>
-              <col style={{width:145}}/>
+              <col style={{width:125}}/>
+              <col style={{width:135}}/>
             </colgroup>
 
             <thead>
@@ -618,8 +618,8 @@ export default async function Schedule({
                                   : 500,
                               fontSize:
                                 kickedOff
-                                  ? '0.82rem'
-                                  : '0.76rem'
+                                  ? '0.8rem'
+                                  : '0.74rem'
                             }}
                           >
                             {score}
@@ -786,37 +786,42 @@ function TeamDisplay({
         display:'flex',
         alignItems:'center',
         justifyContent:'center',
-        gap:5,
+        gap:3,
         minWidth:0,
+        width:'100%',
+        boxSizing:'border-box',
         border:
           selected
             ? '2px solid currentColor'
             : '2px solid transparent',
         borderRadius:7,
-        padding:'4px 3px',
+        padding:'4px 2px',
         fontWeight:
           selected
             ? 800
             : 600
       }}
     >
-      <img
-        src={`/helmets/${abbreviation}.png`}
-        alt=""
-        width={24}
-        height={24}
-        style={{
-          objectFit:'contain',
-          flexShrink:0
-        }}
-      />
+      {abbreviation && (
+        <img
+          src={`/helmets/${abbreviation}.png`}
+          alt=""
+          width={22}
+          height={22}
+          style={{
+            objectFit:'contain',
+            flexShrink:0
+          }}
+        />
+      )}
 
       <span
         style={{
           minWidth:0,
-          lineHeight:1.1,
+          lineHeight:1.08,
           overflowWrap:'normal',
-          wordBreak:'normal'
+          wordBreak:'normal',
+          hyphens:'none'
         }}
       >
         {name}

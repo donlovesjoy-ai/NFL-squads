@@ -385,7 +385,7 @@ export default async function Schedule({
                 </th>
 
                 <th style={headCell}>
-                  Result
+                  Pick / Result
                 </th>
               </tr>
             </thead>
@@ -473,14 +473,25 @@ export default async function Schedule({
                               />
                             </td>
 
+                            <td style={bodyCell}>
+                              —
+                            </td>
+
                             <td
-                              colSpan={4}
                               style={{
                                 ...bodyCell,
-                                fontWeight:700
+                                fontWeight:800
                               }}
                             >
                               BYE
+                            </td>
+
+                            <td style={bodyCell}>
+                              —
+                            </td>
+
+                            <td style={bodyCell}>
+                              —
                             </td>
 
                           </tr>

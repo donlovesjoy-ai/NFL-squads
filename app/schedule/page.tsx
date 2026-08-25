@@ -351,7 +351,8 @@ export default async function Schedule({
     textAlign:'center' as const,
     padding:'8px 2px',
     fontSize:'0.8rem',
-    verticalAlign:'middle' as const
+    verticalAlign:'middle' as const,
+    boxSizing:'border-box' as const
   }
 
   return (
@@ -431,7 +432,8 @@ export default async function Schedule({
         >
           <table
             style={{
-              borderCollapse:'collapse',
+              borderCollapse:'separate',
+              borderSpacing:0,
               tableLayout:'fixed',
               width:550,
               minWidth:550
@@ -691,8 +693,8 @@ export default async function Schedule({
                                 `2px solid ${outlineColor}`,
                               borderLeft:
                                 `2px solid ${outlineColor}`,
-                              borderTopLeftRadius:8,
-                              borderBottomLeftRadius:8
+                              borderTopLeftRadius:10,
+                              borderBottomLeftRadius:10
                             }
                           : {}
 
@@ -706,8 +708,8 @@ export default async function Schedule({
                                 `2px solid ${outlineColor}`,
                               borderRight:
                                 `2px solid ${outlineColor}`,
-                              borderTopRightRadius:8,
-                              borderBottomRightRadius:8
+                              borderTopRightRadius:10,
+                              borderBottomRightRadius:10
                             }
                           : {}
 
@@ -721,8 +723,8 @@ export default async function Schedule({
                                 `2px solid ${outlineColor}`,
                               borderLeft:
                                 `2px solid ${outlineColor}`,
-                              borderTopLeftRadius:8,
-                              borderBottomLeftRadius:8
+                              borderTopLeftRadius:10,
+                              borderBottomLeftRadius:10
                             }
                           : {}
 
@@ -736,8 +738,8 @@ export default async function Schedule({
                                 `2px solid ${outlineColor}`,
                               borderRight:
                                 `2px solid ${outlineColor}`,
-                              borderTopRightRadius:8,
-                              borderBottomRightRadius:8
+                              borderTopRightRadius:10,
+                              borderBottomRightRadius:10
                             }
                           : {}
 

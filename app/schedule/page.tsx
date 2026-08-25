@@ -232,22 +232,22 @@ export default async function Schedule({
   const gameForTeam=(teamId:number)=>{
     return (games||[]).find(
       (g:any)=>
-        g.home_team_id===teamId ||
-        g.away_team_id===teamId
+        Number(g.home_team_id)===teamId ||
+        Number(g.away_team_id)===teamId
     )
   }
 
   const headCell={
     textAlign:'center' as const,
-    padding:'9px 10px',
+    padding:'8px 4px',
     whiteSpace:'nowrap' as const,
-    fontSize:'0.9rem'
+    fontSize:'0.82rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'9px 10px',
-    fontSize:'0.9rem',
+    padding:'8px 4px',
+    fontSize:'0.82rem',
     verticalAlign:'middle' as const
   }
 
@@ -292,7 +292,7 @@ export default async function Schedule({
         <p
           className="muted"
           style={{
-            fontSize:'0.78rem',
+            fontSize:'0.76rem',
             marginTop:-4
           }}
         >
@@ -328,56 +328,39 @@ export default async function Schedule({
         >
           <table
             style={{
-              width:'100%',
-              minWidth:760,
               borderCollapse:'collapse',
-              tableLayout:'auto'
+              tableLayout:'fixed',
+              width:620,
+              minWidth:620
             }}
           >
+            <colgroup>
+              <col style={{width:145}}/>
+              <col style={{width:55}}/>
+              <col style={{width:145}}/>
+              <col style={{width:130}}/>
+              <col style={{width:145}}/>
+            </colgroup>
+
             <thead>
               <tr>
-                <th
-                  style={{
-                    ...headCell,
-                    minWidth:170
-                  }}
-                >
+                <th style={headCell}>
                   Team
                 </th>
 
-                <th
-                  style={{
-                    ...headCell,
-                    minWidth:70
-                  }}
-                >
+                <th style={headCell}>
                   Line
                 </th>
 
-                <th
-                  style={{
-                    ...headCell,
-                    minWidth:180
-                  }}
-                >
+                <th style={headCell}>
                   Opponent
                 </th>
 
-                <th
-                  style={{
-                    ...headCell,
-                    minWidth:130
-                  }}
-                >
+                <th style={headCell}>
                   Score
                 </th>
 
-                <th
-                  style={{
-                    ...headCell,
-                    minWidth:130
-                  }}
-                >
+                <th style={headCell}>
                   Result
                 </th>
               </tr>
@@ -398,7 +381,7 @@ export default async function Schedule({
                       colSpan={5}
                       style={{
                         textAlign:'center',
-                        padding:'13px 6px 8px'
+                        padding:'12px 4px 8px'
                       }}
                     >
                       <strong>
@@ -428,30 +411,13 @@ export default async function Schedule({
                                   : undefined
                               }
                             >
-                              <div
-                                style={{
-                                  display:'flex',
-                                  alignItems:'center',
-                                  justifyContent:'center',
-                                  gap:8,
-                                  whiteSpace:'nowrap'
-                                }}
-                              >
-                                <img
-                                  src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
-                                  alt=""
-                                  width={28}
-                                  height={28}
-                                  style={{
-                                    objectFit:'contain',
-                                    flexShrink:0
-                                  }}
-                                />
-
-                                <b>
-                                  {s.squad_name}
-                                </b>
-                              </div>
+                              <TeamDisplay
+                                abbreviation={
+                                  s.nfl_teams
+                                    ?.abbreviation
+                                }
+                                name={s.squad_name}
+                              />
                             </td>
 
                             <td
@@ -469,8 +435,12 @@ export default async function Schedule({
                       }
 
                       const isHome=
-                        Number(g.home_team_id)===
-                        Number(s.nfl_team_id)
+                        Number(
+                          g.home_team_id
+                        )===
+                        Number(
+                          s.nfl_team_id
+                        )
 
                       const opponentTeamId=
                         isHome
@@ -501,8 +471,12 @@ export default async function Schedule({
                           ? null
                           : (
                               isHome
-                                ? Number(g.spread)
-                                : -Number(g.spread)
+                                ? Number(
+                                    g.spread
+                                  )
+                                : -Number(
+                                    g.spread
+                                  )
                             )
 
                       const opponentSpread=
@@ -523,9 +497,11 @@ export default async function Schedule({
                         )<=new Date()
 
                       const pickRevealed=
-                        kickedOff &&
-                        pick &&
-                        !pick.is_missed
+                        Boolean(
+                          kickedOff &&
+                          pick &&
+                          !pick.is_missed
+                        )
 
                       const pickedOwnTeam=
                         Boolean(
@@ -577,22 +553,6 @@ export default async function Schedule({
                           `${ownScore ?? 0}-${oppScore ?? 0}`
                       }
 
-                      const normalTeamStyle={
-                        display:'inline-flex',
-                        alignItems:'center',
-                        justifyContent:'center',
-                        gap:8,
-                        whiteSpace:'nowrap' as const
-                      }
-
-                      const selectedTeamStyle={
-                        ...normalTeamStyle,
-                        border:'2px solid currentColor',
-                        borderRadius:8,
-                        padding:'5px 8px',
-                        fontWeight:800
-                      }
-
                       return (
                         <tr key={s.id}>
 
@@ -604,28 +564,16 @@ export default async function Schedule({
                                 : undefined
                             }
                           >
-                            <div
-                              style={
-                                pickedOwnTeam
-                                  ? selectedTeamStyle
-                                  : normalTeamStyle
+                            <TeamDisplay
+                              abbreviation={
+                                s.nfl_teams
+                                  ?.abbreviation
                               }
-                            >
-                              <img
-                                src={`/helmets/${s.nfl_teams?.abbreviation}.png`}
-                                alt=""
-                                width={28}
-                                height={28}
-                                style={{
-                                  objectFit:'contain',
-                                  flexShrink:0
-                                }}
-                              />
-
-                              <b>
-                                {s.squad_name}
-                              </b>
-                            </div>
+                              name={s.squad_name}
+                              selected={
+                                pickedOwnTeam
+                              }
+                            />
                           </td>
 
                           <td
@@ -635,7 +583,7 @@ export default async function Schedule({
                               fontWeight:
                                 pickRevealed
                                   ? 800
-                                  : 500
+                                  : 600
                             }}
                           >
                             {signed(
@@ -644,32 +592,20 @@ export default async function Schedule({
                           </td>
 
                           <td style={bodyCell}>
-                            <div
-                              style={
-                                pickedOpponent
-                                  ? selectedTeamStyle
-                                  : normalTeamStyle
+                            <TeamDisplay
+                              abbreviation={
+                                opponentNfl
+                                  ?.abbreviation
                               }
-                            >
-                              <img
-                                src={`/helmets/${opponentNfl?.abbreviation}.png`}
-                                alt=""
-                                width={28}
-                                height={28}
-                                style={{
-                                  objectFit:'contain',
-                                  flexShrink:0
-                                }}
-                              />
-
-                              <span>
-                                {isHome
+                              name={
+                                `${isHome
                                   ? 'vs '
-                                  : '@ '}
-
-                                {opponentLabel}
-                              </span>
-                            </div>
+                                  : '@ '}${opponentLabel}`
+                              }
+                              selected={
+                                pickedOpponent
+                              }
+                            />
                           </td>
 
                           <td
@@ -682,8 +618,8 @@ export default async function Schedule({
                                   : 500,
                               fontSize:
                                 kickedOff
-                                  ? '0.9rem'
-                                  : '0.82rem'
+                                  ? '0.82rem'
+                                  : '0.76rem'
                             }}
                           >
                             {score}
@@ -705,7 +641,7 @@ export default async function Schedule({
                                         style={{
                                           color:'green',
                                           fontWeight:700,
-                                          fontSize:'1.2rem'
+                                          fontSize:'1.15rem'
                                         }}
                                       >
                                         ✓
@@ -784,7 +720,9 @@ export default async function Schedule({
                                   ?.name ||
                                 'Pick'
 
-                              if(g.status==='final'){
+                              if(
+                                g.status==='final'
+                              ){
                                 const margin=
                                   Number(
                                     pick.ats_margin ??
@@ -830,5 +768,59 @@ export default async function Schedule({
       </section>
 
     </main>
+  )
+}
+
+function TeamDisplay({
+  abbreviation,
+  name,
+  selected=false
+}:{
+  abbreviation?:string
+  name:string
+  selected?:boolean
+}){
+  return (
+    <div
+      style={{
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'center',
+        gap:5,
+        minWidth:0,
+        border:
+          selected
+            ? '2px solid currentColor'
+            : '2px solid transparent',
+        borderRadius:7,
+        padding:'4px 3px',
+        fontWeight:
+          selected
+            ? 800
+            : 600
+      }}
+    >
+      <img
+        src={`/helmets/${abbreviation}.png`}
+        alt=""
+        width={24}
+        height={24}
+        style={{
+          objectFit:'contain',
+          flexShrink:0
+        }}
+      />
+
+      <span
+        style={{
+          minWidth:0,
+          lineHeight:1.1,
+          overflowWrap:'normal',
+          wordBreak:'normal'
+        }}
+      >
+        {name}
+      </span>
+    </div>
   )
 }

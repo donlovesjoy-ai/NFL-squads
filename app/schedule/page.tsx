@@ -56,6 +56,46 @@ function kickoffEastern(value:string|Date){
   )
 }
 
+function pickOutlineColor(
+  gameStatus:any,
+  pick:any
+){
+  if(!pick || pick.is_missed){
+    return null
+  }
+
+  const status=
+    String(
+      gameStatus||''
+    ).toLowerCase()
+
+  if(status!=='final'){
+    return '#111'
+  }
+
+  if(
+    pick.ats_margin===null ||
+    pick.ats_margin===undefined
+  ){
+    return '#111'
+  }
+
+  const margin=
+    Number(
+      pick.ats_margin
+    )
+
+  if(margin>0){
+    return 'green'
+  }
+
+  if(margin<0){
+    return 'red'
+  }
+
+  return '#1565c0'
+}
+
 export default async function Schedule({
   searchParams
 }:{
@@ -594,6 +634,74 @@ export default async function Schedule({
                           ? opponentSpread
                           : ownedSpread
 
+                      const outlineColor=
+                        pickRevealed
+                          ? pickOutlineColor(
+                              g.status,
+                              pick
+                            )
+                          : null
+
+                      const teamSelectionStyle=
+                        pickedOwnTeam &&
+                        outlineColor
+                          ? {
+                              borderTop:
+                                `2px solid ${outlineColor}`,
+                              borderBottom:
+                                `2px solid ${outlineColor}`,
+                              borderLeft:
+                                `2px solid ${outlineColor}`,
+                              borderTopLeftRadius:8,
+                              borderBottomLeftRadius:8
+                            }
+                          : {}
+
+                      const lineOwnSelectionStyle=
+                        pickedOwnTeam &&
+                        outlineColor
+                          ? {
+                              borderTop:
+                                `2px solid ${outlineColor}`,
+                              borderBottom:
+                                `2px solid ${outlineColor}`,
+                              borderRight:
+                                `2px solid ${outlineColor}`,
+                              borderTopRightRadius:8,
+                              borderBottomRightRadius:8
+                            }
+                          : {}
+
+                      const lineOpponentSelectionStyle=
+                        pickedOpponent &&
+                        outlineColor
+                          ? {
+                              borderTop:
+                                `2px solid ${outlineColor}`,
+                              borderBottom:
+                                `2px solid ${outlineColor}`,
+                              borderLeft:
+                                `2px solid ${outlineColor}`,
+                              borderTopLeftRadius:8,
+                              borderBottomLeftRadius:8
+                            }
+                          : {}
+
+                      const opponentSelectionStyle=
+                        pickedOpponent &&
+                        outlineColor
+                          ? {
+                              borderTop:
+                                `2px solid ${outlineColor}`,
+                              borderBottom:
+                                `2px solid ${outlineColor}`,
+                              borderRight:
+                                `2px solid ${outlineColor}`,
+                              borderTopRightRadius:8,
+                              borderBottomRightRadius:8
+                            }
+                          : {}
+
                       let score=
                         kickoffEastern(
                           g.kickoff_time
@@ -621,7 +729,10 @@ export default async function Schedule({
                         <tr key={s.id}>
 
                           <td
-                            style={bodyCell}
+                            style={{
+                              ...bodyCell,
+                              ...teamSelectionStyle
+                            }}
                             title={
                               s.owner_name
                                 ? `${s.owner_name}, Owner`
@@ -634,7 +745,7 @@ export default async function Schedule({
                                   ?.abbreviation
                               }
                               name={s.squad_name}
-                              selected={
+                              emphasized={
                                 pickedOwnTeam
                               }
                             />
@@ -643,6 +754,8 @@ export default async function Schedule({
                           <td
                             style={{
                               ...bodyCell,
+                              ...lineOwnSelectionStyle,
+                              ...lineOpponentSelectionStyle,
                               whiteSpace:'nowrap',
                               fontWeight:
                                 pickRevealed
@@ -655,7 +768,12 @@ export default async function Schedule({
                             )}
                           </td>
 
-                          <td style={bodyCell}>
+                          <td
+                            style={{
+                              ...bodyCell,
+                              ...opponentSelectionStyle
+                            }}
+                          >
                             <TeamDisplay
                               abbreviation={
                                 opponentNfl
@@ -666,7 +784,7 @@ export default async function Schedule({
                                   ? 'vs '
                                   : '@ '}${opponentLabel}`
                               }
-                              selected={
+                              emphasized={
                                 pickedOpponent
                               }
                             />
@@ -737,7 +855,7 @@ export default async function Schedule({
                                             ? 'red'
                                             : margin>0
                                               ? 'green'
-                                              : undefined
+                                              : '#1565c0'
                                       }}
                                     >
                                       NO PICK{' '}
@@ -798,7 +916,7 @@ export default async function Schedule({
                                     ? 'green'
                                     : margin<0
                                       ? 'red'
-                                      : undefined
+                                      : '#1565c0'
 
                                 return (
                                   <b style={{color}}>
@@ -838,11 +956,11 @@ export default async function Schedule({
 function TeamDisplay({
   abbreviation,
   name,
-  selected=false
+  emphasized=false
 }:{
   abbreviation?:string
   name:string
-  selected?:boolean
+  emphasized?:boolean
 }){
   return (
     <div
@@ -854,14 +972,9 @@ function TeamDisplay({
         minWidth:0,
         width:'100%',
         boxSizing:'border-box',
-        border:
-          selected
-            ? '2px solid currentColor'
-            : '2px solid transparent',
-        borderRadius:7,
         padding:'4px 2px',
         fontWeight:
-          selected
+          emphasized
             ? 800
             : 600
       }}

@@ -35,11 +35,14 @@ function ordinal(n:number){
 
 function signedScore(n:any){
   if(n===null || n===undefined){
-    return '—'
+    return ''
   }
 
   const x=Number(n)
-  return x>0 ? `+${x}` : `${x}`
+
+  return x>0
+    ? `+${x}`
+    : `${x}`
 }
 
 function participant(
@@ -197,23 +200,27 @@ export default async function Playoffs(){
       .in('games.nfl_week',[16,17,18])
   ])
 
-  const matchList=(matches||[]) as any[]
+  const matchList=
+    (matches||[]) as any[]
 
-  const squadMap=new Map(
-    (squads||[]).map(
-      (s:any)=>[
-        Number(s.id),
-        s
-      ]
+  const squadMap=
+    new Map(
+      (squads||[]).map(
+        (s:any)=>[
+          Number(s.id),
+          s
+        ]
+      )
     )
-  )
 
   const scoreMap=
     new Map<string,number|null>()
 
   for(const p of (playoffPicks||[]) as any[]){
     const week=
-      Number(p.games?.nfl_week)
+      Number(
+        p.games?.nfl_week
+      )
 
     scoreMap.set(
       `${p.squad_id}:${week}`,
@@ -279,7 +286,10 @@ export default async function Playoffs(){
     seed:number
   )=>{
     return (
-      lockedSeed(division,seed)
+      lockedSeed(
+        division,
+        seed
+      )
       ||
       `${divisionName(division)} ${ordinal(seed)} Place`
     )
@@ -323,7 +333,9 @@ export default async function Playoffs(){
 
       <section
         className="card"
-        style={{textAlign:'center'}}
+        style={{
+          textAlign:'center'
+        }}
       >
         <h1>
           Playoff Matrix
@@ -373,7 +385,9 @@ export default async function Playoffs(){
        placements.length>0 && (
         <section
           className="card"
-          style={{textAlign:'center'}}
+          style={{
+            textAlign:'center'
+          }}
         >
           <h2>
             Final Placements & Payouts
@@ -404,10 +418,14 @@ export default async function Playoffs(){
             <tbody>
               {placements.map(
                 (p:any)=>(
-                  <tr key={p.final_place}>
+                  <tr
+                    key={p.final_place}
+                  >
                     <td style={{textAlign:'center'}}>
                       {ordinal(
-                        Number(p.final_place)
+                        Number(
+                          p.final_place
+                        )
                       )}
                     </td>
 
@@ -422,7 +440,9 @@ export default async function Playoffs(){
                       }}
                     >
                       {money(
-                        Number(p.payout)
+                        Number(
+                          p.payout
+                        )
                       )}
                     </td>
                   </tr>
@@ -722,8 +742,6 @@ function BracketMatrix({
             }}
           >
 
-            {/* GAME 1 + GAME 2 WINNERS -> GAME 5 */}
-
             <PathConnector
               startX={x16+gameWidth}
               startY={y1+50}
@@ -739,8 +757,6 @@ function BracketMatrix({
               endX={x17}
               endY={y5+74}
             />
-
-            {/* GAME 3 + GAME 4 WINNERS -> GAME 6 */}
 
             <PathConnector
               startX={x16+gameWidth}
@@ -758,8 +774,6 @@ function BracketMatrix({
               endY={y6+74}
             />
 
-            {/* GAME 1 + GAME 2 LOSERS -> GAME 7 */}
-
             <PathConnector
               startX={x16+gameWidth}
               startY={y1+82}
@@ -775,8 +789,6 @@ function BracketMatrix({
               endX={x17}
               endY={y7+74}
             />
-
-            {/* GAME 3 + GAME 4 LOSERS -> GAME 8 */}
 
             <PathConnector
               startX={x16+gameWidth}
@@ -794,8 +806,6 @@ function BracketMatrix({
               endY={y8+74}
             />
 
-            {/* GAME 5 + GAME 6 WINNERS -> GAME 9 */}
-
             <PathConnector
               startX={x17+gameWidth}
               startY={y5+50}
@@ -811,8 +821,6 @@ function BracketMatrix({
               endX={x18}
               endY={y9+74}
             />
-
-            {/* GAME 5 + GAME 6 LOSERS -> GAME 10 */}
 
             <PathConnector
               startX={x17+gameWidth}
@@ -830,8 +838,6 @@ function BracketMatrix({
               endY={y10+74}
             />
 
-            {/* GAME 7 + GAME 8 WINNERS -> GAME 11 */}
-
             <PathConnector
               startX={x17+gameWidth}
               startY={y7+50}
@@ -847,8 +853,6 @@ function BracketMatrix({
               endX={x18}
               endY={y11+74}
             />
-
-            {/* GAME 7 + GAME 8 LOSERS -> GAME 12 */}
 
             <PathConnector
               startX={x17+gameWidth}
@@ -1150,12 +1154,15 @@ function derivedMatch(
     return {
       squad_a_id:a.id,
       squad_b_id:b.id,
+
       squad_a:{
         squad_name:a.name
       },
+
       squad_b:{
         squad_name:b.name
       },
+
       winner_squad_id:null,
       loser_squad_id:null,
       winner:null,
@@ -1235,8 +1242,17 @@ function GameNode({
     week:number
   )=>number|null
 }){
-  const aScore=getScore(aId,week)
-  const bScore=getScore(bId,week)
+  const aScore=
+    getScore(
+      aId,
+      week
+    )
+
+  const bScore=
+    getScore(
+      bId,
+      week
+    )
 
   const winnerId=
     Number(
@@ -1339,7 +1355,10 @@ function ParticipantLine({
           `2px solid ${color || '#555'}`,
         color,
         padding:'0 4px 3px',
-        fontWeight:color?800:500
+        fontWeight:
+          color
+            ? 800
+            : 500
       }}
     >
       <div>
@@ -1401,7 +1420,9 @@ function FinalNode({
       <PlacementLine
         name={winnerName}
         place={winnerPlace}
-        payout={payouts[winnerPlace]}
+        payout={
+          payouts[winnerPlace]
+        }
         color={
           match?.status==='final'
             ? 'green'
@@ -1409,12 +1430,18 @@ function FinalNode({
         }
       />
 
-      <div style={{height:14}}/>
+      <div
+        style={{
+          height:14
+        }}
+      />
 
       <PlacementLine
         name={loserName}
         place={loserPlace}
-        payout={payouts[loserPlace]}
+        payout={
+          payouts[loserPlace]
+        }
         color={
           match?.status==='final'
             ? 'red'
@@ -1460,6 +1487,7 @@ function PlacementLine({
       >
         {ordinal(place)}
         {' · '}
+
         <b>
           {money(payout)}
         </b>

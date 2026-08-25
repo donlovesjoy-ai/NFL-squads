@@ -239,14 +239,14 @@ export default async function Schedule({
 
   const headCell={
     textAlign:'center' as const,
-    padding:'8px 5px',
+    padding:'9px 10px',
     whiteSpace:'nowrap' as const,
     fontSize:'0.9rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'8px 5px',
+    padding:'9px 10px',
     fontSize:'0.9rem',
     verticalAlign:'middle' as const
   }
@@ -321,44 +321,63 @@ export default async function Schedule({
 
         <div
           style={{
+            width:'100%',
             overflowX:'auto',
-            width:'100%'
+            WebkitOverflowScrolling:'touch'
           }}
         >
           <table
             style={{
               width:'100%',
+              minWidth:760,
               borderCollapse:'collapse',
-              tableLayout:'fixed'
+              tableLayout:'auto'
             }}
           >
-            <colgroup>
-              <col style={{width:'25%'}}/>
-              <col style={{width:'12%'}}/>
-              <col style={{width:'25%'}}/>
-              <col style={{width:'18%'}}/>
-              <col style={{width:'20%'}}/>
-            </colgroup>
-
             <thead>
               <tr>
-                <th style={headCell}>
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:170
+                  }}
+                >
                   Team
                 </th>
 
-                <th style={headCell}>
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:70
+                  }}
+                >
                   Line
                 </th>
 
-                <th style={headCell}>
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:180
+                  }}
+                >
                   Opponent
                 </th>
 
-                <th style={headCell}>
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:130
+                  }}
+                >
                   Score
                 </th>
 
-                <th style={headCell}>
+                <th
+                  style={{
+                    ...headCell,
+                    minWidth:130
+                  }}
+                >
                   Result
                 </th>
               </tr>
@@ -379,7 +398,7 @@ export default async function Schedule({
                       colSpan={5}
                       style={{
                         textAlign:'center',
-                        padding:'12px 6px 8px'
+                        padding:'13px 6px 8px'
                       }}
                     >
                       <strong>
@@ -414,7 +433,8 @@ export default async function Schedule({
                                   display:'flex',
                                   alignItems:'center',
                                   justifyContent:'center',
-                                  gap:6
+                                  gap:8,
+                                  whiteSpace:'nowrap'
                                 }}
                               >
                                 <img
@@ -449,8 +469,8 @@ export default async function Schedule({
                       }
 
                       const isHome=
-                        g.home_team_id===
-                        s.nfl_team_id
+                        Number(g.home_team_id)===
+                        Number(s.nfl_team_id)
 
                       const opponentTeamId=
                         isHome
@@ -508,21 +528,25 @@ export default async function Schedule({
                         !pick.is_missed
 
                       const pickedOwnTeam=
-                        pickRevealed &&
-                        Number(
-                          pick.selection_team_id
-                        )===
-                        Number(
-                          s.nfl_team_id
+                        Boolean(
+                          pickRevealed &&
+                          Number(
+                            pick.selection_team_id
+                          )===
+                          Number(
+                            s.nfl_team_id
+                          )
                         )
 
                       const pickedOpponent=
-                        pickRevealed &&
-                        Number(
-                          pick.selection_team_id
-                        )===
-                        Number(
-                          opponentTeamId
+                        Boolean(
+                          pickRevealed &&
+                          Number(
+                            pick.selection_team_id
+                          )===
+                          Number(
+                            opponentTeamId
+                          )
                         )
 
                       const displayedSpread=
@@ -535,7 +559,10 @@ export default async function Schedule({
                           g.kickoff_time
                         )
 
-                      if(g.status==='live'){
+                      if(
+                        g.status==='live' ||
+                        g.status==='final'
+                      ){
                         const ownScore=
                           isHome
                             ? g.home_score
@@ -549,38 +576,21 @@ export default async function Schedule({
                         score=
                           `${ownScore ?? 0}-${oppScore ?? 0}`
                       }
-                      else if(g.status==='final'){
-                        const ownScore=
-                          isHome
-                            ? g.home_score
-                            : g.away_score
 
-                        const oppScore=
-                          isHome
-                            ? g.away_score
-                            : g.home_score
-
-                        score=
-                          `${ownScore ?? 0}-${oppScore ?? 0}`
+                      const normalTeamStyle={
+                        display:'inline-flex',
+                        alignItems:'center',
+                        justifyContent:'center',
+                        gap:8,
+                        whiteSpace:'nowrap' as const
                       }
 
-                      const selectionStyle=(
-                        selected:boolean
-                      )=>{
-                        if(!selected){
-                          return undefined
-                        }
-
-                        return {
-                          border:'2px solid currentColor',
-                          borderRadius:8,
-                          padding:'5px 6px',
-                          fontWeight:800,
-                          display:'inline-flex',
-                          alignItems:'center',
-                          justifyContent:'center',
-                          gap:6
-                        }
+                      const selectedTeamStyle={
+                        ...normalTeamStyle,
+                        border:'2px solid currentColor',
+                        borderRadius:8,
+                        padding:'5px 8px',
+                        fontWeight:800
                       }
 
                       return (
@@ -596,14 +606,9 @@ export default async function Schedule({
                           >
                             <div
                               style={
-                                selectionStyle(
-                                  pickedOwnTeam
-                                ) || {
-                                  display:'flex',
-                                  alignItems:'center',
-                                  justifyContent:'center',
-                                  gap:6
-                                }
+                                pickedOwnTeam
+                                  ? selectedTeamStyle
+                                  : normalTeamStyle
                               }
                             >
                               <img
@@ -641,14 +646,9 @@ export default async function Schedule({
                           <td style={bodyCell}>
                             <div
                               style={
-                                selectionStyle(
-                                  pickedOpponent
-                                ) || {
-                                  display:'flex',
-                                  alignItems:'center',
-                                  justifyContent:'center',
-                                  gap:6
-                                }
+                                pickedOpponent
+                                  ? selectedTeamStyle
+                                  : normalTeamStyle
                               }
                             >
                               <img
@@ -683,7 +683,7 @@ export default async function Schedule({
                               fontSize:
                                 kickedOff
                                   ? '0.9rem'
-                                  : '0.8rem'
+                                  : '0.82rem'
                             }}
                           >
                             {score}
@@ -784,9 +784,7 @@ export default async function Schedule({
                                   ?.name ||
                                 'Pick'
 
-                              if(
-                                g.status==='final'
-                              ){
+                              if(g.status==='final'){
                                 const margin=
                                   Number(
                                     pick.ats_margin ??

@@ -378,15 +378,33 @@ export default async function Schedule({
                     key={`division-${division}`}
                   >
                     <td
-                      colSpan={5}
+                      colSpan={3}
                       style={{
                         textAlign:'center',
-                        padding:'12px 4px 8px'
+                        padding:'12px 4px 8px',
+                        fontWeight:800
                       }}
                     >
-                      <strong>
-                        {divisionName}
-                      </strong>
+                      {divisionName}
+                    </td>
+
+                    <td
+                      colSpan={2}
+                      style={{
+                        textAlign:'left',
+                        padding:'12px 8px 8px',
+                        whiteSpace:'nowrap'
+                      }}
+                    >
+                      <span
+                        className="muted"
+                        style={{
+                          fontSize:'0.72rem',
+                          fontWeight:700
+                        }}
+                      >
+                        Swipe →
+                      </span>
                     </td>
                   </tr>,
 

@@ -103,15 +103,6 @@ export default async function Schedule({
 }){
   const sp=await searchParams
 
-  const week=
-    Math.min(
-      18,
-      Math.max(
-        1,
-        Number(sp.week||1)
-      )
-    )
-
   const supabase=await createClient()
 
   const {data:{user}}=
@@ -119,6 +110,54 @@ export default async function Schedule({
 
   if(!user){
     redirect('/login')
+  }
+
+  let week:number
+
+  if(sp.week){
+    week=
+      Math.min(
+        18,
+        Math.max(
+          1,
+          Number(sp.week)
+        )
+      )
+  }else{
+    const {data:activeGames}=
+      await supabase
+        .from('games')
+        .select(`
+          nfl_week
+        `)
+        .eq(
+          'season_year',
+          2026
+        )
+        .neq(
+          'status',
+          'final'
+        )
+        .order(
+          'nfl_week',
+          {ascending:true}
+        )
+        .limit(1)
+
+    const activeWeek=
+      activeGames?.[0]
+        ?.nfl_week
+
+    week=
+      Math.min(
+        18,
+        Math.max(
+          1,
+          Number(
+            activeWeek||1
+          )
+        )
+      )
   }
 
   const {data:profile}=await supabase

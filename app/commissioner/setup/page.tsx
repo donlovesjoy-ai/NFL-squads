@@ -181,8 +181,6 @@ export default async function CommissionerSetup({
         </p>
       )}
 
-      {/* DIVISION NAMES */}
-
       <section className="card">
 
         <h2>
@@ -219,8 +217,6 @@ export default async function CommissionerSetup({
         </form>
 
       </section>
-
-      {/* ADD / ASSIGN SQUAD */}
 
       <section className="card">
 
@@ -357,8 +353,6 @@ export default async function CommissionerSetup({
         </form>
 
       </section>
-
-      {/* EXISTING LEAGUE SETUP */}
 
       <section className="card">
 
@@ -561,8 +555,6 @@ export default async function CommissionerSetup({
         )}
 
       </section>
-
-      {/* DRAFT BOARD */}
 
       <section className="card">
 

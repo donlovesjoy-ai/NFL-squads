@@ -53,33 +53,10 @@ function sameStanding(a:any,b:any){
   )
 }
 
-function shortOwnerName(value:any){
-  const fullName=String(value||'').trim()
-
-  if(!fullName){
-    return ''
-  }
-
-  const parts=
-    fullName
-      .split(/\s+/)
-      .filter(Boolean)
-
-  if(parts.length===1){
-    return parts[0]
-  }
-
-  const firstName=parts[0]
-  const lastName=parts[parts.length-1]
-
-  return `${firstName} ${lastName.charAt(0).toUpperCase()}.`
-}
-
 export default async function Dashboard(){
   const supabase=await createClient()
 
-  const {data:{user}}=
-    await supabase.auth.getUser()
+  const {data:{user}}=await supabase.auth.getUser()
 
   if(!user){
     redirect('/login')
@@ -99,7 +76,6 @@ export default async function Dashboard(){
     .select(`
       id,
       squad_name,
-      owner_name,
       division,
       nfl_team_id,
       nfl_teams(
@@ -207,82 +183,49 @@ export default async function Dashboard(){
     .sort(
       (a:any,b:any)=>
         (b.wins-a.wins) ||
-        (
-          Number(b.ats_margin)-
-          Number(a.ats_margin)
-        ) ||
-        (
-          a.squads.id-
-          b.squads.id
-        )
+        (Number(b.ats_margin)-Number(a.ats_margin)) ||
+        (a.squads.id-b.squads.id)
     )
 
-  const rankedDivRows=
-    divRows.map(
-      (row:any,index:number)=>{
-        const previous=
-          divRows[index-1]
+  const rankedDivRows=divRows.map((row:any,index:number)=>{
+    const previous=divRows[index-1]
 
-        let rank=1
+    let rank=1
 
-        if(index>0){
-          if(
-            sameStanding(
-              row,
-              previous
-            )
-          ){
-            rank=
-              (
-                divRows
-                  .slice(0,index)
-                  .findIndex(
-                    (r:any)=>
-                      sameStanding(
-                        r,
-                        row
-                      )
-                  )
-              )+1
-          }else{
-            rank=index+1
-          }
-        }
-
-        const tied=
-          divRows.some(
-            (other:any)=>
-              other.squads.id!==
-                row.squads.id &&
-              sameStanding(
-                other,
-                row
-              )
-          )
-
-        return {
-          ...row,
-          displayRank:rank,
-          tied
-        }
+    if(index>0){
+      if(sameStanding(row,previous)){
+        rank=(divRows
+          .slice(0,index)
+          .findIndex((r:any)=>sameStanding(r,row))
+        )+1
+      }else{
+        rank=index+1
       }
-    )
+    }
 
-  const myStanding:any=
-    rankedDivRows.find(
+    const tied=
+      divRows.some(
+        (other:any)=>
+          other.squads.id!==row.squads.id &&
+          sameStanding(other,row)
+      )
+
+    return {
+      ...row,
+      displayRank:rank,
+      tied
+    }
+  })
+
+  const myStanding:any=rankedDivRows
+    .find(
       (r:any)=>
         r.squads?.id===squad?.id
     )
 
   const myPlace=
     myStanding
-      ? `${
-          myStanding.tied
-            ? 'T-'
-            : ''
-        }${ordinal(
-          myStanding.displayRank
-        )}`
+      ? `${myStanding.tied?'T-':''}${ordinal(myStanding.displayRank)}`
       : null
 
   const homeSpread=
@@ -298,15 +241,12 @@ export default async function Dashboard(){
 
   const ownSpread=
     game &&
-    squad?.nfl_team_id===
-      game.home_team_id
+    squad?.nfl_team_id===game.home_team_id
       ? homeSpread
       : awaySpread
 
   const ownTeamName=
-    (squad as any)
-      ?.nfl_teams
-      ?.name || 'Team'
+    (squad as any)?.nfl_teams?.name || 'Team'
 
   const {data:chatMessages}=await supabase
     .from('chat_messages')
@@ -366,221 +306,161 @@ export default async function Dashboard(){
         <section
           className="card"
           style={{
-            textAlign:'center'
+            textAlign:'center',
+            paddingTop:14,
+            paddingBottom:14
           }}
         >
-          <h2>
+          <div
+            style={{
+              fontSize:'0.7rem',
+              fontWeight:900,
+              letterSpacing:'0.12em',
+              textTransform:'uppercase',
+              opacity:0.55,
+              marginBottom:6
+            }}
+          >
             Commissioner
-          </h2>
+          </div>
 
-          <p>
+          <div
+            style={{
+              display:'flex',
+              justifyContent:'center',
+              gap:14,
+              flexWrap:'wrap',
+              fontSize:'0.9rem'
+            }}
+          >
             <a href="/commissioner/setup">
               <b>League Setup</b>
             </a>
-
-            {' · '}
 
             <a href="/commissioner/live-feed">
               <b>Live Feed</b>
             </a>
 
-            {' · '}
-
             <a href="/commissioner/results">
               <b>Lines & Results</b>
             </a>
-          </p>
+          </div>
         </section>
       )}
 
-      <div className="grid">
-
-        {/* SQUAD CARD */}
-
-        <section
-          className="card"
+      <section
+        className="card"
+        style={{
+          textAlign:'center',
+          padding:'22px 16px'
+        }}
+      >
+        <div
           style={{
-            textAlign:'center'
+            fontSize:'0.7rem',
+            fontWeight:900,
+            letterSpacing:'0.13em',
+            textTransform:'uppercase',
+            opacity:0.55,
+            marginBottom:5
           }}
         >
-          {squad && (
-            <img
-              src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
-              alt={`${(squad as any)?.nfl_teams?.name || 'NFL team'} logo`}
-              width={143}
-              height={143}
-              style={{
-                objectFit:'contain',
-                display:'block',
-                margin:'0 auto 6px'
-              }}
-            />
-          )}
+          {game
+            ? `Week ${game.nfl_week}`
+            : 'Game Week'}
+        </div>
 
-          <div
-            className="big"
-            style={{
-              marginTop:4
-            }}
-          >
-            {squad?.squad_name ||
-              'Not assigned yet'}
-          </div>
+        <h1
+          style={{
+            margin:'0 0 18px'
+          }}
+        >
+          My Matchup
+        </h1>
 
-          {squad?.owner_name && (
+        {game ? (
+          <>
             <div
-              className="muted"
               style={{
-                marginTop:3,
-                marginBottom:14,
-                fontSize:'0.8rem'
+                display:'grid',
+                gridTemplateColumns:'minmax(0,1fr) 42px minmax(0,1fr)',
+                alignItems:'center',
+                maxWidth:520,
+                margin:'0 auto 18px',
+                gap:4
               }}
             >
-              {squad.owner_name}, Owner
-            </div>
-          )}
+              <TeamDisplay
+                abbreviation={game.away?.abbreviation}
+                name={game.away?.name}
+                label="Away"
+              />
 
-          {squad ? (
-            <>
-              <p>
-                {(squad as any)
-                  ?.nfl_teams
-                  ?.name || ''}
-              </p>
-
-              <p>
-                <b>
-                  {divisionTitle}
-
-                  {myPlace
-                    ? ` · ${myPlace} Place`
-                    : ''}
-                </b>
-              </p>
-
-              <p>
-                <b>Record:</b>{' '}
-
-                {myStanding
-                  ? `${myStanding.wins}-${myStanding.losses}-${myStanding.pushes}`
-                  : '0-0-0'}
-              </p>
-
-              <p>
-                <b>ATS Margin:</b>{' '}
-
-                {myStanding
-                  ? `${
-                      Number(
-                        myStanding.ats_margin
-                      )>0
-                        ? '+'
-                        : ''
-                    }${myStanding.ats_margin}`
-                  : '0'}
-              </p>
-            </>
-          ) : (
-            <p className="muted">
-              Waiting for commissioner assignment.
-            </p>
-          )}
-        </section>
-
-        {/* NFL MATCHUP */}
-
-        <section
-          className="card"
-          style={{
-            textAlign:'center'
-          }}
-        >
-          <h2>
-            {game
-              ? `Week ${game.nfl_week} NFL Game`
-              : 'My Matchup'}
-          </h2>
-
-          {game ? (
-            <>
               <div
                 style={{
-                  display:'flex',
-                  alignItems:'center',
-                  justifyContent:'center',
-                  gap:16,
-                  marginBottom:12,
-                  flexWrap:'nowrap'
+                  textAlign:'center',
+                  fontSize:'0.8rem',
+                  fontWeight:900,
+                  opacity:0.55
                 }}
               >
-                <div
-                  style={{
-                    textAlign:'center',
-                    minWidth:100
-                  }}
-                >
-                  <img
-                    src={`/helmets/${game.away?.abbreviation}.png`}
-                    alt={`${game.away?.name || 'Away team'} logo`}
-                    width={64}
-                    height={64}
-                    style={{
-                      objectFit:'contain'
-                    }}
-                  />
-
-                  <div>
-                    <b>
-                      {game.away?.name}
-                    </b>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    flexShrink:0
-                  }}
-                >
-                  <b>at</b>
-                </div>
-
-                <div
-                  style={{
-                    textAlign:'center',
-                    minWidth:100
-                  }}
-                >
-                  <img
-                    src={`/helmets/${game.home?.abbreviation}.png`}
-                    alt={`${game.home?.name || 'Home team'} logo`}
-                    width={64}
-                    height={64}
-                    style={{
-                      objectFit:'contain'
-                    }}
-                  />
-
-                  <div>
-                    <b>
-                      {game.home?.name}
-                    </b>
-                  </div>
-                </div>
+                AT
               </div>
 
-              <p>
-                <b>{ownTeamName}:</b>{' '}
-                {fmtSpread(ownSpread)}
-              </p>
+              <TeamDisplay
+                abbreviation={game.home?.abbreviation}
+                name={game.home?.name}
+                label="Home"
+              />
+            </div>
 
-              <p>
-                <b>Game total:</b>{' '}
-                {game.total ?? 'Pending'}
-              </p>
+            <div
+              style={{
+                maxWidth:520,
+                margin:'0 auto',
+                display:'grid',
+                gridTemplateColumns:'repeat(2,minmax(0,1fr))',
+                gap:10
+              }}
+            >
+              <InfoBox
+                label={`${ownTeamName} Line`}
+                value={fmtSpread(ownSpread)}
+              />
 
-              <p>
-                <b>Kickoff:</b>{' '}
+              <InfoBox
+                label="Game Total"
+                value={
+                  game.total ??
+                  'Pending'
+                }
+              />
+            </div>
 
+            <div
+              style={{
+                marginTop:18
+              }}
+            >
+              <div
+                style={{
+                  fontSize:'0.7rem',
+                  fontWeight:900,
+                  letterSpacing:'0.1em',
+                  textTransform:'uppercase',
+                  opacity:0.55,
+                  marginBottom:4
+                }}
+              >
+                Kickoff
+              </div>
+
+              <div
+                style={{
+                  fontWeight:800,
+                  marginBottom:8
+                }}
+              >
                 {new Date(
                   game.kickoff_time
                 ).toLocaleString(
@@ -595,28 +475,28 @@ export default async function Dashboard(){
                     timeZoneName:'short'
                   }
                 )}
-              </p>
-
-              <div
-                style={{
-                  textAlign:'center'
-                }}
-              >
-                <KickoffCountdown
-                  kickoffTime={
-                    game.kickoff_time
-                  }
-                />
               </div>
-            </>
-          ) : (
-            <p className="muted">
-              No upcoming game found.
-            </p>
-          )}
-        </section>
 
-        {/* MY PICK */}
+              <KickoffCountdown
+                kickoffTime={
+                  game.kickoff_time
+                }
+              />
+            </div>
+          </>
+        ) : (
+          <p className="muted">
+            No upcoming game found.
+          </p>
+        )}
+      </section>
+
+      <div
+        className="grid"
+        style={{
+          alignItems:'stretch'
+        }}
+      >
 
         <section
           className="card"
@@ -624,17 +504,197 @@ export default async function Dashboard(){
             textAlign:'center'
           }}
         >
-          <h2>
+          <div
+            style={{
+              fontSize:'0.7rem',
+              fontWeight:900,
+              letterSpacing:'0.12em',
+              textTransform:'uppercase',
+              opacity:0.55,
+              marginBottom:4
+            }}
+          >
+            Franchise
+          </div>
+
+          <h2
+            style={{
+              marginTop:0
+            }}
+          >
+            My Squad
+          </h2>
+
+          {squad && (
+            <img
+              src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
+              alt={`${(squad as any)?.nfl_teams?.name || 'NFL team'} logo`}
+              width={120}
+              height={120}
+              style={{
+                objectFit:'contain',
+                display:'block',
+                margin:'4px auto 8px'
+              }}
+            />
+          )}
+
+          <div
+            className="big"
+            style={{
+              marginBottom:4
+            }}
+          >
+            {squad?.squad_name ||
+              'Not assigned yet'}
+          </div>
+
+          {squad ? (
+            <>
+              <div
+                className="muted"
+                style={{
+                  marginBottom:16
+                }}
+              >
+                {(squad as any)
+                  ?.nfl_teams
+                  ?.name || ''}
+              </div>
+
+              <div
+                style={{
+                  borderTop:
+                    '1px solid rgba(120,120,120,0.22)',
+                  paddingTop:14,
+                  display:'grid',
+                  gridTemplateColumns:'repeat(3,minmax(0,1fr))',
+                  gap:6
+                }}
+              >
+                <MiniStat
+                  label="Place"
+                  value={
+                    myPlace ||
+                    '—'
+                  }
+                />
+
+                <MiniStat
+                  label="Record"
+                  value={
+                    myStanding
+                      ? `${myStanding.wins}-${myStanding.losses}-${myStanding.pushes}`
+                      : '0-0-0'
+                  }
+                />
+
+                <MiniStat
+                  label="Margin"
+                  value={
+                    myStanding
+                      ? `${
+                          Number(
+                            myStanding.ats_margin
+                          )>0
+                            ? '+'
+                            : ''
+                        }${myStanding.ats_margin}`
+                      : '0'
+                  }
+                />
+              </div>
+
+              <div
+                style={{
+                  marginTop:14,
+                  fontSize:'0.88rem',
+                  fontWeight:800
+                }}
+              >
+                {divisionTitle}
+              </div>
+            </>
+          ) : (
+            <p className="muted">
+              Waiting for commissioner assignment.
+            </p>
+          )}
+        </section>
+
+        <section
+          className="card"
+          style={{
+            textAlign:'center',
+            display:'flex',
+            flexDirection:'column'
+          }}
+        >
+          <div
+            style={{
+              fontSize:'0.7rem',
+              fontWeight:900,
+              letterSpacing:'0.12em',
+              textTransform:'uppercase',
+              opacity:0.55,
+              marginBottom:4
+            }}
+          >
+            Game Week
+          </div>
+
+          <h2
+            style={{
+              marginTop:0
+            }}
+          >
             My Pick
           </h2>
 
-          <p className="big">
-            {pick && !pick.is_missed
-              ? '✓ Pick Submitted'
-              : 'Pick Needed'}
-          </p>
+          <div
+            style={{
+              margin:'14px auto 10px',
+              width:78,
+              height:78,
+              borderRadius:'50%',
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              border:
+                pick &&
+                !pick.is_missed
+                  ? '3px solid #16803c'
+                  : '3px solid rgba(120,120,120,0.35)',
+              fontSize:'1.7rem',
+              fontWeight:900
+            }}
+          >
+            {pick &&
+             !pick.is_missed
+              ? '✓'
+              : '?'}
+          </div>
 
-          <p className="muted">
+          <div
+            className="big"
+            style={{
+              fontSize:'1.1rem',
+              marginBottom:8
+            }}
+          >
+            {pick && !pick.is_missed
+              ? 'Pick Submitted'
+              : 'Pick Needed'}
+          </div>
+
+          <p
+            className="muted"
+            style={{
+              maxWidth:330,
+              margin:'0 auto 16px',
+              lineHeight:1.45
+            }}
+          >
             {pick?.is_locked
               ? 'Your pick is locked.'
               : game
@@ -642,40 +702,41 @@ export default async function Dashboard(){
                 : 'Waiting for your next matchup.'}
           </p>
 
-          {game &&
-           !pick?.is_locked && (
-            <p>
+          <div
+            style={{
+              marginTop:'auto'
+            }}
+          >
+            {game &&
+             !pick?.is_locked && (
               <a
                 href="/my-pick"
                 className="submit"
                 style={{
                   display:'inline-block',
                   textDecoration:'none',
-                  textAlign:'center'
+                  textAlign:'center',
+                  minWidth:190
                 }}
               >
                 {pick &&
                  !pick.is_missed
-                  ? 'Review / Update My Pick →'
+                  ? 'Review / Update Pick →'
                   : 'MAKE MY PICK →'}
               </a>
-            </p>
-          )}
+            )}
 
-          {pick?.is_locked && (
-            <p>
+            {pick?.is_locked && (
               <a href="/my-pick">
                 <b>
                   View My Pick →
                 </b>
               </a>
-            </p>
-          )}
+            )}
+          </div>
         </section>
 
       </div>
-
-      {/* DIVISION STANDINGS */}
 
       <section
         className="card"
@@ -683,13 +744,31 @@ export default async function Dashboard(){
           textAlign:'center'
         }}
       >
-        <h2>
+        <div
+          style={{
+            fontSize:'0.7rem',
+            fontWeight:900,
+            letterSpacing:'0.12em',
+            textTransform:'uppercase',
+            opacity:0.55,
+            marginBottom:4
+          }}
+        >
+          Division Standings
+        </div>
+
+        <h2
+          style={{
+            marginTop:0
+          }}
+        >
           {divisionTitle}
         </h2>
 
         {rankedDivRows.length===0 ? (
           <p className="muted">
-            Standings will appear after grading.
+            Standings will appear
+            after grading.
           </p>
         ) : (
           <div
@@ -710,7 +789,7 @@ export default async function Dashboard(){
                   </th>
 
                   <th style={{textAlign:'center'}}>
-                    Team
+                    Squad
                   </th>
 
                   <th style={{textAlign:'center'}}>
@@ -724,9 +803,23 @@ export default async function Dashboard(){
               </thead>
 
               <tbody>
-                {rankedDivRows.map(
-                  (r:any)=>(
-                    <tr key={r.squads.id}>
+                {rankedDivRows.map((r:any)=>{
+                  const isMe=
+                    r.squads?.id===squad?.id
+
+                  return (
+                    <tr
+                      key={r.squads.id}
+                      style={
+                        isMe
+                          ? {
+                              fontWeight:800,
+                              background:
+                                'rgba(120,120,120,0.08)'
+                            }
+                          : undefined
+                      }
+                    >
                       <td style={{textAlign:'center'}}>
                         {r.tied?'T-':''}
                         {ordinal(r.displayRank)}
@@ -743,21 +836,17 @@ export default async function Dashboard(){
                       </td>
 
                       <td style={{textAlign:'center'}}>
-                        {Number(r.ats_margin)>0
-                          ? '+'
-                          : ''}
+                        {Number(r.ats_margin)>0?'+':''}
                         {r.ats_margin}
                       </td>
                     </tr>
                   )
-                )}
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
-
-      {/* LEAGUE CHAT */}
 
       <section
         className="card"
@@ -765,7 +854,24 @@ export default async function Dashboard(){
           textAlign:'center'
         }}
       >
-        <h2>
+        <div
+          style={{
+            fontSize:'0.7rem',
+            fontWeight:900,
+            letterSpacing:'0.12em',
+            textTransform:'uppercase',
+            opacity:0.55,
+            marginBottom:4
+          }}
+        >
+          League Activity
+        </div>
+
+        <h2
+          style={{
+            marginTop:0
+          }}
+        >
           League Chat
         </h2>
 
@@ -783,21 +889,15 @@ export default async function Dashboard(){
           >
             {chatMessages.map(
               (m:any)=>{
-                const chatSquad=
-                  m.squads
+                const chatSquad=m.squads
 
                 const isSystem=
                   m.is_system===true
 
-                const formattedOwner=
-                  shortOwnerName(
-                    chatSquad?.owner_name
-                  )
-
                 const author=
                   isSystem
                     ? 'NFL SQUADS · League Update'
-                    : formattedOwner ||
+                    : chatSquad?.owner_name ||
                       chatSquad?.squad_name ||
                       (
                         m.is_commissioner
@@ -809,16 +909,17 @@ export default async function Dashboard(){
                   <div
                     key={m.id}
                     style={{
-                      padding:'10px 0',
+                      padding:'12px 2px',
                       borderBottom:
-                        '1px solid #ddd'
+                        '1px solid rgba(120,120,120,0.22)'
                     }}
                   >
                     {m.is_pinned && (
                       <div
                         style={{
-                          fontWeight:700,
-                          marginBottom:4
+                          fontWeight:800,
+                          fontSize:'0.75rem',
+                          marginBottom:5
                         }}
                       >
                         📌 Pinned Announcement
@@ -839,9 +940,7 @@ export default async function Dashboard(){
                        chatSquad.owner_name
                         ? (
                           <span className="muted">
-                            {' '}
-                            ·{' '}
-                            {chatSquad.squad_name}
+                            {' '}· {chatSquad.squad_name}
                           </span>
                         )
                         : null}
@@ -849,7 +948,8 @@ export default async function Dashboard(){
 
                     <div
                       style={{
-                        marginTop:4
+                        marginTop:5,
+                        lineHeight:1.45
                       }}
                     >
                       {m.message}
@@ -858,8 +958,8 @@ export default async function Dashboard(){
                     <div
                       className="muted"
                       style={{
-                        marginTop:4,
-                        fontSize:'0.85rem'
+                        marginTop:5,
+                        fontSize:'0.78rem'
                       }}
                     >
                       {formatChatTime(
@@ -876,7 +976,8 @@ export default async function Dashboard(){
 
         <p
           style={{
-            marginTop:14
+            marginTop:16,
+            marginBottom:2
           }}
         >
           <a href="/chat">
@@ -888,5 +989,138 @@ export default async function Dashboard(){
       </section>
 
     </main>
+  )
+}
+
+function TeamDisplay({
+  abbreviation,
+  name,
+  label
+}:{
+  abbreviation?:string
+  name?:string
+  label:string
+}){
+  return (
+    <div
+      style={{
+        minWidth:0,
+        textAlign:'center'
+      }}
+    >
+      <div
+        style={{
+          fontSize:'0.64rem',
+          fontWeight:900,
+          letterSpacing:'0.1em',
+          textTransform:'uppercase',
+          opacity:0.45,
+          marginBottom:4
+        }}
+      >
+        {label}
+      </div>
+
+      <img
+        src={`/helmets/${abbreviation}.png`}
+        alt={`${name || 'NFL team'} logo`}
+        width={82}
+        height={82}
+        style={{
+          objectFit:'contain',
+          display:'block',
+          maxWidth:'100%',
+          margin:'0 auto 5px'
+        }}
+      />
+
+      <div
+        style={{
+          fontWeight:900,
+          fontSize:'0.9rem',
+          lineHeight:1.2
+        }}
+      >
+        {name}
+      </div>
+    </div>
+  )
+}
+
+function InfoBox({
+  label,
+  value
+}:{
+  label:string
+  value:React.ReactNode
+}){
+  return (
+    <div
+      style={{
+        border:'1px solid rgba(120,120,120,0.25)',
+        borderRadius:10,
+        padding:'10px 8px'
+      }}
+    >
+      <div
+        style={{
+          fontSize:'0.65rem',
+          fontWeight:900,
+          letterSpacing:'0.08em',
+          textTransform:'uppercase',
+          opacity:0.5,
+          marginBottom:3
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          fontSize:'1.05rem',
+          fontWeight:900
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function MiniStat({
+  label,
+  value
+}:{
+  label:string
+  value:React.ReactNode
+}){
+  return (
+    <div
+      style={{
+        minWidth:0
+      }}
+    >
+      <div
+        style={{
+          fontSize:'0.64rem',
+          fontWeight:900,
+          textTransform:'uppercase',
+          letterSpacing:'0.06em',
+          opacity:0.5,
+          marginBottom:3
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          fontWeight:900,
+          fontSize:'0.9rem'
+        }}
+      >
+        {value}
+      </div>
+    </div>
   )
 }

@@ -53,26 +53,76 @@ function sameStanding(a:any,b:any){
   )
 }
 
-function shortOwnerName(value:any){
-  const fullName=String(value||'').trim()
-
-  if(!fullName){
-    return ''
+function resultDisplay(pick:any){
+  if(!pick){
+    return null
   }
 
-  const parts=
-    fullName
-      .split(/\s+/)
-      .filter(Boolean)
+  const result=
+    String(
+      pick.result||''
+    ).toLowerCase()
 
-  if(parts.length===1){
-    return parts[0]
+  if(
+    result==='win' ||
+    result==='won'
+  ){
+    return {
+      label:'WIN',
+      color:'green'
+    }
   }
 
-  const firstName=parts[0]
-  const lastName=parts[parts.length-1]
+  if(
+    result==='loss' ||
+    result==='lost'
+  ){
+    return {
+      label:'LOSS',
+      color:'red'
+    }
+  }
 
-  return `${firstName} ${lastName.charAt(0).toUpperCase()}.`
+  if(
+    result==='push' ||
+    result==='tie'
+  ){
+    return {
+      label:'PUSH',
+      color:'#1565c0'
+    }
+  }
+
+  if(
+    pick.ats_margin!==null &&
+    pick.ats_margin!==undefined
+  ){
+    const margin=
+      Number(
+        pick.ats_margin
+      )
+
+    if(margin>0){
+      return {
+        label:'WIN',
+        color:'green'
+      }
+    }
+
+    if(margin<0){
+      return {
+        label:'LOSS',
+        color:'red'
+      }
+    }
+
+    return {
+      label:'PUSH',
+      color:'#1565c0'
+    }
+  }
+
+  return null
 }
 
 export default async function Dashboard(){
@@ -146,7 +196,8 @@ export default async function Dashboard(){
       .order('kickoff_time',{ascending:true})
       .limit(1)
 
-    game=games?.[0]||null
+    game=
+      games?.[0]||null
 
     if(game){
       const {data:p}=await supabase
@@ -289,7 +340,9 @@ export default async function Dashboard(){
     game?.spread===null ||
     game?.spread===undefined
       ? null
-      : Number(game.spread)
+      : Number(
+          game.spread
+        )
 
   const awaySpread=
     homeSpread===null
@@ -298,8 +351,12 @@ export default async function Dashboard(){
 
   const ownSpread=
     game &&
-    squad?.nfl_team_id===
+    Number(
+      squad?.nfl_team_id
+    )===
+    Number(
       game.home_team_id
+    )
       ? homeSpread
       : awaySpread
 
@@ -307,6 +364,82 @@ export default async function Dashboard(){
     (squad as any)
       ?.nfl_teams
       ?.name || 'Team'
+
+  const pickDeadline=
+    game
+      ? new Date(
+          new Date(
+            game.kickoff_time
+          ).getTime()-60_000
+        )
+      : null
+
+  const gameStatus=
+    String(
+      game?.status||''
+    ).toLowerCase()
+
+  const gameStarted=
+    gameStatus==='live' ||
+    gameStatus==='final'
+
+  const deadlinePassed=
+    pickDeadline
+      ? new Date()>=pickDeadline
+      : false
+
+  const pickLocked=
+    Boolean(
+      pick?.is_locked===true ||
+      gameStarted ||
+      deadlinePassed
+    )
+
+  const pickedHome=
+    Boolean(
+      game &&
+      pick &&
+      Number(
+        pick.selection_team_id
+      )===
+      Number(
+        game.home_team_id
+      )
+    )
+
+  const pickedAway=
+    Boolean(
+      game &&
+      pick &&
+      Number(
+        pick.selection_team_id
+      )===
+      Number(
+        game.away_team_id
+      )
+    )
+
+  const pickedTeam=
+    pickedHome
+      ? game?.home
+      : pickedAway
+        ? game?.away
+        : null
+
+  const pickedSpread=
+    !pick ||
+    homeSpread===null
+      ? null
+      : pickedHome
+        ? homeSpread
+        : pickedAway
+          ? awaySpread
+          : null
+
+  const pickResult=
+    resultDisplay(
+      pick
+    )
 
   const {data:chatMessages}=await supabase
     .from('chat_messages')
@@ -375,19 +508,25 @@ export default async function Dashboard(){
 
           <p>
             <a href="/commissioner/setup">
-              <b>League Setup</b>
+              <b>
+                League Setup
+              </b>
             </a>
 
             {' · '}
 
             <a href="/commissioner/live-feed">
-              <b>Live Feed</b>
+              <b>
+                Live Feed
+              </b>
             </a>
 
             {' · '}
 
             <a href="/commissioner/results">
-              <b>Lines & Results</b>
+              <b>
+                Lines & Results
+              </b>
             </a>
           </p>
         </section>
@@ -459,7 +598,10 @@ export default async function Dashboard(){
               </p>
 
               <p>
-                <b>Record:</b>{' '}
+                <b>
+                  Record:
+                </b>
+                {' '}
 
                 {myStanding
                   ? `${myStanding.wins}-${myStanding.losses}-${myStanding.pushes}`
@@ -467,7 +609,10 @@ export default async function Dashboard(){
               </p>
 
               <p>
-                <b>ATS Margin:</b>{' '}
+                <b>
+                  ATS Margin:
+                </b>
+                {' '}
 
                 {myStanding
                   ? `${
@@ -541,7 +686,9 @@ export default async function Dashboard(){
                     flexShrink:0
                   }}
                 >
-                  <b>at</b>
+                  <b>
+                    at
+                  </b>
                 </div>
 
                 <div
@@ -569,17 +716,28 @@ export default async function Dashboard(){
               </div>
 
               <p>
-                <b>{ownTeamName}:</b>{' '}
-                {fmtSpread(ownSpread)}
+                <b>
+                  {ownTeamName}:
+                </b>
+                {' '}
+                {fmtSpread(
+                  ownSpread
+                )}
               </p>
 
               <p>
-                <b>Game total:</b>{' '}
+                <b>
+                  Game total:
+                </b>
+                {' '}
                 {game.total ?? 'Pending'}
               </p>
 
               <p>
-                <b>Kickoff:</b>{' '}
+                <b>
+                  Kickoff:
+                </b>
+                {' '}
 
                 {new Date(
                   game.kickoff_time
@@ -628,48 +786,138 @@ export default async function Dashboard(){
             My Pick
           </h2>
 
-          <p className="big">
-            {pick && !pick.is_missed
-              ? '✓ Pick Submitted'
-              : 'Pick Needed'}
-          </p>
-
-          <p className="muted">
-            {pick?.is_locked
-              ? 'Your pick is locked.'
-              : game
-                ? 'You may change your pick until one minute before kickoff.'
-                : 'Waiting for your next matchup.'}
-          </p>
-
-          {game &&
-           !pick?.is_locked && (
-            <p>
-              <a
-                href="/my-pick"
-                className="submit"
+          {pick &&
+           !pick.is_missed &&
+           pickedTeam ? (
+            <>
+              <img
+                src={`/helmets/${pickedTeam?.abbreviation}.png`}
+                alt={`${pickedTeam?.name || 'Selected team'} logo`}
+                width={86}
+                height={86}
                 style={{
-                  display:'inline-block',
-                  textDecoration:'none',
-                  textAlign:'center'
+                  objectFit:'contain',
+                  display:'block',
+                  margin:'4px auto 6px'
+                }}
+              />
+
+              <div
+                className="big"
+                style={{
+                  fontSize:'1.1rem',
+                  marginBottom:4
                 }}
               >
-                {pick &&
-                 !pick.is_missed
-                  ? 'Review / Update My Pick →'
-                  : 'MAKE MY PICK →'}
-              </a>
-            </p>
-          )}
+                {pickedTeam?.name}
+              </div>
 
-          {pick?.is_locked && (
-            <p>
-              <a href="/my-pick">
-                <b>
-                  View My Pick →
-                </b>
-              </a>
-            </p>
+              <div
+                style={{
+                  fontSize:'1rem',
+                  fontWeight:800,
+                  marginBottom:10
+                }}
+              >
+                {fmtSpread(
+                  pickedSpread
+                )}
+              </div>
+
+              {pickResult && (
+                <div
+                  style={{
+                    color:
+                      pickResult.color,
+                    fontWeight:900,
+                    fontSize:'1rem',
+                    marginBottom:8
+                  }}
+                >
+                  {pickResult.label}
+                </div>
+              )}
+
+              <p
+                className="muted"
+                style={{
+                  marginTop:4
+                }}
+              >
+                {pickLocked
+                  ? 'Your pick is locked.'
+                  : 'You may change your pick until one minute before kickoff.'}
+              </p>
+
+              {game &&
+               !pickLocked && (
+                <p>
+                  <a
+                    href="/my-pick"
+                    className="submit"
+                    style={{
+                      display:'inline-block',
+                      textDecoration:'none',
+                      textAlign:'center'
+                    }}
+                  >
+                    Review / Update My Pick →
+                  </a>
+                </p>
+              )}
+
+              {pickLocked && (
+                <p>
+                  <a href="/my-pick">
+                    <b>
+                      View My Pick →
+                    </b>
+                  </a>
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="big">
+                Pick Needed
+              </p>
+
+              <p className="muted">
+                {game
+                  ? pickLocked
+                    ? 'The pick window is closed.'
+                    : 'You may make your pick until one minute before kickoff.'
+                  : 'Waiting for your next matchup.'}
+              </p>
+
+              {game &&
+               !pickLocked && (
+                <p>
+                  <a
+                    href="/my-pick"
+                    className="submit"
+                    style={{
+                      display:'inline-block',
+                      textDecoration:'none',
+                      textAlign:'center'
+                    }}
+                  >
+                    MAKE MY PICK →
+                  </a>
+                </p>
+              )}
+
+              {game &&
+               pickLocked && (
+                <p>
+                  <a href="/my-pick">
+                    <b>
+                      View My Pick →
+                    </b>
+                  </a>
+                </p>
+              )}
+            </>
           )}
         </section>
 
@@ -729,7 +977,9 @@ export default async function Dashboard(){
                     <tr key={r.squads.id}>
                       <td style={{textAlign:'center'}}>
                         {r.tied?'T-':''}
-                        {ordinal(r.displayRank)}
+                        {ordinal(
+                          r.displayRank
+                        )}
                       </td>
 
                       <td style={{textAlign:'center'}}>
@@ -743,7 +993,9 @@ export default async function Dashboard(){
                       </td>
 
                       <td style={{textAlign:'center'}}>
-                        {Number(r.ats_margin)>0
+                        {Number(
+                          r.ats_margin
+                        )>0
                           ? '+'
                           : ''}
                         {r.ats_margin}
@@ -789,15 +1041,10 @@ export default async function Dashboard(){
                 const isSystem=
                   m.is_system===true
 
-                const formattedOwner=
-                  shortOwnerName(
-                    chatSquad?.owner_name
-                  )
-
                 const author=
                   isSystem
                     ? 'NFL SQUADS · League Update'
-                    : formattedOwner ||
+                    : chatSquad?.owner_name ||
                       chatSquad?.squad_name ||
                       (
                         m.is_commissioner

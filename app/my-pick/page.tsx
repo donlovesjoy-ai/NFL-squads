@@ -38,6 +38,25 @@ function fmtEastern(
   )
 }
 
+function gameStatusLabel(
+  status:any
+){
+  const normalized=
+    String(
+      status||''
+    ).toLowerCase()
+
+  if(normalized==='final'){
+    return 'Final'
+  }
+
+  if(normalized==='live'){
+    return 'Live'
+  }
+
+  return 'Scheduled'
+}
+
 export default async function MyPick({
   searchParams
 }:{
@@ -134,6 +153,7 @@ export default async function MyPick({
         kickoff_time,
         spread,
         status,
+        final_at,
         home_team_id,
         away_team_id,
 
@@ -183,12 +203,16 @@ export default async function MyPick({
     await Promise.all(
       weeks.map(
         async week=>{
-          const {data:open}=
+          const {
+            data:open
+          }=
             await supabase.rpc(
               'is_pick_week_open',
               {
                 p_season:2026,
-                p_week:week
+                p_week:week,
+                p_squad_id:
+                  squad.id
               }
             )
 
@@ -257,6 +281,68 @@ export default async function MyPick({
         )
 
   if(!game){
+    const nextGame=
+      squadGames.find(
+        (g:any)=>
+          String(
+            g.status||''
+          ).toLowerCase()
+            !=='final'
+      )
+
+    if(!nextGame){
+      return (
+        <main className="wrap">
+
+          <Nav
+            commissioner={
+              commissioner
+            }
+          />
+
+          <h1
+            style={{
+              textAlign:'center'
+            }}
+          >
+            My Pick
+          </h1>
+
+          <div
+            className="card"
+            style={{
+              textAlign:'center',
+              maxWidth:720,
+              margin:'0 auto'
+            }}
+          >
+            No remaining matchup found.
+          </div>
+
+        </main>
+      )
+    }
+
+    const nextWeek=
+      Number(
+        nextGame.nfl_week
+      )
+
+    const previousWeek=
+      nextWeek-1
+
+    const previousGame=
+      squadGames.find(
+        (g:any)=>
+          Number(
+            g.nfl_week
+          )===previousWeek
+      )
+
+    const previousWeekWasBye=
+      previousWeek>=1 &&
+      !previousGame
+
     return (
       <main className="wrap">
 
@@ -274,7 +360,7 @@ export default async function MyPick({
           My Pick
         </h1>
 
-        <div
+        <section
           className="card"
           style={{
             textAlign:'center',
@@ -282,9 +368,68 @@ export default async function MyPick({
             margin:'0 auto'
           }}
         >
-          No currently open
-          matchup found.
-        </div>
+          <h2>
+            Week {nextWeek}
+          </h2>
+
+          {previousWeekWasBye ? (
+            <>
+              <p
+                style={{
+                  fontWeight:700
+                }}
+              >
+                Pick selection for
+                Week {nextWeek} opens
+                7 days before kickoff
+                following your
+                Week {previousWeek} bye.
+              </p>
+
+              <p className="muted">
+                Week {nextWeek} kickoff:{' '}
+                {fmtEastern(
+                  nextGame.kickoff_time
+                )}
+              </p>
+            </>
+          ) : (
+            <>
+              <p
+                style={{
+                  fontWeight:700
+                }}
+              >
+                Pick selection for
+                Week {nextWeek} opens
+                after completion of your
+                Week {previousWeek} game.
+              </p>
+
+              <p className="muted">
+                Week {previousWeek} game status:{' '}
+                <b>
+                  {gameStatusLabel(
+                    previousGame?.status
+                  )}
+                </b>
+              </p>
+            </>
+          )}
+
+          <p
+            className="muted"
+            style={{
+              marginTop:18,
+              fontSize:'0.82rem'
+            }}
+          >
+            Lines are subject to change.
+            Your official pick line will
+            be the closing line assigned
+            at kickoff.
+          </p>
+        </section>
 
       </main>
     )
@@ -321,7 +466,9 @@ export default async function MyPick({
         {
           p_season:2026,
           p_week:
-            game.nfl_week
+            game.nfl_week,
+          p_squad_id:
+            squad.id
         }
       )
     ])
@@ -441,11 +588,6 @@ export default async function MyPick({
             Week {game.nfl_week}
             {' '}
             picks are not open yet.
-            The new week opens one
-            minute after the final
-            Monday Night Football
-            game from the previous
-            week goes final.
           </p>
         )}
 
@@ -470,8 +612,7 @@ export default async function MyPick({
             }}
           >
             The pick deadline has
-            passed. Your pick is
-            locked.
+            passed. Your pick is locked.
           </p>
         )}
 
@@ -651,6 +792,20 @@ export default async function MyPick({
               )}
             </span>
           </label>
+
+          <p
+            className="muted"
+            style={{
+              fontSize:'0.78rem',
+              lineHeight:1.4,
+              margin:'2px auto 0',
+              maxWidth:440
+            }}
+          >
+            Lines are subject to change.
+            Your official pick line will be
+            the closing line assigned at kickoff.
+          </p>
 
           <div
             style={{

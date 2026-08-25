@@ -32,9 +32,10 @@ export async function submitPick(formData:FormData){
 
   const {data:squad}=await supabase
     .from('squads')
-    .select(
-      'id,user_id'
-    )
+    .select(`
+      id,
+      user_id
+    `)
     .eq(
       'id',
       squadId
@@ -42,6 +43,10 @@ export async function submitPick(formData:FormData){
     .eq(
       'user_id',
       user.id
+    )
+    .eq(
+      'season_year',
+      2026
     )
     .maybeSingle()
 
@@ -64,6 +69,10 @@ export async function submitPick(formData:FormData){
     .eq(
       'id',
       gameId
+    )
+    .eq(
+      'season_year',
+      2026
     )
     .maybeSingle()
 
@@ -100,14 +109,17 @@ export async function submitPick(formData:FormData){
     )
   }
 
-  const {data:weekOpen,error:weekOpenError}=
-    await supabase.rpc(
-      'is_pick_week_open',
-      {
-        p_season:2026,
-        p_week:game.nfl_week
-      }
-    )
+  const {
+    data:weekOpen,
+    error:weekOpenError
+  }=await supabase.rpc(
+    'is_pick_week_open',
+    {
+      p_season:2026,
+      p_week:game.nfl_week,
+      p_squad_id:squadId
+    }
+  )
 
   if(
     weekOpenError ||
@@ -167,7 +179,8 @@ export async function submitPick(formData:FormData){
       revealed:false,
       is_missed:false
     },{
-      onConflict:'squad_id,game_id'
+      onConflict:
+        'squad_id,game_id'
     })
 
   if(error){

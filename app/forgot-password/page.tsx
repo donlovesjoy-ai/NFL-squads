@@ -1,16 +1,63 @@
- import Link from 'next/link'
-import { sendPasswordReset } from './actions'
+ 'use client'
 
-export default async function ForgotPassword({
-  searchParams
-}:{
-  searchParams:Promise<{
-    sent?:string
-    error?:string
-  }>
-}){
-  const sp=
-    await searchParams
+import { useState } from 'react'
+import Link from 'next/link'
+import { createClient } from '@supabase/supabase-js'
+
+function createRecoveryClient(){
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      auth:{
+        autoRefreshToken:true,
+        persistSession:true,
+        detectSessionInUrl:true
+      }
+    }
+  )
+}
+
+export default function ForgotPassword(){
+  const [email,setEmail]=useState('')
+  const [sent,setSent]=useState(false)
+  const [error,setError]=useState('')
+  const [sending,setSending]=useState(false)
+
+  async function handleSubmit(
+    event:React.FormEvent<HTMLFormElement>
+  ){
+    event.preventDefault()
+
+    setError('')
+    setSending(true)
+
+    const supabase=
+      createRecoveryClient()
+
+    const {error}=
+      await supabase.auth
+        .resetPasswordForEmail(
+          email.trim().toLowerCase(),
+          {
+            redirectTo:
+              `${window.location.origin}/reset-password`
+          }
+        )
+
+    setSending(false)
+
+    if(error){
+      setError(
+        error.message ||
+        'Unable to send the password reset email. Please try again.'
+      )
+
+      return
+    }
+
+    setSent(true)
+  }
 
   return (
     <main
@@ -35,39 +82,46 @@ export default async function ForgotPassword({
           NFL Squads account.
         </p>
 
-        {sp.sent && (
+        {sent ? (
           <p className="status">
             Password reset email sent.
             Check your inbox and follow
             the link to choose a new password.
           </p>
-        )}
-
-        {sp.error && (
-          <p className="status">
-            Unable to send the password
-            reset email. Please try again.
-          </p>
-        )}
-
-        {!sp.sent && (
+        ) : (
           <form
-            action={sendPasswordReset}
+            onSubmit={handleSubmit}
           >
             <input
               name="email"
               type="email"
               placeholder="Email"
+              value={email}
+              onChange={
+                event=>
+                  setEmail(
+                    event.target.value
+                  )
+              }
               required
             />
 
             <button
               className="submit"
               type="submit"
+              disabled={sending}
             >
-              Send Reset Email
+              {sending
+                ? 'Sending...'
+                : 'Send Reset Email'}
             </button>
           </form>
+        )}
+
+        {error && (
+          <p className="status">
+            {error}
+          </p>
         )}
 
         <p>

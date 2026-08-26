@@ -60,7 +60,7 @@ export async function sendPasswordReset(
         email,
         {
           redirectTo:
-            `${origin}/auth/callback?next=/reset-password`
+            `${origin}/reset-password`
         }
       )
 

@@ -18,29 +18,36 @@ export async function GET(
       .get('next') ||
     '/dashboard'
 
-  if(code){
-    const supabase=
-      await createClient()
-
-    const {error}=
-      await supabase.auth
-        .exchangeCodeForSession(
-          code
-        )
-
-    if(!error){
-      return NextResponse.redirect(
-        new URL(
-          next,
-          requestUrl.origin
-        )
+  if(!code){
+    return NextResponse.redirect(
+      new URL(
+        '/login?error=1',
+        requestUrl.origin
       )
-    }
+    )
+  }
+
+  const supabase=
+    await createClient()
+
+  const {error}=
+    await supabase.auth
+      .exchangeCodeForSession(
+        code
+      )
+
+  if(error){
+    return NextResponse.redirect(
+      new URL(
+        '/forgot-password?expired=1',
+        requestUrl.origin
+      )
+    )
   }
 
   return NextResponse.redirect(
     new URL(
-      '/login?error=1',
+      next,
       requestUrl.origin
     )
   )

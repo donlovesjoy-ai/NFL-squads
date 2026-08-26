@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -8,6 +8,11 @@ import { createClient } from '@/lib/supabase/client'
 export default function ResetPassword(){
   const router=
     useRouter()
+
+  const [supabase]=
+    useState(
+      ()=>createClient()
+    )
 
   const [ready,setReady]=
     useState(false)
@@ -19,36 +24,115 @@ export default function ResetPassword(){
     useState(false)
 
   useEffect(()=>{
-    const supabase=
-      createClient()
+    let mounted=true
 
-    const verifySession=
+    const establishRecoverySession=
       async()=>{
-        const {
-          data:{
-            user
-          },
-          error
-        }=
-          await supabase.auth
-            .getUser()
+        try{
+          const hash=
+            window.location.hash
+              .replace(/^#/,'')
+          
+          const params=
+            new URLSearchParams(
+              hash
+            )
 
-        if(
-          error ||
-          !user
-        ){
-          setError(
-            'Your reset link is invalid or has expired. Please request a new password reset email.'
-          )
+          const accessToken=
+            params.get(
+              'access_token'
+            )
 
-          return
+          const refreshToken=
+            params.get(
+              'refresh_token'
+            )
+
+          const type=
+            params.get(
+              'type'
+            )
+
+          if(
+            accessToken &&
+            refreshToken &&
+            type==='recovery'
+          ){
+            const {
+              error:setSessionError
+            }=
+              await supabase.auth
+                .setSession({
+                  access_token:
+                    accessToken,
+                  refresh_token:
+                    refreshToken
+                })
+
+            if(setSessionError){
+              if(mounted){
+                setError(
+                  'Unable to verify this reset link. Please request a new password reset email.'
+                )
+              }
+
+              return
+            }
+
+            window.history
+              .replaceState(
+                {},
+                document.title,
+                window.location.pathname
+              )
+          }
+
+          const {
+            data:{
+              user
+            },
+            error:userError
+          }=
+            await supabase.auth
+              .getUser()
+
+          if(
+            !mounted
+          ){
+            return
+          }
+
+          if(
+            userError ||
+            !user
+          ){
+            setError(
+              'Your reset link is invalid or has expired. Please request a new password reset email.'
+            )
+
+            return
+          }
+
+          setReady(true)
+          setError('')
         }
-
-        setReady(true)
+        catch{
+          if(mounted){
+            setError(
+              'Unable to verify this reset link. Please request a new password reset email.'
+            )
+          }
+        }
       }
 
-    verifySession()
-  },[])
+    establishRecoverySession()
+
+    return ()=>{
+      mounted=false
+    }
+  },[
+    supabase
+  ])
 
   async function handleSubmit(
     formData:FormData
@@ -88,31 +172,6 @@ export default function ResetPassword(){
     }
 
     setSaving(true)
-
-    const supabase=
-      createClient()
-
-    const {
-      data:{
-        user
-      },
-      error:userError
-    }=
-      await supabase.auth
-        .getUser()
-
-    if(
-      userError ||
-      !user
-    ){
-      setSaving(false)
-
-      setError(
-        'Your reset session has expired. Please request a new reset email.'
-      )
-
-      return
-    }
 
     const {
       error:updateError

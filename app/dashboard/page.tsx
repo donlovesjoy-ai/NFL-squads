@@ -2,13 +2,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import KickoffCountdown from '../components/KickoffCountdown'
+import SquadLogo from '../components/SquadLogo'
+import SquadLogoUploader from '../components/SquadLogoUploader'
 
 function fmtSpread(n:any){
-  if(n===null || n===undefined) return 'Line pending'
+  if(n===null || n===undefined){
+    return 'Line pending'
+  }
 
   const x=Number(n)
 
-  if(x===0) return 'PK'
+  if(x===0){
+    return 'PK'
+  }
 
   return x>0
     ? `+${x}`
@@ -16,13 +22,16 @@ function fmtSpread(n:any){
 }
 
 function formatChatTime(value:string){
-  return new Date(value).toLocaleString('en-US',{
-    timeZone:'America/New_York',
-    month:'short',
-    day:'numeric',
-    hour:'numeric',
-    minute:'2-digit'
-  })
+  return new Date(value).toLocaleString(
+    'en-US',
+    {
+      timeZone:'America/New_York',
+      month:'short',
+      day:'numeric',
+      hour:'numeric',
+      minute:'2-digit'
+    }
+  )
 }
 
 function ordinal(n:number){
@@ -49,7 +58,8 @@ function sameStanding(a:any,b:any){
     a.wins===b.wins &&
     a.losses===b.losses &&
     a.pushes===b.pushes &&
-    Number(a.ats_margin)===Number(b.ats_margin)
+    Number(a.ats_margin)===
+      Number(b.ats_margin)
   )
 }
 
@@ -126,177 +136,284 @@ function resultDisplay(pick:any){
 }
 
 export default async function Dashboard(){
-  const supabase=await createClient()
+  const supabase=
+    await createClient()
 
-  const {data:{user}}=
+  const {
+    data:{
+      user
+    }
+  }=
     await supabase.auth.getUser()
 
   if(!user){
     redirect('/login')
   }
 
-  const {data:profile}=await supabase
-    .from('users')
-    .select('role')
-    .eq('id',user.id)
-    .maybeSingle()
+  const {data:profile}=
+    await supabase
+      .from('users')
+      .select('role')
+      .eq(
+        'id',
+        user.id
+      )
+      .maybeSingle()
 
   const commissioner=
-    profile?.role==='commissioner'
+    profile?.role===
+    'commissioner'
 
-  const {data:squad}=await supabase
-    .from('squads')
-    .select(`
-      id,
-      squad_name,
-      owner_name,
-      division,
-      nfl_team_id,
-      nfl_teams(
-        name,
-        abbreviation
+  const {data:squad}=
+    await supabase
+      .from('squads')
+      .select(`
+        id,
+        squad_name,
+        owner_name,
+        division,
+        nfl_team_id,
+        logo_path,
+        nfl_teams(
+          name,
+          abbreviation
+        )
+      `)
+      .eq(
+        'user_id',
+        user.id
       )
-    `)
-    .eq('user_id',user.id)
-    .eq('season_year',2026)
-    .maybeSingle()
-
-  const {data:leagueSquads}=await supabase
-    .from('squads')
-    .select(`
-      id,
-      squad_name,
-      nfl_team_id
-    `)
-    .eq('season_year',2026)
-
-  const squadByNflTeam=
-    new Map<number,string>()
-
-  for(const leagueSquad of leagueSquads||[]){
-    if(
-      leagueSquad.nfl_team_id!==null &&
-      leagueSquad.nfl_team_id!==undefined
-    ){
-      squadByNflTeam.set(
-        Number(
-          leagueSquad.nfl_team_id
-        ),
-        leagueSquad.squad_name
+      .eq(
+        'season_year',
+        2026
       )
-    }
-  }
+      .maybeSingle()
 
   let game:any=null
   let pick:any=null
 
   if(squad){
-    const {data:games}=await supabase
-      .from('games')
-      .select(`
-        id,
-        nfl_week,
-        kickoff_time,
-        spread,
-        total,
-        status,
-        home_team_id,
-        away_team_id,
-        home_score,
-        away_score,
-        home:nfl_teams!games_home_team_id_fkey(
-          name,
-          abbreviation
-        ),
-        away:nfl_teams!games_away_team_id_fkey(
-          name,
-          abbreviation
+    const {data:games}=
+      await supabase
+        .from('games')
+        .select(`
+          id,
+          nfl_week,
+          kickoff_time,
+          spread,
+          total,
+          status,
+          home_team_id,
+          away_team_id,
+          home_score,
+          away_score,
+
+          home:
+            nfl_teams!games_home_team_id_fkey(
+              name,
+              abbreviation
+            ),
+
+          away:
+            nfl_teams!games_away_team_id_fkey(
+              name,
+              abbreviation
+            )
+        `)
+        .eq(
+          'season_year',
+          2026
         )
-      `)
-      .eq('season_year',2026)
-      .or(
-        `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
-      )
-      .neq('status','final')
-      .order('nfl_week',{ascending:true})
-      .order('kickoff_time',{ascending:true})
-      .limit(1)
+        .or(
+          `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
+        )
+        .neq(
+          'status',
+          'final'
+        )
+        .order(
+          'nfl_week',
+          {
+            ascending:true
+          }
+        )
+        .order(
+          'kickoff_time',
+          {
+            ascending:true
+          }
+        )
+        .limit(1)
 
     game=
       games?.[0]||null
 
     if(game){
-      const {data:p}=await supabase
-        .from('picks')
-        .select(`
-          selection_team_id,
-          result,
-          ats_margin,
-          is_locked,
-          revealed,
-          is_missed
-        `)
-        .eq('squad_id',squad.id)
-        .eq('game_id',game.id)
-        .maybeSingle()
+      const {data:p}=
+        await supabase
+          .from('picks')
+          .select(`
+            selection_team_id,
+            result,
+            ats_margin,
+            is_locked,
+            revealed,
+            is_missed
+          `)
+          .eq(
+            'squad_id',
+            squad.id
+          )
+          .eq(
+            'game_id',
+            game.id
+          )
+          .maybeSingle()
 
       pick=p
     }
   }
 
-  const {data:divisionNameRow}=squad
-    ? await supabase
-        .from('division_names')
-        .select('division_name')
-        .eq('season_year',2026)
-        .eq('division',squad.division)
-        .maybeSingle()
-    : {data:null}
+  const {data:leagueSquads}=
+    await supabase
+      .from('squads')
+      .select(`
+        id,
+        squad_name,
+        owner_name,
+        nfl_team_id,
+        logo_path,
+        nfl_teams(
+          name,
+          abbreviation
+        )
+      `)
+      .eq(
+        'season_year',
+        2026
+      )
+
+  const squadForNflTeam=(
+    nflTeamId:any
+  )=>{
+    return (
+      leagueSquads||[]
+    ).find(
+      (s:any)=>
+        Number(
+          s.nfl_team_id
+        )===
+        Number(
+          nflTeamId
+        )
+    )
+  }
+
+  const homeSquad=
+    game
+      ? squadForNflTeam(
+          game.home_team_id
+        )
+      : null
+
+  const awaySquad=
+    game
+      ? squadForNflTeam(
+          game.away_team_id
+        )
+      : null
+
+  const {data:divisionNameRow}=
+    squad
+      ? await supabase
+          .from(
+            'division_names'
+          )
+          .select(
+            'division_name'
+          )
+          .eq(
+            'season_year',
+            2026
+          )
+          .eq(
+            'division',
+            squad.division
+          )
+          .maybeSingle()
+      : {
+          data:null
+        }
 
   const divisionTitle=
-    divisionNameRow?.division_name ||
+    divisionNameRow
+      ?.division_name ||
     (
       squad
         ? `Division ${squad.division}`
         : ''
     )
 
-  const {data:standings}=await supabase
-    .from('standings')
-    .select(`
-      wins,
-      losses,
-      pushes,
-      ats_margin,
-      squads!inner(
-        id,
-        squad_name,
-        division
-      )
-    `)
-    .eq('season_year',2026)
+  const {data:standings}=
+    await supabase
+      .from('standings')
+      .select(`
+        wins,
+        losses,
+        pushes,
+        ats_margin,
 
-  const divRows=(standings||[])
-    .filter(
-      (r:any)=>
-        r.squads?.division===squad?.division
-    )
-    .sort(
-      (a:any,b:any)=>
-        (b.wins-a.wins) ||
-        (
-          Number(b.ats_margin)-
-          Number(a.ats_margin)
-        ) ||
-        (
-          a.squads.id-
-          b.squads.id
+        squads!inner(
+          id,
+          squad_name,
+          division,
+          nfl_team_id,
+          logo_path,
+
+          nfl_teams(
+            abbreviation
+          )
         )
-    )
+      `)
+      .eq(
+        'season_year',
+        2026
+      )
+
+  const divRows=
+    (standings||[])
+      .filter(
+        (r:any)=>
+          r.squads
+            ?.division===
+          squad?.division
+      )
+      .sort(
+        (a:any,b:any)=>
+          (
+            b.wins-
+            a.wins
+          ) ||
+          (
+            Number(
+              b.ats_margin
+            )-
+            Number(
+              a.ats_margin
+            )
+          ) ||
+          (
+            a.squads.id-
+            b.squads.id
+          )
+      )
 
   const rankedDivRows=
     divRows.map(
-      (row:any,index:number)=>{
+      (
+        row:any,
+        index:number
+      )=>{
         const previous=
           divRows[index-1]
 
@@ -312,7 +429,10 @@ export default async function Dashboard(){
             rank=
               (
                 divRows
-                  .slice(0,index)
+                  .slice(
+                    0,
+                    index
+                  )
                   .findIndex(
                     (r:any)=>
                       sameStanding(
@@ -322,7 +442,8 @@ export default async function Dashboard(){
                   )
               )+1
           }else{
-            rank=index+1
+            rank=
+              index+1
           }
         }
 
@@ -348,7 +469,8 @@ export default async function Dashboard(){
   const myStanding:any=
     rankedDivRows.find(
       (r:any)=>
-        r.squads?.id===squad?.id
+        r.squads?.id===
+        squad?.id
     )
 
   const myPlace=
@@ -387,48 +509,18 @@ export default async function Dashboard(){
       : awaySpread
 
   const ownTeamName=
-    squad?.squad_name ||
     (squad as any)
       ?.nfl_teams
       ?.name ||
     'Team'
-
-  const awayDisplayName=
-    game
-      ? (
-          squadByNflTeam.get(
-            Number(
-              game.away_team_id
-            )
-          )
-          ||
-          game.away?.name
-          ||
-          'Away Team'
-        )
-      : ''
-
-  const homeDisplayName=
-    game
-      ? (
-          squadByNflTeam.get(
-            Number(
-              game.home_team_id
-            )
-          )
-          ||
-          game.home?.name
-          ||
-          'Home Team'
-        )
-      : ''
 
   const pickDeadline=
     game
       ? new Date(
           new Date(
             game.kickoff_time
-          ).getTime()-60_000
+          ).getTime()-
+          60_000
         )
       : null
 
@@ -443,7 +535,8 @@ export default async function Dashboard(){
 
   const deadlinePassed=
     pickDeadline
-      ? new Date()>=pickDeadline
+      ? new Date()>=
+        pickDeadline
       : false
 
   const pickLocked=
@@ -484,6 +577,20 @@ export default async function Dashboard(){
         ? game?.away
         : null
 
+  const pickedSquad=
+    pickedHome
+      ? homeSquad
+      : pickedAway
+        ? awaySquad
+        : null
+
+  const pickedDisplayName=
+    pickedSquad
+      ?.squad_name ||
+    pickedTeam
+      ?.name ||
+    'Team'
+
   const pickedSpread=
     !pick ||
     homeSpread===null
@@ -499,36 +606,42 @@ export default async function Dashboard(){
       pick
     )
 
-  const {data:chatMessages}=await supabase
-    .from('chat_messages')
-    .select(`
-      id,
-      message,
-      is_commissioner,
-      is_system,
-      is_pinned,
-      created_at,
-      squads(
-        squad_name,
-        owner_name
+  const {data:chatMessages}=
+    await supabase
+      .from('chat_messages')
+      .select(`
+        id,
+        message,
+        is_commissioner,
+        is_system,
+        is_pinned,
+        created_at,
+
+        squads(
+          squad_name,
+          owner_name
+        )
+      `)
+      .order(
+        'is_pinned',
+        {
+          ascending:false
+        }
       )
-    `)
-    .order(
-      'is_pinned',
-      {ascending:false}
-    )
-    .order(
-      'pinned_at',
-      {
-        ascending:false,
-        nullsFirst:false
-      }
-    )
-    .order(
-      'created_at',
-      {ascending:false}
-    )
-    .limit(5)
+      .order(
+        'pinned_at',
+        {
+          ascending:false,
+          nullsFirst:false
+        }
+      )
+      .order(
+        'created_at',
+        {
+          ascending:false
+        }
+      )
+      .limit(5)
 
   return (
     <main className="wrap">
@@ -551,7 +664,11 @@ export default async function Dashboard(){
         </div>
       </div>
 
-      <Nav commissioner={commissioner}/>
+      <Nav
+        commissioner={
+          commissioner
+        }
+      />
 
       {commissioner && (
         <section
@@ -601,23 +718,26 @@ export default async function Dashboard(){
           }}
         >
           {squad && (
-            <img
-              src={`/helmets/${(squad as any)?.nfl_teams?.abbreviation}.png`}
-              alt={`${(squad as any)?.nfl_teams?.name || 'NFL team'} logo`}
-              width={143}
-              height={143}
-              style={{
-                objectFit:'contain',
-                display:'block',
-                margin:'0 auto 6px'
-              }}
+            <SquadLogoUploader
+              currentLogoPath={
+                (squad as any)
+                  ?.logo_path
+              }
+              nflAbbreviation={
+                (squad as any)
+                  ?.nfl_teams
+                  ?.abbreviation
+              }
+              squadName={
+                squad.squad_name
+              }
             />
           )}
 
           <div
             className="big"
             style={{
-              marginTop:4
+              marginTop:10
             }}
           >
             {squad?.squad_name ||
@@ -628,8 +748,8 @@ export default async function Dashboard(){
             <div
               className="muted"
               style={{
-                marginTop:5,
-                marginBottom:9,
+                marginTop:3,
+                marginBottom:14,
                 fontSize:'0.8rem'
               }}
             >
@@ -639,11 +759,7 @@ export default async function Dashboard(){
 
           {squad ? (
             <>
-              <p
-                style={{
-                  marginTop:4
-                }}
-              >
+              <p>
                 {(squad as any)
                   ?.nfl_teams
                   ?.name || ''}
@@ -726,19 +842,41 @@ export default async function Dashboard(){
                     minWidth:100
                   }}
                 >
-                  <img
-                    src={`/helmets/${game.away?.abbreviation}.png`}
-                    alt={`${game.away?.name || 'Away team'} logo`}
-                    width={64}
-                    height={64}
+                  <div
                     style={{
-                      objectFit:'contain'
+                      display:'flex',
+                      justifyContent:'center'
                     }}
-                  />
+                  >
+                    <SquadLogo
+                      logoPath={
+                        awaySquad
+                          ?.logo_path
+                      }
+                      nflAbbreviation={
+                        game.away
+                          ?.abbreviation
+                      }
+                      squadName={
+                        awaySquad
+                          ?.squad_name ||
+                        game.away
+                          ?.name
+                      }
+                      size={64}
+                    />
+                  </div>
 
-                  <div>
+                  <div
+                    style={{
+                      marginTop:4
+                    }}
+                  >
                     <b>
-                      {awayDisplayName}
+                      {awaySquad
+                        ?.squad_name ||
+                        game.away
+                          ?.name}
                     </b>
                   </div>
                 </div>
@@ -759,19 +897,41 @@ export default async function Dashboard(){
                     minWidth:100
                   }}
                 >
-                  <img
-                    src={`/helmets/${game.home?.abbreviation}.png`}
-                    alt={`${game.home?.name || 'Home team'} logo`}
-                    width={64}
-                    height={64}
+                  <div
                     style={{
-                      objectFit:'contain'
+                      display:'flex',
+                      justifyContent:'center'
                     }}
-                  />
+                  >
+                    <SquadLogo
+                      logoPath={
+                        homeSquad
+                          ?.logo_path
+                      }
+                      nflAbbreviation={
+                        game.home
+                          ?.abbreviation
+                      }
+                      squadName={
+                        homeSquad
+                          ?.squad_name ||
+                        game.home
+                          ?.name
+                      }
+                      size={64}
+                    />
+                  </div>
 
-                  <div>
+                  <div
+                    style={{
+                      marginTop:4
+                    }}
+                  >
                     <b>
-                      {homeDisplayName}
+                      {homeSquad
+                        ?.squad_name ||
+                        game.home
+                          ?.name}
                     </b>
                   </div>
                 </div>
@@ -792,7 +952,8 @@ export default async function Dashboard(){
                   Game total:
                 </b>
                 {' '}
-                {game.total ?? 'Pending'}
+                {game.total ??
+                  'Pending'}
               </p>
 
               <p>
@@ -847,17 +1008,28 @@ export default async function Dashboard(){
            !pick.is_missed &&
            pickedTeam ? (
             <>
-              <img
-                src={`/helmets/${pickedTeam?.abbreviation}.png`}
-                alt={`${pickedTeam?.name || 'Selected team'} logo`}
-                width={86}
-                height={86}
+              <div
                 style={{
-                  objectFit:'contain',
-                  display:'block',
+                  display:'flex',
+                  justifyContent:'center',
                   margin:'4px auto 6px'
                 }}
-              />
+              >
+                <SquadLogo
+                  logoPath={
+                    pickedSquad
+                      ?.logo_path
+                  }
+                  nflAbbreviation={
+                    pickedTeam
+                      ?.abbreviation
+                  }
+                  squadName={
+                    pickedDisplayName
+                  }
+                  size={86}
+                />
+              </div>
 
               <div
                 className="big"
@@ -866,7 +1038,7 @@ export default async function Dashboard(){
                   marginBottom:4
                 }}
               >
-                {pickedTeam?.name}
+                {pickedDisplayName}
               </div>
 
               <div
@@ -1010,19 +1182,35 @@ export default async function Dashboard(){
             >
               <thead>
                 <tr>
-                  <th style={{textAlign:'center'}}>
+                  <th
+                    style={{
+                      textAlign:'center'
+                    }}
+                  >
                     Place
                   </th>
 
-                  <th style={{textAlign:'center'}}>
+                  <th
+                    style={{
+                      textAlign:'center'
+                    }}
+                  >
                     Team
                   </th>
 
-                  <th style={{textAlign:'center'}}>
+                  <th
+                    style={{
+                      textAlign:'center'
+                    }}
+                  >
                     Record
                   </th>
 
-                  <th style={{textAlign:'center'}}>
+                  <th
+                    style={{
+                      textAlign:'center'
+                    }}
+                  >
                     Margin
                   </th>
                 </tr>
@@ -1031,30 +1219,85 @@ export default async function Dashboard(){
               <tbody>
                 {rankedDivRows.map(
                   (r:any)=>(
-                    <tr key={r.squads.id}>
-                      <td style={{textAlign:'center'}}>
-                        {r.tied?'T-':''}
+                    <tr
+                      key={
+                        r.squads.id
+                      }
+                    >
+                      <td
+                        style={{
+                          textAlign:'center'
+                        }}
+                      >
+                        {r.tied
+                          ? 'T-'
+                          : ''}
+
                         {ordinal(
                           r.displayRank
                         )}
                       </td>
 
-                      <td style={{textAlign:'center'}}>
-                        <b>
-                          {r.squads.squad_name}
-                        </b>
+                      <td
+                        style={{
+                          textAlign:'center'
+                        }}
+                      >
+                        <div
+                          style={{
+                            display:'flex',
+                            alignItems:'center',
+                            justifyContent:'center',
+                            gap:6
+                          }}
+                        >
+                          <SquadLogo
+                            logoPath={
+                              r.squads
+                                .logo_path
+                            }
+                            nflAbbreviation={
+                              r.squads
+                                .nfl_teams
+                                ?.abbreviation
+                            }
+                            squadName={
+                              r.squads
+                                .squad_name
+                            }
+                            size={24}
+                          />
+
+                          <b>
+                            {
+                              r.squads
+                                .squad_name
+                            }
+                          </b>
+                        </div>
                       </td>
 
-                      <td style={{textAlign:'center'}}>
-                        {r.wins}-{r.losses}-{r.pushes}
+                      <td
+                        style={{
+                          textAlign:'center'
+                        }}
+                      >
+                        {r.wins}-
+                        {r.losses}-
+                        {r.pushes}
                       </td>
 
-                      <td style={{textAlign:'center'}}>
+                      <td
+                        style={{
+                          textAlign:'center'
+                        }}
+                      >
                         {Number(
                           r.ats_margin
                         )>0
                           ? '+'
                           : ''}
+
                         {r.ats_margin}
                       </td>
                     </tr>
@@ -1096,13 +1339,16 @@ export default async function Dashboard(){
                   m.squads
 
                 const isSystem=
-                  m.is_system===true
+                  m.is_system===
+                  true
 
                 const author=
                   isSystem
                     ? 'NFL SQUADS · League Update'
-                    : chatSquad?.owner_name ||
-                      chatSquad?.squad_name ||
+                    : chatSquad
+                        ?.owner_name ||
+                      chatSquad
+                        ?.squad_name ||
                       (
                         m.is_commissioner
                           ? 'Commissioner'
@@ -1139,13 +1385,18 @@ export default async function Dashboard(){
                       </b>
 
                       {!isSystem &&
-                       chatSquad?.squad_name &&
-                       chatSquad.owner_name
+                       chatSquad
+                         ?.squad_name &&
+                       chatSquad
+                         .owner_name
                         ? (
                           <span className="muted">
                             {' '}
                             ·{' '}
-                            {chatSquad.squad_name}
+                            {
+                              chatSquad
+                                .squad_name
+                            }
                           </span>
                         )
                         : null}

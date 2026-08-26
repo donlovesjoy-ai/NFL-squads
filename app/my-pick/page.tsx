@@ -1,6 +1,7 @@
  import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
+import SquadLogo from '../components/SquadLogo'
 import { submitPick } from './actions'
 
 function fmtSpread(
@@ -27,8 +28,7 @@ function fmtEastern(
   ).toLocaleString(
     'en-US',
     {
-      timeZone:
-        'America/New_York',
+      timeZone:'America/New_York',
       month:'short',
       day:'numeric',
       hour:'numeric',
@@ -82,15 +82,11 @@ export default async function MyPick({
     await supabase
       .from('users')
       .select('role')
-      .eq(
-        'id',
-        user.id
-      )
+      .eq('id',user.id)
       .maybeSingle()
 
   const commissioner=
-    profile?.role===
-    'commissioner'
+    profile?.role==='commissioner'
 
   const {data:squad}=
     await supabase
@@ -98,33 +94,23 @@ export default async function MyPick({
       .select(`
         id,
         squad_name,
-        nfl_team_id
+        nfl_team_id,
+        logo_path,
+        nfl_teams(
+          name,
+          abbreviation
+        )
       `)
-      .eq(
-        'user_id',
-        user.id
-      )
-      .eq(
-        'season_year',
-        2026
-      )
+      .eq('user_id',user.id)
+      .eq('season_year',2026)
       .maybeSingle()
 
   if(!squad){
     return (
       <main className="wrap">
+        <Nav commissioner={commissioner}/>
 
-        <Nav
-          commissioner={
-            commissioner
-          }
-        />
-
-        <h1
-          style={{
-            textAlign:'center'
-          }}
-        >
+        <h1 style={{textAlign:'center'}}>
           My Pick
         </h1>
 
@@ -136,11 +122,34 @@ export default async function MyPick({
             margin:'0 auto'
           }}
         >
-          Your squad has not been
-          assigned yet.
+          Your squad has not been assigned yet.
         </div>
-
       </main>
+    )
+  }
+
+  const {data:leagueSquads}=
+    await supabase
+      .from('squads')
+      .select(`
+        id,
+        squad_name,
+        nfl_team_id,
+        logo_path,
+        nfl_teams(
+          name,
+          abbreviation
+        )
+      `)
+      .eq('season_year',2026)
+
+  const squadByNflTeam=
+    new Map<number,any>()
+
+  for(const s of leagueSquads||[]){
+    squadByNflTeam.set(
+      Number(s.nfl_team_id),
+      s
     )
   }
 
@@ -169,21 +178,12 @@ export default async function MyPick({
             abbreviation
           )
       `)
-      .eq(
-        'season_year',
-        2026
-      )
+      .eq('season_year',2026)
       .or(
         `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
       )
-      .order(
-        'nfl_week',
-        {ascending:true}
-      )
-      .order(
-        'kickoff_time',
-        {ascending:true}
-      )
+      .order('nfl_week',{ascending:true})
+      .order('kickoff_time',{ascending:true})
 
   const squadGames=
     (allGames||[]) as any[]
@@ -192,9 +192,7 @@ export default async function MyPick({
     ...new Set(
       squadGames.map(
         (g:any)=>
-          Number(
-            g.nfl_week
-          )
+          Number(g.nfl_week)
       )
     )
   ]
@@ -203,23 +201,19 @@ export default async function MyPick({
     await Promise.all(
       weeks.map(
         async week=>{
-          const {
-            data:open
-          }=
+          const {data:open}=
             await supabase.rpc(
               'is_pick_week_open',
               {
                 p_season:2026,
                 p_week:week,
-                p_squad_id:
-                  squad.id
+                p_squad_id:squad.id
               }
             )
 
           return {
             week,
-            open:
-              open===true
+            open:open===true
           }
         }
       )
@@ -227,41 +221,25 @@ export default async function MyPick({
 
   const openWeeks=
     weekChecks
-      .filter(
-        w=>w.open
-      )
-      .map(
-        w=>w.week
-      )
-      .sort(
-        (a,b)=>b-a
-      )
+      .filter(w=>w.open)
+      .map(w=>w.week)
+      .sort((a,b)=>b-a)
 
   let selectedWeek:
     number|null=null
 
-  for(
-    const week
-    of openWeeks
-  ){
+  for(const week of openWeeks){
     const hasAvailableGame=
       squadGames.some(
         (g:any)=>
-          Number(
-            g.nfl_week
-          )===week &&
+          Number(g.nfl_week)===week &&
           String(
             g.status||''
-          ).toLowerCase()
-            !=='final'
+          ).toLowerCase()!=='final'
       )
 
-    if(
-      hasAvailableGame
-    ){
-      selectedWeek=
-        week
-
+    if(hasAvailableGame){
+      selectedWeek=week
       break
     }
   }
@@ -271,13 +249,10 @@ export default async function MyPick({
       ? null
       : squadGames.find(
           (g:any)=>
-            Number(
-              g.nfl_week
-            )===selectedWeek &&
+            Number(g.nfl_week)===selectedWeek &&
             String(
               g.status||''
-            ).toLowerCase()
-              !=='final'
+            ).toLowerCase()!=='final'
         )
 
   if(!game){
@@ -286,25 +261,15 @@ export default async function MyPick({
         (g:any)=>
           String(
             g.status||''
-          ).toLowerCase()
-            !=='final'
+          ).toLowerCase()!=='final'
       )
 
     if(!nextGame){
       return (
         <main className="wrap">
+          <Nav commissioner={commissioner}/>
 
-          <Nav
-            commissioner={
-              commissioner
-            }
-          />
-
-          <h1
-            style={{
-              textAlign:'center'
-            }}
-          >
+          <h1 style={{textAlign:'center'}}>
             My Pick
           </h1>
 
@@ -318,15 +283,12 @@ export default async function MyPick({
           >
             No remaining matchup found.
           </div>
-
         </main>
       )
     }
 
     const nextWeek=
-      Number(
-        nextGame.nfl_week
-      )
+      Number(nextGame.nfl_week)
 
     const previousWeek=
       nextWeek-1
@@ -334,9 +296,7 @@ export default async function MyPick({
     const previousGame=
       squadGames.find(
         (g:any)=>
-          Number(
-            g.nfl_week
-          )===previousWeek
+          Number(g.nfl_week)===previousWeek
       )
 
     const previousWeekWasBye=
@@ -345,18 +305,9 @@ export default async function MyPick({
 
     return (
       <main className="wrap">
+        <Nav commissioner={commissioner}/>
 
-        <Nav
-          commissioner={
-            commissioner
-          }
-        />
-
-        <h1
-          style={{
-            textAlign:'center'
-          }}
-        >
+        <h1 style={{textAlign:'center'}}>
           My Pick
         </h1>
 
@@ -374,15 +325,9 @@ export default async function MyPick({
 
           {previousWeekWasBye ? (
             <>
-              <p
-                style={{
-                  fontWeight:700
-                }}
-              >
-                Pick selection for
-                Week {nextWeek} opens
-                7 days before kickoff
-                following your
+              <p style={{fontWeight:700}}>
+                Pick selection for Week {nextWeek} opens
+                7 days before kickoff following your
                 Week {previousWeek} bye.
               </p>
 
@@ -395,15 +340,9 @@ export default async function MyPick({
             </>
           ) : (
             <>
-              <p
-                style={{
-                  fontWeight:700
-                }}
-              >
-                Pick selection for
-                Week {nextWeek} opens
-                after completion of your
-                Week {previousWeek} game.
+              <p style={{fontWeight:700}}>
+                Pick selection for Week {nextWeek} opens
+                after completion of your Week {previousWeek} game.
               </p>
 
               <p className="muted">
@@ -425,22 +364,37 @@ export default async function MyPick({
             }}
           >
             Lines are subject to change.
-            Your official pick line will
-            be the closing line assigned
-            at kickoff.
+            Your official pick line will be the
+            closing line assigned at kickoff.
           </p>
         </section>
-
       </main>
     )
   }
+
+  const awaySquad=
+    squadByNflTeam.get(
+      Number(game.away_team_id)
+    )
+
+  const homeSquad=
+    squadByNflTeam.get(
+      Number(game.home_team_id)
+    )
+
+  const awayName=
+    awaySquad?.squad_name ||
+    game.away?.name
+
+  const homeName=
+    homeSquad?.squad_name ||
+    game.home?.name
 
   const [
     {data:pick},
     {data:weekOpen}
   ]=
     await Promise.all([
-
       supabase
         .from('picks')
         .select(`
@@ -451,24 +405,16 @@ export default async function MyPick({
           revealed,
           is_missed
         `)
-        .eq(
-          'squad_id',
-          squad.id
-        )
-        .eq(
-          'game_id',
-          game.id
-        )
+        .eq('squad_id',squad.id)
+        .eq('game_id',game.id)
         .maybeSingle(),
 
       supabase.rpc(
         'is_pick_week_open',
         {
           p_season:2026,
-          p_week:
-            game.nfl_week,
-          p_squad_id:
-            squad.id
+          p_week:game.nfl_week,
+          p_squad_id:squad.id
         }
       )
     ])
@@ -500,9 +446,7 @@ export default async function MyPick({
   const homeSpread=
     game.spread===null
       ? null
-      : Number(
-          game.spread
-        )
+      : Number(game.spread)
 
   const awaySpread=
     homeSpread===null
@@ -525,27 +469,16 @@ export default async function MyPick({
     buttonText=
       'Pick Locked'
   }
-  else if(
-    homeSpread===null
-  ){
+  else if(homeSpread===null){
     buttonText=
       'Waiting for Closing Line'
   }
 
   return (
     <main className="wrap">
+      <Nav commissioner={commissioner}/>
 
-      <Nav
-        commissioner={
-          commissioner
-        }
-      />
-
-      <h1
-        style={{
-          textAlign:'center'
-        }}
-      >
+      <h1 style={{textAlign:'center'}}>
         My Pick
       </h1>
 
@@ -558,15 +491,10 @@ export default async function MyPick({
         }}
       >
         <h2>
-          Week {game.nfl_week}
+          NFL Week {game.nfl_week}
         </h2>
 
         <p>
-          <b>
-            Kickoff:
-          </b>
-          {' '}
-
           {fmtEastern(
             game.kickoff_time
           )}
@@ -577,120 +505,64 @@ export default async function MyPick({
             Pick deadline:
           </b>
           {' '}
-
-          {fmtEastern(
-            deadline
-          )}
+          {fmtEastern(deadline)}
         </p>
 
         {!weekOpen && (
           <p className="status">
-            Week {game.nfl_week}
-            {' '}
-            picks are not open yet.
+            Week {game.nfl_week} picks are not open yet.
           </p>
         )}
 
         {gameStarted && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
-            This game has started.
-            Your pick is locked.
+          <p className="status">
+            This game has started. Your pick is locked.
           </p>
         )}
 
         {!gameStarted &&
          deadlinePassed && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
-            The pick deadline has
-            passed. Your pick is locked.
+          <p className="status">
+            The pick deadline has passed. Your pick is locked.
           </p>
         )}
 
         {sp.saved && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
+          <p className="status">
             Pick saved.
           </p>
         )}
 
-        {sp.error===
-          'week_closed' && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
-            This week&apos;s picks
-            are not open yet.
+        {sp.error==='week_closed' && (
+          <p className="status">
+            This week&apos;s picks are not open yet.
           </p>
         )}
 
-        {sp.error===
-          'locked' && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
-            This pick is locked and
-            can no longer be changed.
+        {sp.error==='locked' && (
+          <p className="status">
+            This pick is locked and can no longer be changed.
           </p>
         )}
 
         {sp.error &&
-         sp.error!==
-           'week_closed' &&
-         sp.error!==
-           'locked' && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
-            Unable to save pick:
-            {' '}
-            {sp.error}
+         sp.error!=='week_closed' &&
+         sp.error!=='locked' && (
+          <p className="status">
+            Unable to save pick: {sp.error}
           </p>
         )}
 
         {pick &&
          !pick.is_missed && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
+          <p className="status">
             Current pick submitted.
           </p>
         )}
 
         {pick?.is_missed && (
-          <p
-            className="status"
-            style={{
-              textAlign:'center'
-            }}
-          >
-            No pick was submitted
-            for this matchup.
+          <p className="status">
+            No pick was submitted for this matchup.
           </p>
         )}
 
@@ -728,12 +600,9 @@ export default async function MyPick({
             <input
               type="radio"
               name="selection_team_id"
-              value={
-                game.away_team_id
-              }
+              value={game.away_team_id}
               defaultChecked={
-                pick
-                  ?.selection_team_id===
+                pick?.selection_team_id===
                 game.away_team_id
               }
               required
@@ -743,8 +612,19 @@ export default async function MyPick({
               }
             />
 
+            <SquadLogo
+              logoPath={
+                awaySquad?.logo_path
+              }
+              nflAbbreviation={
+                game.away?.abbreviation
+              }
+              squadName={awayName}
+              size={28}
+            />
+
             <b>
-              {game.away?.name}
+              {awayName}
             </b>
 
             <span>
@@ -767,12 +647,9 @@ export default async function MyPick({
             <input
               type="radio"
               name="selection_team_id"
-              value={
-                game.home_team_id
-              }
+              value={game.home_team_id}
               defaultChecked={
-                pick
-                  ?.selection_team_id===
+                pick?.selection_team_id===
                 game.home_team_id
               }
               required
@@ -782,8 +659,19 @@ export default async function MyPick({
               }
             />
 
+            <SquadLogo
+              logoPath={
+                homeSquad?.logo_path
+              }
+              nflAbbreviation={
+                game.home?.abbreviation
+              }
+              squadName={homeName}
+              size={28}
+            />
+
             <b>
-              {game.home?.name}
+              {homeName}
             </b>
 
             <span>
@@ -823,11 +711,8 @@ export default async function MyPick({
               {buttonText}
             </button>
           </div>
-
         </form>
-
       </section>
-
     </main>
   )
 }

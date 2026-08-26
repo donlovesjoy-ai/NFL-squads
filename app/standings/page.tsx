@@ -1,6 +1,7 @@
  import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
+import SquadLogo from '../components/SquadLogo'
 
 function pct(r:any){
   const games=
@@ -25,62 +26,88 @@ function signed(n:any){
 }
 
 export default async function Standings(){
-  const supabase=await createClient()
+  const supabase=
+    await createClient()
 
-  const {data:{user}}=
+  const {
+    data:{
+      user
+    }
+  }=
     await supabase.auth.getUser()
 
   if(!user){
     redirect('/login')
   }
 
-  const {data:profile}=await supabase
-    .from('users')
-    .select('role')
-    .eq('id',user.id)
-    .maybeSingle()
+  const {data:profile}=
+    await supabase
+      .from('users')
+      .select('role')
+      .eq(
+        'id',
+        user.id
+      )
+      .maybeSingle()
 
   const commissioner=
-    profile?.role==='commissioner'
+    profile?.role===
+    'commissioner'
 
   const [
     {data},
     {data:names}
-  ]=await Promise.all([
-    supabase
-      .from('standings')
-      .select(`
-        wins,
-        losses,
-        pushes,
-        ats_margin,
-        squads!inner(
-          id,
-          user_id,
-          owner_name,
-          squad_name,
-          division
-        )
-      `)
-      .eq('season_year',2026),
+  ]=
+    await Promise.all([
 
-    supabase
-      .from('division_names')
-      .select(
-        'division,division_name'
-      )
-      .eq('season_year',2026)
-      .order('division')
-  ])
+      supabase
+        .from('standings')
+        .select(`
+          wins,
+          losses,
+          pushes,
+          ats_margin,
+
+          squads!inner(
+            id,
+            user_id,
+            owner_name,
+            squad_name,
+            division,
+            logo_path,
+
+            nfl_teams(
+              abbreviation
+            )
+          )
+        `)
+        .eq(
+          'season_year',
+          2026
+        ),
+
+      supabase
+        .from('division_names')
+        .select(
+          'division,division_name'
+        )
+        .eq(
+          'season_year',
+          2026
+        )
+        .order('division')
+    ])
 
   const myRow:any=
     (data||[]).find(
       (r:any)=>
-        r.squads?.user_id===user.id
+        r.squads?.user_id===
+        user.id
     )
 
   const myDivision=
-    myRow?.squads?.division
+    myRow?.squads
+      ?.division
 
   const divisionOrder=
     myDivision
@@ -109,7 +136,11 @@ export default async function Standings(){
   return (
     <main className="wrap">
 
-      <Nav commissioner={commissioner}/>
+      <Nav
+        commissioner={
+          commissioner
+        }
+      />
 
       <h1
         style={{
@@ -119,208 +150,264 @@ export default async function Standings(){
         Standings
       </h1>
 
-      {divisionOrder.map(d=>{
+      {divisionOrder.map(
+        d=>{
 
-        const title=
-          (names||[])
-            .find(
-              (x:any)=>
-                x.division===d
-            )
-            ?.division_name
-          || `Division ${d}`
+          const title=
+            (names||[])
+              .find(
+                (x:any)=>
+                  x.division===d
+              )
+              ?.division_name
+            || `Division ${d}`
 
-        const rows=
-          (data||[])
-            .filter(
-              (r:any)=>
-                r.squads?.division===d
-            )
-            .sort(
-              (a:any,b:any)=>
-                (pct(b)-pct(a)) ||
-                (
-                  Number(b.ats_margin)-
-                  Number(a.ats_margin)
-                )
-            )
+          const rows=
+            (data||[])
+              .filter(
+                (r:any)=>
+                  r.squads
+                    ?.division===d
+              )
+              .sort(
+                (a:any,b:any)=>
+                  (
+                    pct(b)-
+                    pct(a)
+                  ) ||
+                  (
+                    Number(
+                      b.ats_margin
+                    )-
+                    Number(
+                      a.ats_margin
+                    )
+                  )
+              )
 
-        return (
-          <section
-            className="card division"
-            key={d}
-            style={{
-              textAlign:'center'
-            }}
-          >
-
-            <h2
+          return (
+            <section
+              className="card division"
+              key={d}
               style={{
                 textAlign:'center'
               }}
             >
-              {title}
-            </h2>
-
-            {rows.length===0 ? (
-
-              <p className="muted">
-                No teams assigned yet.
-              </p>
-
-            ) : (
-
-              <table
+              <h2
                 style={{
-                  width:'100%',
-                  textAlign:'center',
-                  borderCollapse:'collapse',
-                  tableLayout:'fixed'
+                  textAlign:'center'
                 }}
               >
+                {title}
+              </h2>
 
-                <colgroup>
-                  <col style={{width:'27%'}}/>
-                  <col style={{width:'34%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'7%'}}/>
-                  <col style={{width:'18%'}}/>
-                </colgroup>
+              {rows.length===0 ? (
+                <p className="muted">
+                  No teams assigned yet.
+                </p>
+              ) : (
+                <table
+                  style={{
+                    width:'100%',
+                    textAlign:'center',
+                    borderCollapse:'collapse',
+                    tableLayout:'fixed'
+                  }}
+                >
+                  <colgroup>
+                    <col
+                      style={{
+                        width:'27%'
+                      }}
+                    />
 
-                <thead>
-                  <tr>
+                    <col
+                      style={{
+                        width:'34%'
+                      }}
+                    />
 
-                    <th style={headCell}>
-                      Owner
-                    </th>
+                    <col
+                      style={{
+                        width:'7%'
+                      }}
+                    />
 
-                    <th style={headCell}>
-                      Team
-                    </th>
+                    <col
+                      style={{
+                        width:'7%'
+                      }}
+                    />
 
-                    <th style={headCell}>
-                      W
-                    </th>
+                    <col
+                      style={{
+                        width:'7%'
+                      }}
+                    />
 
-                    <th style={headCell}>
-                      L
-                    </th>
+                    <col
+                      style={{
+                        width:'18%'
+                      }}
+                    />
+                  </colgroup>
 
-                    <th style={headCell}>
-                      T
-                    </th>
+                  <thead>
+                    <tr>
+                      <th style={headCell}>
+                        Owner
+                      </th>
 
-                    <th style={headCell}>
-                      ATS
-                    </th>
+                      <th style={headCell}>
+                        Team
+                      </th>
 
-                  </tr>
-                </thead>
+                      <th style={headCell}>
+                        W
+                      </th>
 
-                <tbody>
+                      <th style={headCell}>
+                        L
+                      </th>
 
-                  {rows.map(
-                    (r:any,i:number)=>{
+                      <th style={headCell}>
+                        T
+                      </th>
 
-                      const isMe=
-                        r.squads
-                          ?.user_id===user.id
+                      <th style={headCell}>
+                        ATS
+                      </th>
+                    </tr>
+                  </thead>
 
-                      return (
-                        <tr
-                          key={i}
-                          style={
-                            isMe
-                              ? {
-                                  fontWeight:700
-                                }
-                              : undefined
-                          }
-                        >
+                  <tbody>
+                    {rows.map(
+                      (
+                        r:any,
+                        i:number
+                      )=>{
 
-                          <td
-                            style={{
-                              ...bodyCell,
-                              whiteSpace:'normal',
-                              wordBreak:'normal',
-                              overflowWrap:'normal',
-                              lineHeight:1.2
-                            }}
+                        const isMe=
+                          r.squads
+                            ?.user_id===
+                          user.id
+
+                        return (
+                          <tr
+                            key={i}
+                            style={
+                              isMe
+                                ? {
+                                    fontWeight:700
+                                  }
+                                : undefined
+                            }
                           >
-                            {r.squads
-                              .owner_name
-                              || '—'}
-                          </td>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'normal',
+                                wordBreak:'normal',
+                                overflowWrap:'normal',
+                                lineHeight:1.2
+                              }}
+                            >
+                              {r.squads
+                                .owner_name
+                                || '—'}
+                            </td>
 
-                          <td
-                            style={{
-                              ...bodyCell,
-                              whiteSpace:'normal',
-                              wordBreak:'normal',
-                              overflowWrap:'break-word',
-                              lineHeight:1.2
-                            }}
-                          >
-                            <b>
-                              {
-                                r.squads
-                                  .squad_name
-                              }
-                            </b>
-                          </td>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'normal',
+                                wordBreak:'normal',
+                                overflowWrap:'break-word',
+                                lineHeight:1.2
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display:'flex',
+                                  alignItems:'center',
+                                  justifyContent:'center',
+                                  gap:6
+                                }}
+                              >
+                                <SquadLogo
+                                  logoPath={
+                                    r.squads
+                                      .logo_path
+                                  }
+                                  nflAbbreviation={
+                                    r.squads
+                                      .nfl_teams
+                                      ?.abbreviation
+                                  }
+                                  squadName={
+                                    r.squads
+                                      .squad_name
+                                  }
+                                  size={24}
+                                />
 
-                          <td
-                            style={{
-                              ...bodyCell,
-                              whiteSpace:'nowrap'
-                            }}
-                          >
-                            {r.wins}
-                          </td>
+                                <b>
+                                  {
+                                    r.squads
+                                      .squad_name
+                                  }
+                                </b>
+                              </div>
+                            </td>
 
-                          <td
-                            style={{
-                              ...bodyCell,
-                              whiteSpace:'nowrap'
-                            }}
-                          >
-                            {r.losses}
-                          </td>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
+                              {r.wins}
+                            </td>
 
-                          <td
-                            style={{
-                              ...bodyCell,
-                              whiteSpace:'nowrap'
-                            }}
-                          >
-                            {r.pushes}
-                          </td>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
+                              {r.losses}
+                            </td>
 
-                          <td
-                            style={{
-                              ...bodyCell,
-                              whiteSpace:'nowrap'
-                            }}
-                          >
-                            {signed(
-                              r.ats_margin
-                            )}
-                          </td>
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
+                              {r.pushes}
+                            </td>
 
-                        </tr>
-                      )
-                    }
-                  )}
-
-                </tbody>
-
-              </table>
-            )}
-
-          </section>
-        )
-      })}
+                            <td
+                              style={{
+                                ...bodyCell,
+                                whiteSpace:'nowrap'
+                              }}
+                            >
+                              {signed(
+                                r.ats_margin
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      }
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </section>
+          )
+        }
+      )}
 
     </main>
   )

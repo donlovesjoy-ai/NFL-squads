@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import WeekSelector from './week-selector'
+import SquadLogo from '../components/SquadLogo'
 
 function signed(n:any){
   if(n===null || n===undefined){
@@ -184,6 +185,7 @@ export default async function Schedule({
         squad_name,
         nfl_team_id,
         division,
+        logo_path,
         nfl_teams(
           name,
           abbreviation
@@ -546,6 +548,9 @@ export default async function Schedule({
                               }
                             >
                               <TeamDisplay
+                                logoPath={
+                                  s.logo_path
+                                }
                                 abbreviation={
                                   s.nfl_teams
                                     ?.abbreviation
@@ -781,6 +786,9 @@ export default async function Schedule({
                             }
                           >
                             <TeamDisplay
+                              logoPath={
+                                s.logo_path
+                              }
                               abbreviation={
                                 s.nfl_teams
                                   ?.abbreviation
@@ -816,6 +824,10 @@ export default async function Schedule({
                             }}
                           >
                             <TeamDisplay
+                              logoPath={
+                                opponentSquad
+                                  ?.logo_path
+                              }
                               abbreviation={
                                 opponentNfl
                                   ?.abbreviation
@@ -995,10 +1007,12 @@ export default async function Schedule({
 }
 
 function TeamDisplay({
+  logoPath,
   abbreviation,
   name,
   emphasized=false
 }:{
+  logoPath?:string|null
   abbreviation?:string
   name:string
   emphasized?:boolean
@@ -1009,7 +1023,7 @@ function TeamDisplay({
         display:'flex',
         alignItems:'center',
         justifyContent:'center',
-        gap:3,
+        gap:4,
         minWidth:0,
         width:'100%',
         boxSizing:'border-box',
@@ -1020,18 +1034,12 @@ function TeamDisplay({
             : 600
       }}
     >
-      {abbreviation && (
-        <img
-          src={`/helmets/${abbreviation}.png`}
-          alt=""
-          width={22}
-          height={22}
-          style={{
-            objectFit:'contain',
-            flexShrink:0
-          }}
-        />
-      )}
+      <SquadLogo
+        logoPath={logoPath}
+        nflAbbreviation={abbreviation}
+        squadName={name}
+        size={22}
+      />
 
       <span
         style={{

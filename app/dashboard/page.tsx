@@ -161,6 +161,32 @@ export default async function Dashboard(){
     .eq('season_year',2026)
     .maybeSingle()
 
+  const {data:leagueSquads}=await supabase
+    .from('squads')
+    .select(`
+      id,
+      squad_name,
+      nfl_team_id
+    `)
+    .eq('season_year',2026)
+
+  const squadByNflTeam=
+    new Map<number,string>()
+
+  for(const leagueSquad of leagueSquads||[]){
+    if(
+      leagueSquad.nfl_team_id!==null &&
+      leagueSquad.nfl_team_id!==undefined
+    ){
+      squadByNflTeam.set(
+        Number(
+          leagueSquad.nfl_team_id
+        ),
+        leagueSquad.squad_name
+      )
+    }
+  }
+
   let game:any=null
   let pick:any=null
 
@@ -361,9 +387,41 @@ export default async function Dashboard(){
       : awaySpread
 
   const ownTeamName=
+    squad?.squad_name ||
     (squad as any)
       ?.nfl_teams
-      ?.name || 'Team'
+      ?.name ||
+    'Team'
+
+  const awayDisplayName=
+    game
+      ? (
+          squadByNflTeam.get(
+            Number(
+              game.away_team_id
+            )
+          )
+          ||
+          game.away?.name
+          ||
+          'Away Team'
+        )
+      : ''
+
+  const homeDisplayName=
+    game
+      ? (
+          squadByNflTeam.get(
+            Number(
+              game.home_team_id
+            )
+          )
+          ||
+          game.home?.name
+          ||
+          'Home Team'
+        )
+      : ''
 
   const pickDeadline=
     game
@@ -570,8 +628,8 @@ export default async function Dashboard(){
             <div
               className="muted"
               style={{
-                marginTop:3,
-                marginBottom:14,
+                marginTop:5,
+                marginBottom:9,
                 fontSize:'0.8rem'
               }}
             >
@@ -581,7 +639,11 @@ export default async function Dashboard(){
 
           {squad ? (
             <>
-              <p>
+              <p
+                style={{
+                  marginTop:4
+                }}
+              >
                 {(squad as any)
                   ?.nfl_teams
                   ?.name || ''}
@@ -642,7 +704,7 @@ export default async function Dashboard(){
         >
           <h2>
             {game
-              ? `Week ${game.nfl_week} NFL Game`
+              ? `NFL Week ${game.nfl_week}`
               : 'My Matchup'}
           </h2>
 
@@ -676,7 +738,7 @@ export default async function Dashboard(){
 
                   <div>
                     <b>
-                      {game.away?.name}
+                      {awayDisplayName}
                     </b>
                   </div>
                 </div>
@@ -709,7 +771,7 @@ export default async function Dashboard(){
 
                   <div>
                     <b>
-                      {game.home?.name}
+                      {homeDisplayName}
                     </b>
                   </div>
                 </div>
@@ -734,11 +796,6 @@ export default async function Dashboard(){
               </p>
 
               <p>
-                <b>
-                  Kickoff:
-                </b>
-                {' '}
-
                 {new Date(
                   game.kickoff_time
                 ).toLocaleString(
@@ -846,7 +903,7 @@ export default async function Dashboard(){
               >
                 {pickLocked
                   ? 'Your pick is locked.'
-                  : 'You may change your pick until one minute before kickoff.'}
+                  : 'You may change your pick up to one minute before kickoff.'}
               </p>
 
               {game &&
@@ -886,7 +943,7 @@ export default async function Dashboard(){
                 {game
                   ? pickLocked
                     ? 'The pick window is closed.'
-                    : 'You may make your pick until one minute before kickoff.'
+                    : 'You may make your pick up to one minute before kickoff.'
                   : 'Waiting for your next matchup.'}
               </p>
 

@@ -1,5 +1,6 @@
  import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { logout } from '../logout/actions'
 
 export default async function Welcome(){
   const supabase=
@@ -107,13 +108,22 @@ export default async function Welcome(){
             fontSize:'1.05rem',
             lineHeight:1.6,
             maxWidth:460,
-            margin:'12px auto 0',
+            margin:'12px auto 26px',
             fontWeight:800
           }}
         >
           Please reach out to Michael
           for your team assignment.
         </p>
+
+        <form action={logout}>
+          <button
+            className="submit"
+            type="submit"
+          >
+            Log Out
+          </button>
+        </form>
 
       </section>
     </main>

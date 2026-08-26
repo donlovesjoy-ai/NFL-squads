@@ -1,4 +1,5 @@
  import Link from 'next/link'
+import { logout } from './logout/actions'
 
 export function Nav({
   commissioner=false
@@ -64,6 +65,29 @@ export function Nav({
           Playoff Control
         </Link>
       )}
+
+      <form
+        action={logout}
+        style={{
+          margin:0
+        }}
+      >
+        <button
+          type="submit"
+          style={{
+            border:'none',
+            background:'transparent',
+            padding:0,
+            margin:0,
+            font:'inherit',
+            color:'inherit',
+            textDecoration:'underline',
+            cursor:'pointer'
+          }}
+        >
+          Log Out
+        </button>
+      </form>
     </nav>
   )
 }

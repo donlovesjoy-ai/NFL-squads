@@ -8,6 +8,7 @@ export default async function Login({
   searchParams:Promise<{
     error?:string
     created?:string
+    reset?:string
   }>
 }){
   const p=
@@ -45,6 +46,13 @@ export default async function Login({
           </p>
         )}
 
+        {p.reset && (
+          <p className="status">
+            Your password has been updated.
+            You may now log in.
+          </p>
+        )}
+
         <form action={login}>
 
           <input
@@ -67,6 +75,12 @@ export default async function Login({
           </button>
 
         </form>
+
+        <p>
+          <Link href="/forgot-password">
+            Forgot password?
+          </Link>
+        </p>
 
         <p>
           <Link href="/signup">

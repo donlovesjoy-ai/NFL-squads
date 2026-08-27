@@ -110,6 +110,10 @@ export default async function Playoffs(){
   const commissioner=
     profile?.role==='commissioner'
 
+  if(!commissioner){
+    redirect('/dashboard')
+  }
+
   const [
     {data:matches},
     {data:placements},
@@ -1264,18 +1268,10 @@ function BracketMatrix({
             b={g5b.name}
             aId={g5a.id}
             bId={g5b.id}
-            aLogoPath={
-              g5a.logoPath
-            }
-            bLogoPath={
-              g5b.logoPath
-            }
-            aAbbreviation={
-              g5a.abbreviation
-            }
-            bAbbreviation={
-              g5b.abbreviation
-            }
+            aLogoPath={g5a.logoPath}
+            bLogoPath={g5b.logoPath}
+            aAbbreviation={g5a.abbreviation}
+            bAbbreviation={g5b.abbreviation}
             match={g5}
             getScore={getScore}
           />
@@ -1290,18 +1286,10 @@ function BracketMatrix({
             b={g6b.name}
             aId={g6a.id}
             bId={g6b.id}
-            aLogoPath={
-              g6a.logoPath
-            }
-            bLogoPath={
-              g6b.logoPath
-            }
-            aAbbreviation={
-              g6a.abbreviation
-            }
-            bAbbreviation={
-              g6b.abbreviation
-            }
+            aLogoPath={g6a.logoPath}
+            bLogoPath={g6b.logoPath}
+            aAbbreviation={g6a.abbreviation}
+            bAbbreviation={g6b.abbreviation}
             match={g6}
             getScore={getScore}
           />
@@ -1316,18 +1304,10 @@ function BracketMatrix({
             b={g7b.name}
             aId={g7a.id}
             bId={g7b.id}
-            aLogoPath={
-              g7a.logoPath
-            }
-            bLogoPath={
-              g7b.logoPath
-            }
-            aAbbreviation={
-              g7a.abbreviation
-            }
-            bAbbreviation={
-              g7b.abbreviation
-            }
+            aLogoPath={g7a.logoPath}
+            bLogoPath={g7b.logoPath}
+            aAbbreviation={g7a.abbreviation}
+            bAbbreviation={g7b.abbreviation}
             match={g7}
             getScore={getScore}
           />
@@ -1342,18 +1322,10 @@ function BracketMatrix({
             b={g8b.name}
             aId={g8a.id}
             bId={g8b.id}
-            aLogoPath={
-              g8a.logoPath
-            }
-            bLogoPath={
-              g8b.logoPath
-            }
-            aAbbreviation={
-              g8a.abbreviation
-            }
-            bAbbreviation={
-              g8b.abbreviation
-            }
+            aLogoPath={g8a.logoPath}
+            bLogoPath={g8b.logoPath}
+            aAbbreviation={g8a.abbreviation}
+            bAbbreviation={g8b.abbreviation}
             match={g8}
             getScore={getScore}
           />
@@ -1368,18 +1340,10 @@ function BracketMatrix({
             b={g9b.name}
             aId={g9a.id}
             bId={g9b.id}
-            aLogoPath={
-              g9a.logoPath
-            }
-            bLogoPath={
-              g9b.logoPath
-            }
-            aAbbreviation={
-              g9a.abbreviation
-            }
-            bAbbreviation={
-              g9b.abbreviation
-            }
+            aLogoPath={g9a.logoPath}
+            bLogoPath={g9b.logoPath}
+            aAbbreviation={g9a.abbreviation}
+            bAbbreviation={g9b.abbreviation}
             match={g9}
             getScore={getScore}
           />
@@ -1394,18 +1358,10 @@ function BracketMatrix({
             b={g10b.name}
             aId={g10a.id}
             bId={g10b.id}
-            aLogoPath={
-              g10a.logoPath
-            }
-            bLogoPath={
-              g10b.logoPath
-            }
-            aAbbreviation={
-              g10a.abbreviation
-            }
-            bAbbreviation={
-              g10b.abbreviation
-            }
+            aLogoPath={g10a.logoPath}
+            bLogoPath={g10b.logoPath}
+            aAbbreviation={g10a.abbreviation}
+            bAbbreviation={g10b.abbreviation}
             match={g10}
             getScore={getScore}
           />
@@ -1420,18 +1376,10 @@ function BracketMatrix({
             b={g11b.name}
             aId={g11a.id}
             bId={g11b.id}
-            aLogoPath={
-              g11a.logoPath
-            }
-            bLogoPath={
-              g11b.logoPath
-            }
-            aAbbreviation={
-              g11a.abbreviation
-            }
-            bAbbreviation={
-              g11b.abbreviation
-            }
+            aLogoPath={g11a.logoPath}
+            bLogoPath={g11b.logoPath}
+            aAbbreviation={g11a.abbreviation}
+            bAbbreviation={g11b.abbreviation}
             match={g11}
             getScore={getScore}
           />
@@ -1446,18 +1394,10 @@ function BracketMatrix({
             b={g12b.name}
             aId={g12a.id}
             bId={g12b.id}
-            aLogoPath={
-              g12a.logoPath
-            }
-            bLogoPath={
-              g12b.logoPath
-            }
-            aAbbreviation={
-              g12a.abbreviation
-            }
-            bAbbreviation={
-              g12b.abbreviation
-            }
+            aLogoPath={g12a.logoPath}
+            bLogoPath={g12b.logoPath}
+            aAbbreviation={g12a.abbreviation}
+            bAbbreviation={g12b.abbreviation}
             match={g12}
             getScore={getScore}
           />
@@ -1534,8 +1474,7 @@ function derivedMatch(
         squad_name:a.name,
         logo_path:a.logoPath,
         nfl_teams:{
-          abbreviation:
-            a.abbreviation
+          abbreviation:a.abbreviation
         }
       },
 
@@ -1544,8 +1483,7 @@ function derivedMatch(
         squad_name:b.name,
         logo_path:b.logoPath,
         nfl_teams:{
-          abbreviation:
-            b.abbreviation
+          abbreviation:b.abbreviation
         }
       },
 
@@ -1568,8 +1506,7 @@ function derivedMatch(
       squad_name:a.name,
       logo_path:a.logoPath,
       nfl_teams:{
-        abbreviation:
-          a.abbreviation
+        abbreviation:a.abbreviation
       }
     },
 
@@ -1578,8 +1515,7 @@ function derivedMatch(
       squad_name:b.name,
       logo_path:b.logoPath,
       nfl_teams:{
-        abbreviation:
-          b.abbreviation
+        abbreviation:b.abbreviation
       }
     }
   }
@@ -1777,34 +1713,20 @@ function GameNode({
       <ParticipantLine
         name={a}
         score={aScore}
-        color={
-          colorFor(aId)
-        }
-        logoPath={
-          aLogoPath
-        }
-        abbreviation={
-          aAbbreviation
-        }
+        color={colorFor(aId)}
+        logoPath={aLogoPath}
+        abbreviation={aAbbreviation}
       />
 
       <ParticipantLine
         name={b}
         score={bScore}
-        color={
-          colorFor(bId)
-        }
-        logoPath={
-          bLogoPath
-        }
-        abbreviation={
-          bAbbreviation
-        }
+        color={colorFor(bId)}
+        logoPath={bLogoPath}
+        abbreviation={bAbbreviation}
       />
 
-      {match
-        ?.status===
-        'needs_tiebreaker' && (
+      {match?.status==='needs_tiebreaker' && (
         <div
           style={{
             textAlign:'center',
@@ -1949,8 +1871,7 @@ function FinalNode({
           payouts[winnerPlace]
         }
         logoPath={
-          match?.winner
-            ?.logo_path
+          match?.winner?.logo_path
         }
         abbreviation={
           match?.winner
@@ -1981,8 +1902,7 @@ function FinalNode({
           payouts[loserPlace]
         }
         logoPath={
-          match?.loser
-            ?.logo_path
+          match?.loser?.logo_path
         }
         abbreviation={
           match?.loser

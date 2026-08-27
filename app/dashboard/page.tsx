@@ -1,4 +1,4 @@
- import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import KickoffCountdown from '../components/KickoffCountdown'
@@ -161,8 +161,7 @@ export default async function Dashboard(){
       .maybeSingle()
 
   const commissioner=
-    profile?.role===
-    'commissioner'
+    profile?.role==='commissioner'
 
   const {data:squad}=
     await supabase
@@ -442,8 +441,7 @@ export default async function Dashboard(){
                   )
               )+1
           }else{
-            rank=
-              index+1
+            rank=index+1
           }
         }
 
@@ -664,11 +662,7 @@ export default async function Dashboard(){
         </div>
       </div>
 
-      <Nav
-        commissioner={
-          commissioner
-        }
-      />
+      <Nav commissioner={commissioner}/>
 
       {commissioner && (
         <section
@@ -709,8 +703,6 @@ export default async function Dashboard(){
 
       <div className="grid">
 
-        {/* SQUAD CARD */}
-
         <section
           className="card"
           style={{
@@ -718,26 +710,35 @@ export default async function Dashboard(){
           }}
         >
           {squad && (
-            <SquadLogoUploader
-              currentLogoPath={
-                (squad as any)
-                  ?.logo_path
-              }
-              nflAbbreviation={
-                (squad as any)
-                  ?.nfl_teams
-                  ?.abbreviation
-              }
-              squadName={
-                squad.squad_name
-              }
-            />
+            <div
+              style={{
+                display:'flex',
+                justifyContent:'center',
+                marginBottom:6
+              }}
+            >
+              <SquadLogo
+                logoPath={
+                  (squad as any)
+                    ?.logo_path
+                }
+                nflAbbreviation={
+                  (squad as any)
+                    ?.nfl_teams
+                    ?.abbreviation
+                }
+                squadName={
+                  squad.squad_name
+                }
+                size={143}
+              />
+            </div>
           )}
 
           <div
             className="big"
             style={{
-              marginTop:10
+              marginTop:4
             }}
           >
             {squad?.squad_name ||
@@ -786,7 +787,11 @@ export default async function Dashboard(){
                   : '0-0-0'}
               </p>
 
-              <p>
+              <p
+                style={{
+                  marginBottom:4
+                }}
+              >
                 <b>
                   ATS Margin:
                 </b>
@@ -802,6 +807,13 @@ export default async function Dashboard(){
                     }${myStanding.ats_margin}`
                   : '0'}
               </p>
+
+              <SquadLogoUploader
+                currentLogoPath={
+                  (squad as any)
+                    ?.logo_path
+                }
+              />
             </>
           ) : (
             <p className="muted">
@@ -809,8 +821,6 @@ export default async function Dashboard(){
             </p>
           )}
         </section>
-
-        {/* NFL MATCHUP */}
 
         <section
           className="card"
@@ -850,42 +860,28 @@ export default async function Dashboard(){
                   >
                     <SquadLogo
                       logoPath={
-                        awaySquad
-                          ?.logo_path
+                        awaySquad?.logo_path
                       }
                       nflAbbreviation={
-                        game.away
-                          ?.abbreviation
+                        game.away?.abbreviation
                       }
                       squadName={
-                        awaySquad
-                          ?.squad_name ||
-                        game.away
-                          ?.name
+                        awaySquad?.squad_name ||
+                        game.away?.name
                       }
                       size={64}
                     />
                   </div>
 
-                  <div
-                    style={{
-                      marginTop:4
-                    }}
-                  >
+                  <div style={{marginTop:4}}>
                     <b>
-                      {awaySquad
-                        ?.squad_name ||
-                        game.away
-                          ?.name}
+                      {awaySquad?.squad_name ||
+                        game.away?.name}
                     </b>
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    flexShrink:0
-                  }}
-                >
+                <div style={{flexShrink:0}}>
                   <b>
                     at
                   </b>
@@ -905,33 +901,23 @@ export default async function Dashboard(){
                   >
                     <SquadLogo
                       logoPath={
-                        homeSquad
-                          ?.logo_path
+                        homeSquad?.logo_path
                       }
                       nflAbbreviation={
-                        game.home
-                          ?.abbreviation
+                        game.home?.abbreviation
                       }
                       squadName={
-                        homeSquad
-                          ?.squad_name ||
-                        game.home
-                          ?.name
+                        homeSquad?.squad_name ||
+                        game.home?.name
                       }
                       size={64}
                     />
                   </div>
 
-                  <div
-                    style={{
-                      marginTop:4
-                    }}
-                  >
+                  <div style={{marginTop:4}}>
                     <b>
-                      {homeSquad
-                        ?.squad_name ||
-                        game.home
-                          ?.name}
+                      {homeSquad?.squad_name ||
+                        game.home?.name}
                     </b>
                   </div>
                 </div>
@@ -952,8 +938,7 @@ export default async function Dashboard(){
                   Game total:
                 </b>
                 {' '}
-                {game.total ??
-                  'Pending'}
+                {game.total ?? 'Pending'}
               </p>
 
               <p>
@@ -962,8 +947,7 @@ export default async function Dashboard(){
                 ).toLocaleString(
                   'en-US',
                   {
-                    timeZone:
-                      'America/New_York',
+                    timeZone:'America/New_York',
                     month:'short',
                     day:'numeric',
                     hour:'numeric',
@@ -973,11 +957,7 @@ export default async function Dashboard(){
                 )}
               </p>
 
-              <div
-                style={{
-                  textAlign:'center'
-                }}
-              >
+              <div style={{textAlign:'center'}}>
                 <KickoffCountdown
                   kickoffTime={
                     game.kickoff_time
@@ -991,8 +971,6 @@ export default async function Dashboard(){
             </p>
           )}
         </section>
-
-        {/* MY PICK */}
 
         <section
           className="card"
@@ -1017,12 +995,10 @@ export default async function Dashboard(){
               >
                 <SquadLogo
                   logoPath={
-                    pickedSquad
-                      ?.logo_path
+                    pickedSquad?.logo_path
                   }
                   nflAbbreviation={
-                    pickedTeam
-                      ?.abbreviation
+                    pickedTeam?.abbreviation
                   }
                   squadName={
                     pickedDisplayName
@@ -1056,8 +1032,7 @@ export default async function Dashboard(){
               {pickResult && (
                 <div
                   style={{
-                    color:
-                      pickResult.color,
+                    color:pickResult.color,
                     fontWeight:900,
                     fontSize:'1rem',
                     marginBottom:8
@@ -1067,12 +1042,7 @@ export default async function Dashboard(){
                 </div>
               )}
 
-              <p
-                className="muted"
-                style={{
-                  marginTop:4
-                }}
-              >
+              <p className="muted">
                 {pickLocked
                   ? 'Your pick is locked.'
                   : 'You may change your pick up to one minute before kickoff.'}
@@ -1135,24 +1105,10 @@ export default async function Dashboard(){
                   </a>
                 </p>
               )}
-
-              {game &&
-               pickLocked && (
-                <p>
-                  <a href="/my-pick">
-                    <b>
-                      View My Pick →
-                    </b>
-                  </a>
-                </p>
-              )}
             </>
           )}
         </section>
-
       </div>
-
-      {/* DIVISION STANDINGS */}
 
       <section
         className="card"
@@ -1169,11 +1125,7 @@ export default async function Dashboard(){
             Standings will appear after grading.
           </p>
         ) : (
-          <div
-            style={{
-              overflowX:'auto'
-            }}
-          >
+          <div style={{overflowX:'auto'}}>
             <table
               style={{
                 width:'100%',
@@ -1182,67 +1134,25 @@ export default async function Dashboard(){
             >
               <thead>
                 <tr>
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
-                    Place
-                  </th>
-
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
-                    Team
-                  </th>
-
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
-                    Record
-                  </th>
-
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
-                    Margin
-                  </th>
+                  <th>Place</th>
+                  <th>Team</th>
+                  <th>Record</th>
+                  <th>Margin</th>
                 </tr>
               </thead>
 
               <tbody>
                 {rankedDivRows.map(
                   (r:any)=>(
-                    <tr
-                      key={
-                        r.squads.id
-                      }
-                    >
-                      <td
-                        style={{
-                          textAlign:'center'
-                        }}
-                      >
-                        {r.tied
-                          ? 'T-'
-                          : ''}
-
+                    <tr key={r.squads.id}>
+                      <td>
+                        {r.tied?'T-':''}
                         {ordinal(
                           r.displayRank
                         )}
                       </td>
 
-                      <td
-                        style={{
-                          textAlign:'center'
-                        }}
-                      >
+                      <td>
                         <div
                           style={{
                             display:'flex',
@@ -1253,8 +1163,7 @@ export default async function Dashboard(){
                         >
                           <SquadLogo
                             logoPath={
-                              r.squads
-                                .logo_path
+                              r.squads.logo_path
                             }
                             nflAbbreviation={
                               r.squads
@@ -1262,42 +1171,27 @@ export default async function Dashboard(){
                                 ?.abbreviation
                             }
                             squadName={
-                              r.squads
-                                .squad_name
+                              r.squads.squad_name
                             }
                             size={24}
                           />
 
                           <b>
-                            {
-                              r.squads
-                                .squad_name
-                            }
+                            {r.squads.squad_name}
                           </b>
                         </div>
                       </td>
 
-                      <td
-                        style={{
-                          textAlign:'center'
-                        }}
-                      >
-                        {r.wins}-
-                        {r.losses}-
-                        {r.pushes}
+                      <td>
+                        {r.wins}-{r.losses}-{r.pushes}
                       </td>
 
-                      <td
-                        style={{
-                          textAlign:'center'
-                        }}
-                      >
+                      <td>
                         {Number(
                           r.ats_margin
                         )>0
                           ? '+'
                           : ''}
-
                         {r.ats_margin}
                       </td>
                     </tr>
@@ -1308,8 +1202,6 @@ export default async function Dashboard(){
           </div>
         )}
       </section>
-
-      {/* LEAGUE CHAT */}
 
       <section
         className="card"
@@ -1339,16 +1231,13 @@ export default async function Dashboard(){
                   m.squads
 
                 const isSystem=
-                  m.is_system===
-                  true
+                  m.is_system===true
 
                 const author=
                   isSystem
                     ? 'NFL SQUADS · League Update'
-                    : chatSquad
-                        ?.owner_name ||
-                      chatSquad
-                        ?.squad_name ||
+                    : chatSquad?.owner_name ||
+                      chatSquad?.squad_name ||
                       (
                         m.is_commissioner
                           ? 'Commissioner'
@@ -1380,33 +1269,21 @@ export default async function Dashboard(){
                         {isSystem
                           ? '🏈 '
                           : ''}
-
                         {author}
                       </b>
 
                       {!isSystem &&
-                       chatSquad
-                         ?.squad_name &&
-                       chatSquad
-                         .owner_name
-                        ? (
-                          <span className="muted">
-                            {' '}
-                            ·{' '}
-                            {
-                              chatSquad
-                                .squad_name
-                            }
-                          </span>
-                        )
-                        : null}
+                       chatSquad?.squad_name &&
+                       chatSquad.owner_name ? (
+                        <span className="muted">
+                          {' '}
+                          ·{' '}
+                          {chatSquad.squad_name}
+                        </span>
+                      ) : null}
                     </div>
 
-                    <div
-                      style={{
-                        marginTop:4
-                      }}
-                    >
+                    <div style={{marginTop:4}}>
                       {m.message}
                     </div>
 
@@ -1429,11 +1306,7 @@ export default async function Dashboard(){
           </div>
         )}
 
-        <p
-          style={{
-            marginTop:14
-          }}
-        >
+        <p style={{marginTop:14}}>
           <a href="/chat">
             <b>
               Open League Chat →

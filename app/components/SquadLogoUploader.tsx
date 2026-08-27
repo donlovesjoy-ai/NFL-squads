@@ -1,17 +1,15 @@
-'use client'
+ 'use client'
 
 import {
   ChangeEvent,
+  useRef,
   useState
 } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import SquadLogo from './SquadLogo'
 
 type Props={
   currentLogoPath?:string|null
-  nflAbbreviation?:string|null
-  squadName:string
 }
 
 const MAX_FILE_SIZE=
@@ -25,26 +23,35 @@ const allowedTypes=
   ])
 
 export default function SquadLogoUploader({
-  currentLogoPath,
-  nflAbbreviation,
-  squadName
+  currentLogoPath
 }:Props){
-  const router=useRouter()
+  const router=
+    useRouter()
 
-  const [uploading,setUploading]=
+  const inputRef=
+    useRef<HTMLInputElement|null>(
+      null
+    )
+
+  const [working,setWorking]=
     useState(false)
-
-  const [message,setMessage]=
-    useState('')
 
   const [error,setError]=
     useState('')
 
+  function chooseLogo(){
+    if(working){
+      return
+    }
+
+    inputRef.current?.click()
+  }
+
   async function uploadLogo(
-    event:ChangeEvent<HTMLInputElement>
+    event:
+      ChangeEvent<HTMLInputElement>
   ){
     setError('')
-    setMessage('')
 
     const file=
       event.target.files?.[0]
@@ -54,7 +61,9 @@ export default function SquadLogoUploader({
     }
 
     const extension=
-      allowedTypes.get(file.type)
+      allowedTypes.get(
+        file.type
+      )
 
     if(!extension){
       setError(
@@ -65,7 +74,10 @@ export default function SquadLogoUploader({
       return
     }
 
-    if(file.size>MAX_FILE_SIZE){
+    if(
+      file.size>
+      MAX_FILE_SIZE
+    ){
       setError(
         'Logo must be 2 MB or smaller.'
       )
@@ -74,19 +86,25 @@ export default function SquadLogoUploader({
       return
     }
 
-    setUploading(true)
+    setWorking(true)
 
     const supabase=
       createClient()
 
     const {
-      data:{user},
+      data:{
+        user
+      },
       error:userError
     }=
-      await supabase.auth.getUser()
+      await supabase.auth
+        .getUser()
 
-    if(userError || !user){
-      setUploading(false)
+    if(
+      userError ||
+      !user
+    ){
+      setWorking(false)
 
       setError(
         'Your login session has expired.'
@@ -98,21 +116,27 @@ export default function SquadLogoUploader({
     const filePath=
       `${user.id}/${crypto.randomUUID()}.${extension}`
 
-    const {error:uploadError}=
+    const {
+      error:uploadError
+    }=
       await supabase.storage
-        .from('squad-logos')
+        .from(
+          'squad-logos'
+        )
         .upload(
           filePath,
           file,
           {
-            contentType:file.type,
-            cacheControl:'3600',
+            contentType:
+              file.type,
+            cacheControl:
+              '3600',
             upsert:false
           }
         )
 
     if(uploadError){
-      setUploading(false)
+      setWorking(false)
 
       setError(
         uploadError.message ||
@@ -122,21 +146,28 @@ export default function SquadLogoUploader({
       return
     }
 
-    const {error:updateError}=
+    const {
+      error:updateError
+    }=
       await supabase.rpc(
         'set_my_squad_logo',
         {
           p_season:2026,
-          p_logo_path:filePath
+          p_logo_path:
+            filePath
         }
       )
 
     if(updateError){
       await supabase.storage
-        .from('squad-logos')
-        .remove([filePath])
+        .from(
+          'squad-logos'
+        )
+        .remove([
+          filePath
+        ])
 
-      setUploading(false)
+      setWorking(false)
 
       setError(
         updateError.message ||
@@ -146,17 +177,7 @@ export default function SquadLogoUploader({
       return
     }
 
-    if(currentLogoPath){
-      await supabase.storage
-        .from('squad-logos')
-        .remove([currentLogoPath])
-    }
-
-    setUploading(false)
-
-    setMessage(
-      'Team logo updated.'
-    )
+    setWorking(false)
 
     event.target.value=''
 
@@ -164,9 +185,12 @@ export default function SquadLogoUploader({
   }
 
   async function restoreHelmet(){
+    if(working){
+      return
+    }
+
     setError('')
-    setMessage('')
-    setUploading(true)
+    setWorking(true)
 
     const supabase=
       createClient()
@@ -180,7 +204,7 @@ export default function SquadLogoUploader({
       )
 
     if(error){
-      setUploading(false)
+      setWorking(false)
 
       setError(
         error.message ||
@@ -192,15 +216,15 @@ export default function SquadLogoUploader({
 
     if(currentLogoPath){
       await supabase.storage
-        .from('squad-logos')
-        .remove([currentLogoPath])
+        .from(
+          'squad-logos'
+        )
+        .remove([
+          currentLogoPath
+        ])
     }
 
-    setUploading(false)
-
-    setMessage(
-      'NFL helmet restored.'
-    )
+    setWorking(false)
 
     router.refresh()
   }
@@ -208,107 +232,89 @@ export default function SquadLogoUploader({
   return (
     <div
       style={{
-        marginTop:8,
-        textAlign:'center'
+        textAlign:'center',
+        marginTop:4
       }}
     >
-      <div
-        style={{
-          display:'flex',
-          justifyContent:'center',
-          marginBottom:8
-        }}
-      >
-        <SquadLogo
-          logoPath={currentLogoPath}
-          nflAbbreviation={nflAbbreviation}
-          squadName={squadName}
-          size={143}
-        />
-      </div>
-
-      <label
-        className="submit"
-        style={{
-          display:'inline-block',
-          cursor:
-            uploading
-              ? 'default'
-              : 'pointer',
-          fontSize:'0.82rem'
-        }}
-      >
-        {uploading
-          ? 'Updating...'
-          : currentLogoPath
-            ? 'Change Team Logo'
-            : 'Upload Team Logo'}
-
-        <input
-          type="file"
-          accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
-          onChange={uploadLogo}
-          disabled={uploading}
+      {currentLogoPath ? (
+        <button
+          type="button"
+          onClick={
+            restoreHelmet
+          }
+          disabled={
+            working
+          }
           style={{
-            display:'none'
-          }}
-        />
-      </label>
-
-      {currentLogoPath && (
-        <div
-          style={{
-            marginTop:9
+            border:0,
+            padding:0,
+            background:'transparent',
+            textDecoration:'underline',
+            cursor:
+              working
+                ? 'default'
+                : 'pointer',
+            fontSize:'0.76rem',
+            fontFamily:'inherit',
+            color:'inherit'
           }}
         >
+          {working
+            ? 'Restoring...'
+            : 'Restore NFL Helmet'}
+        </button>
+      ) : (
+        <>
           <button
             type="button"
-            onClick={restoreHelmet}
-            disabled={uploading}
+            onClick={
+              chooseLogo
+            }
+            disabled={
+              working
+            }
             style={{
               border:0,
+              padding:0,
               background:'transparent',
               textDecoration:'underline',
               cursor:
-                uploading
+                working
                   ? 'default'
                   : 'pointer',
-              fontSize:'0.76rem'
+              fontSize:'0.76rem',
+              fontFamily:'inherit',
+              color:'inherit'
             }}
           >
-            Restore NFL helmet
+            {working
+              ? 'Uploading...'
+              : 'Change Team Logo'}
           </button>
-        </div>
-      )}
 
-      <div
-        className="muted"
-        style={{
-          marginTop:7,
-          fontSize:'0.72rem'
-        }}
-      >
-        PNG, JPG, or WebP · 2 MB maximum
-      </div>
-
-      {message && (
-        <div
-          style={{
-            marginTop:7,
-            fontSize:'0.78rem',
-            fontWeight:700
-          }}
-        >
-          {message}
-        </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+            onChange={
+              uploadLogo
+            }
+            disabled={
+              working
+            }
+            style={{
+              display:'none'
+            }}
+          />
+        </>
       )}
 
       {error && (
         <div
           className="status"
           style={{
-            marginTop:7,
-            fontSize:'0.78rem'
+            marginTop:5,
+            fontSize:'0.72rem'
           }}
         >
           {error}

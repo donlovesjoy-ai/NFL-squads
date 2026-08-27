@@ -446,10 +446,8 @@ export default async function Playoffs(){
             lineHeight:1.5
           }}
         >
-          Weekly ATS margin is the playoff score.
-          Highest score advances. Exact division
-          positions populate when each seed is
-          mathematically locked.
+          Exact division positions populate when
+          each seed is mathematically locked.
         </p>
 
         <p

@@ -38,6 +38,10 @@ export function Nav({
         Playoffs
       </Link>
 
+      <Link href="/rules">
+        Official Rules
+      </Link>
+
       <Link href="/chat">
         Chat
       </Link>

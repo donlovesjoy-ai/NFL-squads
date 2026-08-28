@@ -95,6 +95,55 @@ export async function submitPick(formData:FormData){
     )
   }
 
+  const nflWeek=
+    Number(
+      game.nfl_week
+    )
+
+  const playoffWeek=
+    nflWeek>=16 &&
+    nflWeek<=18
+
+  let gameTotalPrediction:
+    number|null=null
+
+  if(playoffWeek){
+    const gameTotalRaw=
+      formData.get(
+        'game_total_prediction'
+      )
+
+    if(
+      gameTotalRaw===null ||
+      String(
+        gameTotalRaw
+      ).trim()===''
+    ){
+      redirect(
+        '/my-pick?error=game_total_required'
+      )
+    }
+
+    const parsedGameTotal=
+      Number(
+        gameTotalRaw
+      )
+
+    if(
+      !Number.isFinite(
+        parsedGameTotal
+      ) ||
+      parsedGameTotal<0
+    ){
+      redirect(
+        '/my-pick?error=bad_game_total'
+      )
+    }
+
+    gameTotalPrediction=
+      parsedGameTotal
+  }
+
   const gameStatus=
     String(
       game.status||''
@@ -175,6 +224,10 @@ export async function submitPick(formData:FormData){
       squad_id:squadId,
       game_id:gameId,
       selection_team_id:selectionTeamId,
+      game_total_prediction:
+        playoffWeek
+          ? gameTotalPrediction
+          : null,
       is_locked:false,
       revealed:false,
       is_missed:false

@@ -372,6 +372,10 @@ export default async function MyPick({
     )
   }
 
+  const playoffWeek=
+    Number(game.nfl_week)>=16 &&
+    Number(game.nfl_week)<=18
+
   const awaySquad=
     squadByNflTeam.get(
       Number(game.away_team_id)
@@ -403,7 +407,8 @@ export default async function MyPick({
           ats_margin,
           is_locked,
           revealed,
-          is_missed
+          is_missed,
+          game_total_prediction
         `)
         .eq('squad_id',squad.id)
         .eq('game_id',game.id)
@@ -545,9 +550,24 @@ export default async function MyPick({
           </p>
         )}
 
+        {sp.error==='game_total_required' && (
+          <p className="status">
+            A Game Total Prediction is required
+            during the playoffs.
+          </p>
+        )}
+
+        {sp.error==='bad_game_total' && (
+          <p className="status">
+            Please enter a valid Game Total Prediction.
+          </p>
+        )}
+
         {sp.error &&
          sp.error!=='week_closed' &&
-         sp.error!=='locked' && (
+         sp.error!=='locked' &&
+         sp.error!=='game_total_required' &&
+         sp.error!=='bad_game_total' && (
           <p className="status">
             Unable to save pick: {sp.error}
           </p>
@@ -680,6 +700,70 @@ export default async function MyPick({
               )}
             </span>
           </label>
+
+          {playoffWeek && (
+            <div
+              style={{
+                marginTop:4,
+                padding:'14px 12px',
+                border:'1px solid #ddd',
+                borderRadius:10,
+                textAlign:'center'
+              }}
+            >
+              <label
+                htmlFor="game_total_prediction"
+                style={{
+                  display:'block',
+                  fontWeight:800,
+                  marginBottom:8
+                }}
+              >
+                Game Total Prediction
+              </label>
+
+              <input
+                id="game_total_prediction"
+                name="game_total_prediction"
+                type="number"
+                min="0"
+                step="any"
+                required
+                disabled={
+                  !weekOpen ||
+                  locked
+                }
+                defaultValue={
+                  pick?.game_total_prediction
+                    ?? ''
+                }
+                inputMode="decimal"
+                style={{
+                  width:120,
+                  maxWidth:'100%',
+                  textAlign:'center',
+                  fontSize:'1.05rem',
+                  fontWeight:700,
+                  padding:'9px 10px'
+                }}
+              />
+
+              <p
+                className="muted"
+                style={{
+                  fontSize:'0.78rem',
+                  lineHeight:1.4,
+                  margin:'8px auto 0',
+                  maxWidth:400
+                }}
+              >
+                Predict the total combined points
+                scored in your NFL game.
+                Closest prediction is the first
+                playoff tiebreaker.
+              </p>
+            </div>
+          )}
 
           <p
             className="muted"

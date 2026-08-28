@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import {
   ChangeEvent,
@@ -13,7 +13,7 @@ type Props={
 }
 
 const MAX_FILE_SIZE=
-  2*1024*1024
+  4*1024*1024
 
 const allowedTypes=
   new Map([
@@ -79,7 +79,7 @@ export default function SquadLogoUploader({
       MAX_FILE_SIZE
     ){
       setError(
-        'Logo must be 2 MB or smaller.'
+        'Logo must be 4 MB or smaller.'
       )
 
       event.target.value=''

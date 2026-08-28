@@ -67,6 +67,52 @@ function recordText(
   return `${w}-${l}`
 }
 
+function signed(value:any){
+  const number=
+    Number(value||0)
+
+  if(number>0){
+    return `+${number}`
+  }
+
+  return `${number}`
+}
+
+function ordinal(n:number){
+  const mod100=n%100
+
+  if(mod100>=11 && mod100<=13){
+    return `${n}th`
+  }
+
+  switch(n%10){
+    case 1:
+      return `${n}st`
+    case 2:
+      return `${n}nd`
+    case 3:
+      return `${n}rd`
+    default:
+      return `${n}th`
+  }
+}
+
+function sameStanding(
+  a:any,
+  b:any
+){
+  return (
+    Number(a.wins||0)===
+      Number(b.wins||0) &&
+    Number(a.losses||0)===
+      Number(b.losses||0) &&
+    Number(a.pushes||0)===
+      Number(b.pushes||0) &&
+    Number(a.ats_margin||0)===
+      Number(b.ats_margin||0)
+  )
+}
+
 function resultColor(
   result:any
 ){
@@ -129,7 +175,10 @@ export default async function SquadSchedule({
       supabase
         .from('users')
         .select('role')
-        .eq('id',user.id)
+        .eq(
+          'id',
+          user.id
+        )
         .maybeSingle(),
 
       supabase
@@ -138,6 +187,7 @@ export default async function SquadSchedule({
           id,
           squad_name,
           owner_name,
+          division,
           nfl_team_id,
           logo_path,
 
@@ -171,7 +221,7 @@ export default async function SquadSchedule({
   const [
     {data:scheduleRows},
     {data:leagueSquadData},
-    {data:standing}
+    {data:standingsData}
   ]=
     await Promise.all([
 
@@ -205,17 +255,18 @@ export default async function SquadSchedule({
         .select(`
           wins,
           losses,
-          pushes
+          pushes,
+          ats_margin,
+
+          squads!inner(
+            id,
+            division
+          )
         `)
         .eq(
           'season_year',
           2026
         )
-        .eq(
-          'squad_id',
-          squadId
-        )
-        .maybeSingle()
     ])
 
   const leagueSquads:any[]=
@@ -247,6 +298,118 @@ export default async function SquadSchedule({
     squadNflTeam
       ?.abbreviation ||
     ''
+
+  const divisionRows=
+    (standingsData||[])
+      .filter(
+        (row:any)=>
+          Number(
+            row.squads?.division
+          )===
+          Number(
+            squad.division
+          )
+      )
+      .sort(
+        (a:any,b:any)=>
+          (
+            Number(b.wins||0)-
+            Number(a.wins||0)
+          ) ||
+          (
+            Number(b.ats_margin||0)-
+            Number(a.ats_margin||0)
+          ) ||
+          (
+            Number(a.squads?.id||0)-
+            Number(b.squads?.id||0)
+          )
+      )
+
+  const rankedDivisionRows=
+    divisionRows.map(
+      (
+        row:any,
+        index:number
+      )=>{
+        const previous=
+          divisionRows[index-1]
+
+        let rank=1
+
+        if(index>0){
+          if(
+            sameStanding(
+              row,
+              previous
+            )
+          ){
+            const firstMatchingIndex=
+              divisionRows
+                .slice(
+                  0,
+                  index
+                )
+                .findIndex(
+                  (candidate:any)=>
+                    sameStanding(
+                      candidate,
+                      row
+                    )
+                )
+
+            rank=
+              firstMatchingIndex+1
+          }else{
+            rank=
+              index+1
+          }
+        }
+
+        const tied=
+          divisionRows.some(
+            (other:any)=>
+              Number(
+                other.squads?.id
+              )!==
+              Number(
+                row.squads?.id
+              ) &&
+              sameStanding(
+                other,
+                row
+              )
+          )
+
+        return {
+          ...row,
+          displayRank:rank,
+          tied
+        }
+      }
+    )
+
+  const squadStanding:any=
+    rankedDivisionRows.find(
+      (row:any)=>
+        Number(
+          row.squads?.id
+        )===
+        Number(
+          squadId
+        )
+    )
+
+  const standingPosition=
+    squadStanding
+      ? `${
+          squadStanding.tied
+            ? 'T-'
+            : ''
+        }${ordinal(
+          squadStanding.displayRank
+        )} Place`
+      : '—'
 
   const headCell={
     textAlign:'center' as const,
@@ -302,7 +465,7 @@ export default async function SquadSchedule({
 
         <h1
           style={{
-            marginBottom:5
+            marginBottom:8
           }}
         >
           {squad.squad_name}
@@ -310,24 +473,40 @@ export default async function SquadSchedule({
 
         <div
           style={{
-            fontSize:'1.15rem',
+            fontSize:'1rem',
             fontWeight:800
           }}
         >
+          Record:{' '}
           {recordText(
-            standing?.wins,
-            standing?.losses,
-            standing?.pushes
+            squadStanding?.wins,
+            squadStanding?.losses,
+            squadStanding?.pushes
           )}
         </div>
 
         <div
-          className="muted"
           style={{
-            marginTop:4
+            marginTop:5,
+            fontSize:'0.95rem',
+            fontWeight:800
           }}
         >
-          2026 Squad Schedule
+          Division Standing:{' '}
+          {standingPosition}
+        </div>
+
+        <div
+          style={{
+            marginTop:5,
+            fontSize:'0.95rem',
+            fontWeight:800
+          }}
+        >
+          ATS:{' '}
+          {signed(
+            squadStanding?.ats_margin
+          )}
         </div>
       </section>
 

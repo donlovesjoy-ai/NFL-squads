@@ -71,39 +71,48 @@ export default async function MyPick({
   const supabase=
     await createClient()
 
-  const {data:{user}}=
-    await supabase.auth.getUser()
+  const {
+    data:{
+      user
+    }
+  }=
+    await supabase.auth
+      .getUser()
 
   if(!user){
     redirect('/login')
   }
 
-  const {data:profile}=
-    await supabase
-      .from('users')
-      .select('role')
-      .eq('id',user.id)
-      .maybeSingle()
+  const [
+    {data:profile},
+    {data:squad}
+  ]=
+    await Promise.all([
+      supabase
+        .from('users')
+        .select('role')
+        .eq('id',user.id)
+        .maybeSingle(),
+
+      supabase
+        .from('squads')
+        .select(`
+          id,
+          squad_name,
+          nfl_team_id,
+          logo_path,
+          nfl_teams(
+            name,
+            abbreviation
+          )
+        `)
+        .eq('user_id',user.id)
+        .eq('season_year',2026)
+        .maybeSingle()
+    ])
 
   const commissioner=
     profile?.role==='commissioner'
-
-  const {data:squad}=
-    await supabase
-      .from('squads')
-      .select(`
-        id,
-        squad_name,
-        nfl_team_id,
-        logo_path,
-        nfl_teams(
-          name,
-          abbreviation
-        )
-      `)
-      .eq('user_id',user.id)
-      .eq('season_year',2026)
-      .maybeSingle()
 
   if(!squad){
     return (
@@ -128,20 +137,65 @@ export default async function MyPick({
     )
   }
 
-  const {data:leagueSquads}=
-    await supabase
-      .from('squads')
-      .select(`
-        id,
-        squad_name,
-        nfl_team_id,
-        logo_path,
-        nfl_teams(
-          name,
-          abbreviation
+  const [
+    {data:leagueSquads},
+    {data:allGames},
+    {data:weekStatusRows}
+  ]=
+    await Promise.all([
+      supabase
+        .from('squads')
+        .select(`
+          id,
+          squad_name,
+          nfl_team_id,
+          logo_path,
+          nfl_teams(
+            name,
+            abbreviation
+          )
+        `)
+        .eq('season_year',2026),
+
+      supabase
+        .from('games')
+        .select(`
+          id,
+          nfl_week,
+          kickoff_time,
+          spread,
+          status,
+          final_at,
+          home_team_id,
+          away_team_id,
+
+          home:
+            nfl_teams!games_home_team_id_fkey(
+              name,
+              abbreviation
+            ),
+
+          away:
+            nfl_teams!games_away_team_id_fkey(
+              name,
+              abbreviation
+            )
+        `)
+        .eq('season_year',2026)
+        .or(
+          `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
         )
-      `)
-      .eq('season_year',2026)
+        .order('nfl_week',{ascending:true})
+        .order('kickoff_time',{ascending:true}),
+
+      supabase.rpc(
+        'get_pick_week_open_statuses',
+        {
+          p_season:2026,
+          p_squad_id:squad.id
+        }
+      )
+    ])
 
   const squadByNflTeam=
     new Map<number,any>()
@@ -153,40 +207,18 @@ export default async function MyPick({
     )
   }
 
-  const {data:allGames}=
-    await supabase
-      .from('games')
-      .select(`
-        id,
-        nfl_week,
-        kickoff_time,
-        spread,
-        status,
-        final_at,
-        home_team_id,
-        away_team_id,
-
-        home:
-          nfl_teams!games_home_team_id_fkey(
-            name,
-            abbreviation
-          ),
-
-        away:
-          nfl_teams!games_away_team_id_fkey(
-            name,
-            abbreviation
-          )
-      `)
-      .eq('season_year',2026)
-      .or(
-        `home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`
-      )
-      .order('nfl_week',{ascending:true})
-      .order('kickoff_time',{ascending:true})
-
   const squadGames=
     (allGames||[]) as any[]
+
+  const weekOpenMap=
+    new Map<number,boolean>()
+
+  for(const row of weekStatusRows||[]){
+    weekOpenMap.set(
+      Number(row.nfl_week),
+      row.is_open===true
+    )
+  }
 
   const weeks=[
     ...new Set(
@@ -197,32 +229,12 @@ export default async function MyPick({
     )
   ]
 
-  const weekChecks=
-    await Promise.all(
-      weeks.map(
-        async week=>{
-          const {data:open}=
-            await supabase.rpc(
-              'is_pick_week_open',
-              {
-                p_season:2026,
-                p_week:week,
-                p_squad_id:squad.id
-              }
-            )
-
-          return {
-            week,
-            open:open===true
-          }
-        }
-      )
-    )
-
   const openWeeks=
-    weekChecks
-      .filter(w=>w.open)
-      .map(w=>w.week)
+    weeks
+      .filter(
+        week=>
+          weekOpenMap.get(week)===true
+      )
       .sort((a,b)=>b-a)
 
   let selectedWeek:
@@ -394,35 +406,26 @@ export default async function MyPick({
     homeSquad?.squad_name ||
     game.home?.name
 
-  const [
-    {data:pick},
-    {data:weekOpen}
-  ]=
-    await Promise.all([
-      supabase
-        .from('picks')
-        .select(`
-          selection_team_id,
-          result,
-          ats_margin,
-          is_locked,
-          revealed,
-          is_missed,
-          game_total_prediction
-        `)
-        .eq('squad_id',squad.id)
-        .eq('game_id',game.id)
-        .maybeSingle(),
+  const {data:pick}=
+    await supabase
+      .from('picks')
+      .select(`
+        selection_team_id,
+        result,
+        ats_margin,
+        is_locked,
+        revealed,
+        is_missed,
+        game_total_prediction
+      `)
+      .eq('squad_id',squad.id)
+      .eq('game_id',game.id)
+      .maybeSingle()
 
-      supabase.rpc(
-        'is_pick_week_open',
-        {
-          p_season:2026,
-          p_week:game.nfl_week,
-          p_squad_id:squad.id
-        }
-      )
-    ])
+  const weekOpen=
+    weekOpenMap.get(
+      Number(game.nfl_week)
+    )===true
 
   const deadline=
     new Date(

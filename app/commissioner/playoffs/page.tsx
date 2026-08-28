@@ -6,10 +6,13 @@ import {
   initialize,
   grade16,
   grade17,
-  grade18
+  grade18,
+  resolveCoinToss
 } from './actions'
 
-function signed(n:any){
+function signed(
+  n:any
+){
   if(
     n===null ||
     n===undefined
@@ -140,11 +143,15 @@ export default async function CommissionerPlayoffs({
     await supabase
       .from('users')
       .select('role')
-      .eq('id',user.id)
+      .eq(
+        'id',
+        user.id
+      )
       .maybeSingle()
 
   if(
-    profile?.role!=='commissioner'
+    profile?.role!==
+    'commissioner'
   ){
     redirect('/dashboard')
   }
@@ -173,6 +180,7 @@ export default async function CommissionerPlayoffs({
           group_rank,
           final_place,
           status,
+          coin_toss_winner,
 
           squads(
             squad_name,
@@ -240,12 +248,6 @@ export default async function CommissionerPlayoffs({
   const rows=
     (entries||[]) as any[]
 
-  const weeks=[
-    16,
-    17,
-    18
-  ]
-
   const entriesFor=(
     week:number,
     bracket:string
@@ -284,8 +286,34 @@ export default async function CommissionerPlayoffs({
         )===18
     )
 
-  const finalCount=
-    placements?.length||0
+  const tiedGroups=
+    [
+      ...new Map(
+        rows
+          .filter(
+            (r:any)=>
+              r.status===
+              'needs_tiebreaker'
+          )
+          .map(
+            (r:any)=>[
+              `${r.nfl_week}:${r.bracket_type}:${r.group_code}`,
+              {
+                week:
+                  Number(
+                    r.nfl_week
+                  ),
+
+                bracket:
+                  r.bracket_type,
+
+                code:
+                  r.group_code
+              }
+            ]
+          )
+      ).values()
+    ] as any[]
 
   return (
     <main className="wrap">
@@ -317,24 +345,25 @@ export default async function CommissionerPlayoffs({
         }}
       >
         <h1>
-          Revised Playoff Control
+          Playoff Control
         </h1>
 
         <p>
-          Rankings:
-          {' '}
           <b>
             Win → Push → Loss
           </b>
           {' · '}
-          Closest Game Total
+          Game Total
           {' · '}
           Season ATS
+          {' · '}
+          Coin Toss
         </p>
 
         <p className="muted">
-          Championship and Consolation brackets
-          use the same 8 → 4 → 2 format.
+          Coin toss is used only when
+          every prior playoff ranking
+          criterion is exactly tied.
         </p>
 
         {sp.ok && (
@@ -409,22 +438,156 @@ export default async function CommissionerPlayoffs({
             </button>
           </form>
         </div>
-
-        <p
-          className="muted"
-          style={{
-            marginTop:14,
-            fontSize:'0.82rem'
-          }}
-        >
-          Grading Week 16 automatically creates
-          Week 17 groups. Grading Week 17 creates
-          Week 18 placement groups. Grading Week 18
-          creates final places 1–16.
-        </p>
       </section>
 
-      {weeks.map(
+      {tiedGroups.map(
+        group=>{
+
+          const tiedRows=
+            rows.filter(
+              (r:any)=>
+                Number(
+                  r.nfl_week
+                )===group.week &&
+                r.bracket_type===
+                  group.bracket &&
+                r.group_code===
+                  group.code &&
+                r.status===
+                  'needs_tiebreaker'
+            )
+
+          if(
+            tiedRows.length!==2
+          ){
+            return null
+          }
+
+          return (
+            <section
+              className="card"
+              key={
+                `${group.week}:${group.bracket}:${group.code}`
+              }
+              style={{
+                textAlign:'center',
+                border:
+                  '2px solid rgba(180,120,0,0.45)'
+              }}
+            >
+              <div
+                style={{
+                  fontSize:'0.72rem',
+                  fontWeight:900,
+                  textTransform:'uppercase',
+                  letterSpacing:'0.1em',
+                  opacity:0.65
+                }}
+              >
+                Coin Toss Required
+              </div>
+
+              <h2>
+                Week {group.week}
+                {' · '}
+                {groupTitle(
+                  group.code
+                )}
+              </h2>
+
+              <p className="muted">
+                These squads remain exactly tied
+                after result, Game Total and
+                season ATS.
+              </p>
+
+              <div
+                style={{
+                  display:'grid',
+                  gap:12,
+                  maxWidth:520,
+                  margin:'18px auto 0'
+                }}
+              >
+                {tiedRows.map(
+                  (r:any)=>(
+                    <form
+                      key={r.id}
+                      action={
+                        resolveCoinToss
+                      }
+                    >
+                      <input
+                        type="hidden"
+                        name="week"
+                        value={
+                          group.week
+                        }
+                      />
+
+                      <input
+                        type="hidden"
+                        name="group_code"
+                        value={
+                          group.code
+                        }
+                      />
+
+                      <input
+                        type="hidden"
+                        name="winner_squad_id"
+                        value={
+                          r.squad_id
+                        }
+                      />
+
+                      <button
+                        className="submit"
+                        type="submit"
+                        style={{
+                          width:'100%',
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          gap:8
+                        }}
+                      >
+                        <SquadLogo
+                          logoPath={
+                            r.squads
+                              ?.logo_path
+                          }
+                          nflAbbreviation={
+                            r.squads
+                              ?.nfl_teams
+                              ?.abbreviation
+                          }
+                          squadName={
+                            r.squads
+                              ?.squad_name
+                          }
+                          size={26}
+                        />
+
+                        Advance
+                        {' '}
+                        {
+                          r.squads
+                            ?.squad_name
+                        }
+                        {' '}
+                        — Coin Toss Winner
+                      </button>
+                    </form>
+                  )
+                )}
+              </div>
+            </section>
+          )
+        }
+      )}
+
+      {[16,17,18].map(
         week=>{
 
           const championship=
@@ -483,7 +646,8 @@ export default async function CommissionerPlayoffs({
         }
       )}
 
-      {finalCount>0 && (
+      {placements &&
+       placements.length>0 && (
         <section
           className="card"
         >
@@ -523,7 +687,7 @@ export default async function CommissionerPlayoffs({
               </thead>
 
               <tbody>
-                {(placements||[]).map(
+                {placements.map(
                   (p:any)=>(
                     <tr
                       key={
@@ -531,7 +695,9 @@ export default async function CommissionerPlayoffs({
                       }
                     >
                       <td>
-                        {p.final_place}
+                        <b>
+                          {p.final_place}
+                        </b>
                       </td>
 
                       <td>
@@ -611,8 +777,7 @@ function PlayoffGroups({
     <div>
       <h3
         style={{
-          textAlign:'center',
-          marginBottom:12
+          textAlign:'center'
         }}
       >
         {title}
@@ -807,23 +972,6 @@ function PlayoffGroups({
                   </tbody>
                 </table>
               </div>
-
-              {groupRows.some(
-                (r:any)=>
-                  r.status===
-                  'needs_tiebreaker'
-              ) && (
-                <p
-                  className="status"
-                  style={{
-                    textAlign:'center'
-                  }}
-                >
-                  Exact tie remains after
-                  result, Game Total and
-                  season ATS.
-                </p>
-              )}
             </div>
           )
         }

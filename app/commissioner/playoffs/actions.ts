@@ -23,11 +23,15 @@ async function commissioner(){
     await supabase
       .from('users')
       .select('role')
-      .eq('id',user.id)
+      .eq(
+        'id',
+        user.id
+      )
       .maybeSingle()
 
   if(
-    profile?.role!=='commissioner'
+    profile?.role!==
+    'commissioner'
   ){
     redirect('/dashboard')
   }
@@ -38,8 +42,13 @@ async function commissioner(){
 async function done(
   path='/commissioner/playoffs'
 ){
-  revalidatePath('/playoffs')
-  revalidatePath('/commissioner/playoffs')
+  revalidatePath(
+    '/playoffs'
+  )
+
+  revalidatePath(
+    '/commissioner/playoffs'
+  )
 
   redirect(path)
 }
@@ -136,5 +145,73 @@ export async function grade18(){
 
   await done(
     '/commissioner/playoffs?ok=graded18'
+  )
+}
+
+export async function resolveCoinToss(
+  formData:FormData
+){
+  const supabase=
+    await commissioner()
+
+  const week=
+    Number(
+      formData.get(
+        'week'
+      )
+    )
+
+  const groupCode=
+    String(
+      formData.get(
+        'group_code'
+      )||''
+    )
+
+  const winnerSquadId=
+    Number(
+      formData.get(
+        'winner_squad_id'
+      )
+    )
+
+  if(
+    ![16,17,18].includes(
+      week
+    ) ||
+    !groupCode ||
+    !winnerSquadId
+  ){
+    redirect(
+      '/commissioner/playoffs?error=coin_toss'
+    )
+  }
+
+  const {error}=
+    await supabase.rpc(
+      'resolve_playoff_coin_toss',
+      {
+        p_season:
+          2026,
+
+        p_week:
+          week,
+
+        p_group_code:
+          groupCode,
+
+        p_winner_squad_id:
+          winnerSquadId
+      }
+    )
+
+  if(error){
+    redirect(
+      '/commissioner/playoffs?error=coin_toss'
+    )
+  }
+
+  await done(
+    '/commissioner/playoffs?ok=coin_toss'
   )
 }

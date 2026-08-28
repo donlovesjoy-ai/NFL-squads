@@ -3,24 +3,71 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
-export async function submitPick(formData:FormData){
-  const supabase=await createClient()
+function errorCode(
+  message:string|undefined
+){
+  const text=
+    String(
+      message||''
+    ).toLowerCase()
 
-  const {data:{user}}=
+  if(text.includes('game_total_required')){
+    return 'game_total_required'
+  }
+
+  if(text.includes('bad_game_total')){
+    return 'bad_game_total'
+  }
+
+  if(text.includes('week_closed')){
+    return 'week_closed'
+  }
+
+  if(text.includes('locked')){
+    return 'locked'
+  }
+
+  if(text.includes('bad_pick')){
+    return 'bad_pick'
+  }
+
+  if(text.includes('no_game')){
+    return 'no_game'
+  }
+
+  if(text.includes('no_squad')){
+    return 'not_yours'
+  }
+
+  if(text.includes('no_line')){
+    return 'save'
+  }
+
+  return 'save'
+}
+
+export async function submitPick(
+  formData:FormData
+){
+  const supabase=
+    await createClient()
+
+  const {
+    data:{
+      user
+    }
+  }=
     await supabase.auth.getUser()
 
   if(!user){
     redirect('/login')
   }
 
-  const squadId=
-    Number(
-      formData.get('squad_id')
-    )
-
   const gameId=
     Number(
-      formData.get('game_id')
+      formData.get(
+        'game_id'
+      )
     )
 
   const selectionTeamId=
@@ -30,215 +77,46 @@ export async function submitPick(formData:FormData){
       )
     )
 
-  const {data:squad}=await supabase
-    .from('squads')
-    .select(`
-      id,
-      user_id
-    `)
-    .eq(
-      'id',
-      squadId
-    )
-    .eq(
-      'user_id',
-      user.id
-    )
-    .eq(
-      'season_year',
-      2026
-    )
-    .maybeSingle()
-
-  if(!squad){
-    redirect(
-      '/my-pick?error=not_yours'
-    )
-  }
-
-  const {data:game}=await supabase
-    .from('games')
-    .select(`
-      id,
-      nfl_week,
-      home_team_id,
-      away_team_id,
-      kickoff_time,
-      status
-    `)
-    .eq(
-      'id',
-      gameId
-    )
-    .eq(
-      'season_year',
-      2026
-    )
-    .maybeSingle()
-
-  if(!game){
-    redirect(
-      '/my-pick?error=no_game'
-    )
-  }
-
-  if(
-    ![
-      game.home_team_id,
-      game.away_team_id
-    ].includes(
-      selectionTeamId
-    )
-  ){
-    redirect(
-      '/my-pick?error=bad_pick'
-    )
-  }
-
-  const nflWeek=
-    Number(
-      game.nfl_week
+  const rawGameTotal=
+    formData.get(
+      'game_total_prediction'
     )
 
-  const playoffWeek=
-    nflWeek>=16 &&
-    nflWeek<=18
-
-  let gameTotalPrediction:
-    number|null=null
-
-  if(playoffWeek){
-    const gameTotalRaw=
-      formData.get(
-        'game_total_prediction'
-      )
-
-    if(
-      gameTotalRaw===null ||
-      String(
-        gameTotalRaw
-      ).trim()===''
-    ){
-      redirect(
-        '/my-pick?error=game_total_required'
-      )
-    }
-
-    const parsedGameTotal=
-      Number(
-        gameTotalRaw
-      )
-
-    if(
-      !Number.isFinite(
-        parsedGameTotal
-      ) ||
-      parsedGameTotal<0
-    ){
-      redirect(
-        '/my-pick?error=bad_game_total'
-      )
-    }
-
-    gameTotalPrediction=
-      parsedGameTotal
-  }
-
-  const gameStatus=
+  const gameTotalPrediction=
+    rawGameTotal===null ||
     String(
-      game.status||''
-    ).toLowerCase()
-
-  if(
-    gameStatus==='live' ||
-    gameStatus==='final'
-  ){
-    redirect(
-      '/my-pick?error=locked'
-    )
-  }
+      rawGameTotal
+    ).trim()===''
+      ? null
+      : Number(
+          rawGameTotal
+        )
 
   const {
-    data:weekOpen,
-    error:weekOpenError
-  }=await supabase.rpc(
-    'is_pick_week_open',
-    {
-      p_season:2026,
-      p_week:game.nfl_week,
-      p_squad_id:squadId
-    }
-  )
+    error
+  }=
+    await supabase.rpc(
+      'submit_my_pick',
+      {
+        p_game_id:
+          gameId,
 
-  if(
-    weekOpenError ||
-    !weekOpen
-  ){
-    redirect(
-      '/my-pick?error=week_closed'
+        p_selection_team_id:
+          selectionTeamId,
+
+        p_game_total_prediction:
+          gameTotalPrediction,
+
+        p_season:
+          2026
+      }
     )
-  }
-
-  const deadline=
-    new Date(
-      new Date(
-        game.kickoff_time
-      ).getTime()-60_000
-    )
-
-  if(
-    new Date()>=deadline
-  ){
-    redirect(
-      '/my-pick?error=locked'
-    )
-  }
-
-  const {data:existingPick}=
-    await supabase
-      .from('picks')
-      .select(
-        'is_locked'
-      )
-      .eq(
-        'squad_id',
-        squadId
-      )
-      .eq(
-        'game_id',
-        gameId
-      )
-      .maybeSingle()
-
-  if(
-    existingPick?.is_locked===true
-  ){
-    redirect(
-      '/my-pick?error=locked'
-    )
-  }
-
-  const {error}=await supabase
-    .from('picks')
-    .upsert({
-      squad_id:squadId,
-      game_id:gameId,
-      selection_team_id:selectionTeamId,
-      game_total_prediction:
-        playoffWeek
-          ? gameTotalPrediction
-          : null,
-      is_locked:false,
-      revealed:false,
-      is_missed:false
-    },{
-      onConflict:
-        'squad_id,game_id'
-    })
 
   if(error){
     redirect(
-      '/my-pick?error=save'
+      `/my-pick?error=${errorCode(
+        error.message
+      )}`
     )
   }
 

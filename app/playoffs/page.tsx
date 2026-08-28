@@ -1,4 +1,4 @@
- import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
@@ -202,10 +202,6 @@ export default async function Playoffs(){
   const commissioner=
     profile?.role===
     'commissioner'
-
-  if(!commissioner){
-    redirect('/dashboard')
-  }
 
   const [
     {data:entries},

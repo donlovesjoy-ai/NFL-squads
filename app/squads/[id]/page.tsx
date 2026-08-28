@@ -411,6 +411,13 @@ export default async function SquadSchedule({
         )} Place`
       : '—'
 
+  const standingColor=
+    squadStanding
+      ? squadStanding.displayRank<=2
+        ? 'green'
+        : 'red'
+      : 'inherit'
+
   const headCell={
     textAlign:'center' as const,
     padding:'7px 1px',
@@ -477,7 +484,6 @@ export default async function SquadSchedule({
             fontWeight:800
           }}
         >
-          Record:{' '}
           {recordText(
             squadStanding?.wins,
             squadStanding?.losses,
@@ -489,10 +495,10 @@ export default async function SquadSchedule({
           style={{
             marginTop:5,
             fontSize:'0.95rem',
-            fontWeight:800
+            fontWeight:800,
+            color:standingColor
           }}
         >
-          Division Standing:{' '}
           {standingPosition}
         </div>
 
@@ -520,35 +526,11 @@ export default async function SquadSchedule({
           }}
         >
           <colgroup>
-            <col
-              style={{
-                width:'8%'
-              }}
-            />
-
-            <col
-              style={{
-                width:'24%'
-              }}
-            />
-
-            <col
-              style={{
-                width:'27%'
-              }}
-            />
-
-            <col
-              style={{
-                width:'22%'
-              }}
-            />
-
-            <col
-              style={{
-                width:'19%'
-              }}
-            />
+            <col style={{width:'8%'}}/>
+            <col style={{width:'24%'}}/>
+            <col style={{width:'27%'}}/>
+            <col style={{width:'22%'}}/>
+            <col style={{width:'19%'}}/>
           </colgroup>
 
           <thead>

@@ -1187,7 +1187,7 @@ export default async function Dashboard(){
                 {game
                   ? pickLocked
                     ? 'The pick window is closed.'
-                    : 'You may make your pick up to one minute before kickoff.'
+                    : 'You may make or change your pick up to one minute before kickoff.'
                   : 'Waiting for your next matchup.'}
               </p>
 

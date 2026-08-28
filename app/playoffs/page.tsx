@@ -3,85 +3,149 @@ import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
 
-const championshipPayouts:Record<number,number>={
-  1:250, 2:200, 3:175, 4:150,
-  5:125, 6:100, 7:75, 8:50
-}
+function money(
+  n:number
+){
+  if(n>0){
+    return `+$${n}`
+  }
 
-const consolationPayouts:Record<number,number>={
-  9:-50, 10:-75, 11:-100, 12:-125,
-  13:-150, 14:-175, 15:-200, 16:-250
-}
+  if(n<0){
+    return `-$${Math.abs(n)}`
+  }
 
-function money(n:number){
-  if(n>0) return `+$${n}`
-  if(n<0) return `-$${Math.abs(n)}`
   return '$0'
 }
 
-function ordinal(n:number){
-  const mod100=n%100
+function ordinal(
+  n:number
+){
+  const mod100=
+    n%100
 
-  if(mod100>=11 && mod100<=13){
+  if(
+    mod100>=11 &&
+    mod100<=13
+  ){
     return `${n}th`
   }
 
   switch(n%10){
-    case 1: return `${n}st`
-    case 2: return `${n}nd`
-    case 3: return `${n}rd`
-    default: return `${n}th`
+    case 1:
+      return `${n}st`
+
+    case 2:
+      return `${n}nd`
+
+    case 3:
+      return `${n}rd`
+
+    default:
+      return `${n}th`
   }
 }
 
-function signedScore(n:any){
-  if(n===null || n===undefined){
-    return ''
+function signed(
+  n:any
+){
+  if(
+    n===null ||
+    n===undefined
+  ){
+    return '—'
   }
 
-  const x=Number(n)
+  const x=
+    Number(n)
 
   return x>0
     ? `+${x}`
     : `${x}`
 }
 
-function participant(
-  source:any,
-  outcome:'winner'|'loser',
-  fallback:string
+function resultStyle(
+  result:any
 ){
-  if(!source){
+  const r=
+    String(
+      result||''
+    ).toUpperCase()
+
+  if(r==='W'){
     return {
-      id:null,
-      name:fallback,
-      logoPath:null,
-      abbreviation:null
+      label:'WIN',
+      color:'green'
     }
   }
 
-  const id=
-    outcome==='winner'
-      ? source.winner_squad_id
-      : source.loser_squad_id
+  if(r==='P'){
+    return {
+      label:'PUSH',
+      color:'#1565c0'
+    }
+  }
 
-  const squad=
-    outcome==='winner'
-      ? source.winner
-      : source.loser
+  if(r==='L'){
+    return {
+      label:'LOSS',
+      color:'red'
+    }
+  }
 
   return {
-    id:id || null,
-    name:
-      squad?.squad_name ||
-      fallback,
-    logoPath:
-      squad?.logo_path ||
-      null,
-    abbreviation:
-      squad?.nfl_teams
-        ?.abbreviation ||
-      null
+    label:'—',
+    color:'inherit'
+  }
+}
+
+function groupTitle(
+  code:string
+){
+  switch(code){
+    case '1-8':
+      return 'Places 1–8'
+
+    case '9-16':
+      return 'Places 9–16'
+
+    case '1-4':
+      return 'Places 1–4'
+
+    case '5-8':
+      return 'Places 5–8'
+
+    case '9-12':
+      return 'Places 9–12'
+
+    case '13-16':
+      return 'Places 13–16'
+
+    case '1-2':
+      return 'SQUADS Bowl'
+
+    case '3-4':
+      return '3rd Place Game'
+
+    case '5-6':
+      return '5th Place Game'
+
+    case '7-8':
+      return '7th Place Game'
+
+    case '9-10':
+      return '9th Place Game'
+
+    case '11-12':
+      return '11th Place Game'
+
+    case '13-14':
+      return '13th Place Game'
+
+    case '15-16':
+      return '15th Place Game'
+
+    default:
+      return code
   }
 }
 
@@ -104,287 +168,128 @@ export default async function Playoffs(){
     await supabase
       .from('users')
       .select('role')
-      .eq('id',user.id)
+      .eq(
+        'id',
+        user.id
+      )
       .maybeSingle()
 
   const commissioner=
-    profile?.role==='commissioner'
+    profile?.role===
+    'commissioner'
 
   if(!commissioner){
     redirect('/dashboard')
   }
 
   const [
-    {data:matches},
-    {data:placements},
-    {data:seedState},
-    {data:squads},
-    {data:divisionNames},
-    {data:playoffPicks}
+    {data:entries},
+    {data:placements}
   ]=
     await Promise.all([
 
       supabase
-        .from('playoff_matchups')
+        .from(
+          'playoff_round_entries'
+        )
         .select(`
           id,
           nfl_week,
-          bracket_band,
-          round_name,
-          matchup_slot,
-          status,
-          squad_a_id,
-          squad_b_id,
-          winner_squad_id,
-          loser_squad_id,
-          final_place_winner,
-          final_place_loser,
-
-          squad_a:
-            squads!playoff_matchups_squad_a_id_fkey(
-              id,
-              squad_name,
-              logo_path,
-              nfl_teams(
-                abbreviation
-              )
-            ),
-
-          squad_b:
-            squads!playoff_matchups_squad_b_id_fkey(
-              id,
-              squad_name,
-              logo_path,
-              nfl_teams(
-                abbreviation
-              )
-            ),
-
-          winner:
-            squads!playoff_matchups_winner_squad_id_fkey(
-              id,
-              squad_name,
-              logo_path,
-              nfl_teams(
-                abbreviation
-              )
-            ),
-
-          loser:
-            squads!playoff_matchups_loser_squad_id_fkey(
-              id,
-              squad_name,
-              logo_path,
-              nfl_teams(
-                abbreviation
-              )
-            )
-        `)
-        .eq('season_year',2026)
-        .order('nfl_week')
-        .order('bracket_band')
-        .order('matchup_slot'),
-
-      supabase
-        .from('final_placements')
-        .select(`
+          bracket_type,
+          group_code,
+          squad_id,
+          result_code,
+          game_total_prediction,
+          actual_game_total,
+          total_error,
+          season_ats_margin,
+          group_rank,
           final_place,
-          payout,
+          status,
 
           squads(
+            id,
             squad_name,
             logo_path,
+
             nfl_teams(
               abbreviation
             )
           )
         `)
-        .eq('season_year',2026)
-        .order('final_place'),
+        .eq(
+          'season_year',
+          2026
+        )
+        .order(
+          'nfl_week',
+          {
+            ascending:true
+          }
+        )
+        .order(
+          'bracket_type',
+          {
+            ascending:true
+          }
+        )
+        .order(
+          'group_code',
+          {
+            ascending:true
+          }
+        )
+        .order(
+          'group_rank',
+          {
+            ascending:true,
+            nullsFirst:false
+          }
+        ),
 
       supabase
-        .from('division_seed_state')
+        .from(
+          'final_placements'
+        )
         .select(`
-          division,
-          seed,
-          squad_id,
-          locked_at
-        `)
-        .eq('season_year',2026),
+          final_place,
+          payout,
 
-      supabase
-        .from('squads')
-        .select(`
-          id,
-          squad_name,
-          division,
-          logo_path,
-          nfl_teams(
-            abbreviation
-          )
-        `)
-        .eq('season_year',2026),
+          squads(
+            id,
+            squad_name,
+            logo_path,
 
-      supabase
-        .from('division_names')
-        .select(`
-          division,
-          division_name
-        `)
-        .eq('season_year',2026)
-        .order('division'),
-
-      supabase
-        .from('picks')
-        .select(`
-          squad_id,
-          ats_margin,
-
-          games!inner(
-            nfl_week,
-            season_year
+            nfl_teams(
+              abbreviation
+            )
           )
         `)
         .eq(
-          'games.season_year',
+          'season_year',
           2026
         )
-        .in(
-          'games.nfl_week',
-          [16,17,18]
+        .order(
+          'final_place'
         )
     ])
 
-  const matchList=
-    (matches||[]) as any[]
+  const rows=
+    (entries||[]) as any[]
 
-  const squadMap=
-    new Map(
-      (squads||[]).map(
-        (s:any)=>[
-          Number(s.id),
-          s
-        ]
-      )
+  const championship=
+    rows.filter(
+      (r:any)=>
+        r.bracket_type===
+        'championship'
     )
 
-  const scoreMap=
-    new Map<
-      string,
-      number|null
-    >()
-
-  for(
-    const p
-    of (playoffPicks||[]) as any[]
-  ){
-    const week=
-      Number(
-        p.games?.nfl_week
-      )
-
-    scoreMap.set(
-      `${p.squad_id}:${week}`,
-      p.ats_margin===null ||
-      p.ats_margin===undefined
-        ? null
-        : Number(
-            p.ats_margin
-          )
+  const consolation=
+    rows.filter(
+      (r:any)=>
+        r.bracket_type===
+        'consolation'
     )
-  }
-
-  const getScore=(
-    squadId:number|null|undefined,
-    week:number
-  )=>{
-    if(!squadId){
-      return null
-    }
-
-    return (
-      scoreMap.get(
-        `${squadId}:${week}`
-      ) ?? null
-    )
-  }
-
-  const divisionName=(
-    division:number
-  )=>{
-    return (
-      (divisionNames||[])
-        .find(
-          (d:any)=>
-            Number(
-              d.division
-            )===division
-        )
-        ?.division_name
-      ||
-      `Division ${division}`
-    )
-  }
-
-  const lockedSquad=(
-    division:number,
-    seed:number
-  )=>{
-    const state=
-      (seedState||[])
-        .find(
-          (s:any)=>
-            Number(
-              s.division
-            )===division &&
-            Number(
-              s.seed
-            )===seed
-        )
-
-    if(!state){
-      return null
-    }
-
-    return (
-      squadMap.get(
-        Number(
-          state.squad_id
-        )
-      ) || null
-    )
-  }
-
-  const seedLabel=(
-    division:number,
-    seed:number
-  )=>{
-    return (
-      lockedSquad(
-        division,
-        seed
-      )?.squad_name
-      ||
-      `${divisionName(division)} ${ordinal(seed)} Place`
-    )
-  }
-
-  const getMatch=(
-    week:number,
-    band:string,
-    slot:number
-  )=>{
-    return matchList.find(
-      (m:any)=>
-        Number(
-          m.nfl_week
-        )===week &&
-        m.bracket_band===band &&
-        Number(
-          m.matchup_slot
-        )===slot
-    )
-  }
 
   return (
     <main className="wrap">
@@ -416,115 +321,72 @@ export default async function Playoffs(){
       <section
         className="card"
         style={{
-          textAlign:'center',
-          paddingTop:22,
-          paddingBottom:22
+          textAlign:'center'
         }}
       >
         <div
           style={{
             fontSize:'0.72rem',
             fontWeight:900,
-            letterSpacing:'0.14em',
+            letterSpacing:'0.12em',
             textTransform:'uppercase',
             opacity:0.6,
-            marginBottom:6
+            marginBottom:5
           }}
         >
           Postseason
         </div>
 
-        <h1
-          style={{
-            margin:'0 0 10px'
-          }}
-        >
-          Playoff Matrix
+        <h1>
+          NFL Squads Playoffs
         </h1>
 
-        <p
-          className="muted"
-          style={{
-            maxWidth:620,
-            margin:'0 auto',
-            lineHeight:1.5
-          }}
-        >
-          Exact division positions populate when
-          each seed is mathematically locked.
+        <p>
+          <b>
+            Win → Push → Loss
+          </b>
+        </p>
+
+        <p className="muted">
+          First tiebreaker:
+          closest Game Total prediction.
+          Second tiebreaker:
+          season ATS margin.
         </p>
 
         <p
           style={{
-            maxWidth:620,
-            margin:'12px auto 0',
-            lineHeight:1.5,
             fontWeight:900
           }}
         >
-          All 16 teams compete in all three weeks
-          of the playoffs to determine final payout.
+          Championship and Consolation brackets
+          use the same 8 → 4 → 2 format.
         </p>
       </section>
 
-      <BracketMatrix
-        title="Championship Playoff Matrix"
-        subtitle="Places 1–8"
-        seedA={1}
-        seedB={2}
-        week16Band="1-4"
-        upperBand="1-4"
-        lowerBand="5-8"
-        firstPlace={1}
-        payouts={championshipPayouts}
-        seedLabel={seedLabel}
-        getMatch={getMatch}
-        getScore={getScore}
-        championLabel
+      <BracketSection
+        title="Championship Bracket"
+        subtitle="Division 1st & 2nd Place Squads · Final Places 1–8"
+        entries={championship}
       />
 
-      <BracketMatrix
-        title="Consolation Playoff Matrix"
-        subtitle="Places 9–16"
-        seedA={3}
-        seedB={4}
-        week16Band="9-12"
-        upperBand="9-12"
-        lowerBand="13-16"
-        firstPlace={9}
-        payouts={consolationPayouts}
-        seedLabel={seedLabel}
-        getMatch={getMatch}
-        getScore={getScore}
+      <BracketSection
+        title="Consolation Bracket"
+        subtitle="Division 3rd & 4th Place Squads · Final Places 9–16"
+        entries={consolation}
       />
 
       {placements &&
        placements.length>0 && (
         <section
           className="card"
-          style={{
-            textAlign:'center'
-          }}
         >
-          <div
-            style={{
-              fontSize:'0.72rem',
-              fontWeight:900,
-              letterSpacing:'0.12em',
-              textTransform:'uppercase',
-              opacity:0.6,
-              marginBottom:5
-            }}
-          >
-            Final Results
-          </div>
-
           <h2
             style={{
-              marginTop:0
+              textAlign:'center'
             }}
           >
-            Placements & Payouts
+            Final Placements & Payouts
           </h2>
 
           <div
@@ -540,27 +402,15 @@ export default async function Playoffs(){
             >
               <thead>
                 <tr>
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
+                  <th>
                     Place
                   </th>
 
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
+                  <th>
                     Squad
                   </th>
 
-                  <th
-                    style={{
-                      textAlign:'center'
-                    }}
-                  >
+                  <th>
                     Payout
                   </th>
                 </tr>
@@ -576,8 +426,7 @@ export default async function Playoffs(){
                     >
                       <td
                         style={{
-                          textAlign:'center',
-                          fontWeight:800
+                          fontWeight:900
                         }}
                       >
                         {ordinal(
@@ -587,18 +436,13 @@ export default async function Playoffs(){
                         )}
                       </td>
 
-                      <td
-                        style={{
-                          textAlign:'center',
-                          fontWeight:700
-                        }}
-                      >
+                      <td>
                         <div
                           style={{
                             display:'flex',
                             justifyContent:'center',
                             alignItems:'center',
-                            gap:6
+                            gap:7
                           }}
                         >
                           <SquadLogo
@@ -615,22 +459,21 @@ export default async function Playoffs(){
                               p.squads
                                 ?.squad_name
                             }
-                            size={26}
+                            size={28}
                           />
 
-                          <span>
+                          <b>
                             {
                               p.squads
                                 ?.squad_name
                             }
-                          </span>
+                          </b>
                         </div>
                       </td>
 
                       <td
                         style={{
-                          textAlign:'center',
-                          fontWeight:800
+                          fontWeight:900
                         }}
                       >
                         {money(
@@ -652,356 +495,34 @@ export default async function Playoffs(){
   )
 }
 
-function BracketMatrix({
+function BracketSection({
   title,
   subtitle,
-  seedA,
-  seedB,
-  week16Band,
-  upperBand,
-  lowerBand,
-  firstPlace,
-  payouts,
-  seedLabel,
-  getMatch,
-  getScore,
-  championLabel=false
+  entries
 }:{
   title:string
   subtitle:string
-  seedA:number
-  seedB:number
-  week16Band:string
-  upperBand:string
-  lowerBand:string
-  firstPlace:number
-  payouts:Record<number,number>
-  seedLabel:(
-    division:number,
-    seed:number
-  )=>string
-  getMatch:(
-    week:number,
-    band:string,
-    slot:number
-  )=>any
-  getScore:(
-    squadId:number|null|undefined,
-    week:number
-  )=>number|null
-  championLabel?:boolean
+  entries:any[]
 }){
-  const g1=
-    getMatch(
-      16,
-      week16Band,
-      1
-    )
-
-  const g2=
-    getMatch(
-      16,
-      week16Band,
-      2
-    )
-
-  const g3=
-    getMatch(
-      16,
-      week16Band,
-      3
-    )
-
-  const g4=
-    getMatch(
-      16,
-      week16Band,
-      4
-    )
-
-  const row5=
-    getMatch(
-      17,
-      upperBand,
-      1
-    )
-
-  const row6=
-    getMatch(
-      17,
-      upperBand,
-      2
-    )
-
-  const row7=
-    getMatch(
-      17,
-      lowerBand,
-      1
-    )
-
-  const row8=
-    getMatch(
-      17,
-      lowerBand,
-      2
-    )
-
-  const row9=
-    getMatch(
-      18,
-      upperBand,
-      1
-    )
-
-  const row10=
-    getMatch(
-      18,
-      upperBand,
-      2
-    )
-
-  const row11=
-    getMatch(
-      18,
-      lowerBand,
-      1
-    )
-
-  const row12=
-    getMatch(
-      18,
-      lowerBand,
-      2
-    )
-
-  const g5a=
-    participant(
-      g1,
-      'winner',
-      'Game #1 Winner'
-    )
-
-  const g5b=
-    participant(
-      g2,
-      'winner',
-      'Game #2 Winner'
-    )
-
-  const g6a=
-    participant(
-      g3,
-      'winner',
-      'Game #3 Winner'
-    )
-
-  const g6b=
-    participant(
-      g4,
-      'winner',
-      'Game #4 Winner'
-    )
-
-  const g7a=
-    participant(
-      g1,
-      'loser',
-      'Game #1 Loser'
-    )
-
-  const g7b=
-    participant(
-      g2,
-      'loser',
-      'Game #2 Loser'
-    )
-
-  const g8a=
-    participant(
-      g3,
-      'loser',
-      'Game #3 Loser'
-    )
-
-  const g8b=
-    participant(
-      g4,
-      'loser',
-      'Game #4 Loser'
-    )
-
-  const g5=
-    derivedMatch(
-      row5,
-      g5a,
-      g5b
-    )
-
-  const g6=
-    derivedMatch(
-      row6,
-      g6a,
-      g6b
-    )
-
-  const g7=
-    derivedMatch(
-      row7,
-      g7a,
-      g7b
-    )
-
-  const g8=
-    derivedMatch(
-      row8,
-      g8a,
-      g8b
-    )
-
-  const g9a=
-    participant(
-      g5,
-      'winner',
-      'Game #5 Winner'
-    )
-
-  const g9b=
-    participant(
-      g6,
-      'winner',
-      'Game #6 Winner'
-    )
-
-  const g10a=
-    participant(
-      g5,
-      'loser',
-      'Game #5 Loser'
-    )
-
-  const g10b=
-    participant(
-      g6,
-      'loser',
-      'Game #6 Loser'
-    )
-
-  const g11a=
-    participant(
-      g7,
-      'winner',
-      'Game #7 Winner'
-    )
-
-  const g11b=
-    participant(
-      g8,
-      'winner',
-      'Game #8 Winner'
-    )
-
-  const g12a=
-    participant(
-      g7,
-      'loser',
-      'Game #7 Loser'
-    )
-
-  const g12b=
-    participant(
-      g8,
-      'loser',
-      'Game #8 Loser'
-    )
-
-  const g9=
-    derivedMatch(
-      row9,
-      g9a,
-      g9b
-    )
-
-  const g10=
-    derivedMatch(
-      row10,
-      g10a,
-      g10b
-    )
-
-  const g11=
-    derivedMatch(
-      row11,
-      g11a,
-      g11b
-    )
-
-  const g12=
-    derivedMatch(
-      row12,
-      g12a,
-      g12b
-    )
-
-  const WIDTH=1260
-  const HEIGHT=1110
-
-  const x16=18
-  const x17=350
-  const x18=700
-  const xFinal=1035
-
-  const gameWidth=270
-  const finalWidth=205
-
-  const y1=75
-  const y2=245
-  const y3=435
-  const y4=605
-
-  const y5=160
-  const y6=520
-
-  const y7=750
-  const y8=920
-
-  const y9=340
-  const y10=610
-
-  const y11=835
-  const y12=1005
+  const weeks=[
+    16,
+    17,
+    18
+  ]
 
   return (
     <section
       className="card"
-      style={{
-        paddingLeft:0,
-        paddingRight:0,
-        overflow:'hidden'
-      }}
     >
       <div
         style={{
           textAlign:'center',
-          padding:'4px 18px 16px'
+          marginBottom:18
         }}
       >
-        <div
-          style={{
-            fontSize:'0.7rem',
-            fontWeight:900,
-            letterSpacing:'0.12em',
-            textTransform:'uppercase',
-            opacity:0.55,
-            marginBottom:4
-          }}
-        >
-          {subtitle}
-        </div>
-
         <h2
           style={{
-            margin:'0 0 6px'
+            marginBottom:5
           }}
         >
           {title}
@@ -1013,997 +534,300 @@ function BracketMatrix({
             fontSize:'0.82rem'
           }}
         >
-          Follow the bracket to the right
-
-          <span
-            aria-hidden="true"
-            style={{
-              marginLeft:7,
-              fontWeight:900,
-              letterSpacing:2
-            }}
-          >
-            ››
-          </span>
+          {subtitle}
         </div>
       </div>
 
-      <div
-        style={{
-          overflowX:'auto',
-          WebkitOverflowScrolling:'touch',
-          padding:'0 10px 14px',
-          scrollbarWidth:'thin'
-        }}
-      >
-        <div
+      {entries.length===0 ? (
+        <p
+          className="muted"
           style={{
-            position:'relative',
-            width:WIDTH,
-            height:HEIGHT
+            textAlign:'center'
           }}
         >
-          <RoundHeader
-            left={x16}
-            width={gameWidth}
-            label="Week 16"
-            detail="Opening Round"
-            showArrow
-          />
+          Playoff field has not been initialized yet.
+        </p>
+      ) : (
+        weeks.map(
+          week=>{
 
-          <RoundHeader
-            left={x17}
-            width={gameWidth}
-            label="Week 17"
-            detail="Second Round"
-            showArrow
-          />
-
-          <RoundHeader
-            left={x18}
-            width={gameWidth}
-            label="Week 18"
-            detail="Placement Round"
-            showArrow
-          />
-
-          <RoundHeader
-            left={xFinal}
-            width={finalWidth}
-            label="Final Place"
-            detail="Payout"
-          />
-
-          <GameNode
-            left={x16}
-            top={y1}
-            width={gameWidth}
-            gameNumber={1}
-            week={16}
-            a={
-              g1?.squad_a?.squad_name
-              ||
-              seedLabel(
-                1,
-                seedA
+            const weekRows=
+              entries.filter(
+                (r:any)=>
+                  Number(
+                    r.nfl_week
+                  )===week
               )
+
+            if(
+              weekRows.length===0
+            ){
+              return null
             }
-            b={
-              g1?.squad_b?.squad_name
-              ||
-              seedLabel(
-                1,
-                seedB
+
+            const groups=[
+              ...new Set(
+                weekRows.map(
+                  (r:any)=>
+                    r.group_code
+                )
               )
-            }
-            aId={g1?.squad_a_id}
-            bId={g1?.squad_b_id}
-            aLogoPath={
-              g1?.squad_a
-                ?.logo_path
-            }
-            bLogoPath={
-              g1?.squad_b
-                ?.logo_path
-            }
-            aAbbreviation={
-              g1?.squad_a
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            bAbbreviation={
-              g1?.squad_b
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            match={g1}
-            getScore={getScore}
-          />
+            ]
 
-          <GameNode
-            left={x16}
-            top={y2}
-            width={gameWidth}
-            gameNumber={2}
-            week={16}
-            a={
-              g2?.squad_a?.squad_name
-              ||
-              seedLabel(
-                2,
-                seedA
-              )
-            }
-            b={
-              g2?.squad_b?.squad_name
-              ||
-              seedLabel(
-                2,
-                seedB
-              )
-            }
-            aId={g2?.squad_a_id}
-            bId={g2?.squad_b_id}
-            aLogoPath={
-              g2?.squad_a
-                ?.logo_path
-            }
-            bLogoPath={
-              g2?.squad_b
-                ?.logo_path
-            }
-            aAbbreviation={
-              g2?.squad_a
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            bAbbreviation={
-              g2?.squad_b
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            match={g2}
-            getScore={getScore}
-          />
+            return (
+              <div
+                key={week}
+                style={{
+                  marginBottom:28
+                }}
+              >
+                <div
+                  style={{
+                    textAlign:'center',
+                    fontWeight:900,
+                    fontSize:'1rem',
+                    marginBottom:10
+                  }}
+                >
+                  Week {week}
+                </div>
 
-          <GameNode
-            left={x16}
-            top={y3}
-            width={gameWidth}
-            gameNumber={3}
-            week={16}
-            a={
-              g3?.squad_a?.squad_name
-              ||
-              seedLabel(
-                3,
-                seedA
-              )
-            }
-            b={
-              g3?.squad_b?.squad_name
-              ||
-              seedLabel(
-                3,
-                seedB
-              )
-            }
-            aId={g3?.squad_a_id}
-            bId={g3?.squad_b_id}
-            aLogoPath={
-              g3?.squad_a
-                ?.logo_path
-            }
-            bLogoPath={
-              g3?.squad_b
-                ?.logo_path
-            }
-            aAbbreviation={
-              g3?.squad_a
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            bAbbreviation={
-              g3?.squad_b
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            match={g3}
-            getScore={getScore}
-          />
+                {groups.map(
+                  code=>{
 
-          <GameNode
-            left={x16}
-            top={y4}
-            width={gameWidth}
-            gameNumber={4}
-            week={16}
-            a={
-              g4?.squad_a?.squad_name
-              ||
-              seedLabel(
-                4,
-                seedA
-              )
-            }
-            b={
-              g4?.squad_b?.squad_name
-              ||
-              seedLabel(
-                4,
-                seedB
-              )
-            }
-            aId={g4?.squad_a_id}
-            bId={g4?.squad_b_id}
-            aLogoPath={
-              g4?.squad_a
-                ?.logo_path
-            }
-            bLogoPath={
-              g4?.squad_b
-                ?.logo_path
-            }
-            aAbbreviation={
-              g4?.squad_a
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            bAbbreviation={
-              g4?.squad_b
-                ?.nfl_teams
-                ?.abbreviation
-            }
-            match={g4}
-            getScore={getScore}
-          />
+                    const groupRows=
+                      weekRows
+                        .filter(
+                          (r:any)=>
+                            r.group_code===
+                            code
+                        )
+                        .sort(
+                          (a:any,b:any)=>
+                            (
+                              Number(
+                                a.group_rank||
+                                999
+                              )-
+                              Number(
+                                b.group_rank||
+                                999
+                              )
+                            ) ||
+                            (
+                              Number(
+                                a.squad_id
+                              )-
+                              Number(
+                                b.squad_id
+                              )
+                            )
+                        )
 
-          <GameNode
-            left={x17}
-            top={y5}
-            width={gameWidth}
-            gameNumber={5}
-            week={17}
-            a={g5a.name}
-            b={g5b.name}
-            aId={g5a.id}
-            bId={g5b.id}
-            aLogoPath={g5a.logoPath}
-            bLogoPath={g5b.logoPath}
-            aAbbreviation={g5a.abbreviation}
-            bAbbreviation={g5b.abbreviation}
-            match={g5}
-            getScore={getScore}
-          />
-
-          <GameNode
-            left={x17}
-            top={y6}
-            width={gameWidth}
-            gameNumber={6}
-            week={17}
-            a={g6a.name}
-            b={g6b.name}
-            aId={g6a.id}
-            bId={g6b.id}
-            aLogoPath={g6a.logoPath}
-            bLogoPath={g6b.logoPath}
-            aAbbreviation={g6a.abbreviation}
-            bAbbreviation={g6b.abbreviation}
-            match={g6}
-            getScore={getScore}
-          />
-
-          <GameNode
-            left={x17}
-            top={y7}
-            width={gameWidth}
-            gameNumber={7}
-            week={17}
-            a={g7a.name}
-            b={g7b.name}
-            aId={g7a.id}
-            bId={g7b.id}
-            aLogoPath={g7a.logoPath}
-            bLogoPath={g7b.logoPath}
-            aAbbreviation={g7a.abbreviation}
-            bAbbreviation={g7b.abbreviation}
-            match={g7}
-            getScore={getScore}
-          />
-
-          <GameNode
-            left={x17}
-            top={y8}
-            width={gameWidth}
-            gameNumber={8}
-            week={17}
-            a={g8a.name}
-            b={g8b.name}
-            aId={g8a.id}
-            bId={g8b.id}
-            aLogoPath={g8a.logoPath}
-            bLogoPath={g8b.logoPath}
-            aAbbreviation={g8a.abbreviation}
-            bAbbreviation={g8b.abbreviation}
-            match={g8}
-            getScore={getScore}
-          />
-
-          <GameNode
-            left={x18}
-            top={y9}
-            width={gameWidth}
-            gameNumber={9}
-            week={18}
-            a={g9a.name}
-            b={g9b.name}
-            aId={g9a.id}
-            bId={g9b.id}
-            aLogoPath={g9a.logoPath}
-            bLogoPath={g9b.logoPath}
-            aAbbreviation={g9a.abbreviation}
-            bAbbreviation={g9b.abbreviation}
-            match={g9}
-            getScore={getScore}
-          />
-
-          <GameNode
-            left={x18}
-            top={y10}
-            width={gameWidth}
-            gameNumber={10}
-            week={18}
-            a={g10a.name}
-            b={g10b.name}
-            aId={g10a.id}
-            bId={g10b.id}
-            aLogoPath={g10a.logoPath}
-            bLogoPath={g10b.logoPath}
-            aAbbreviation={g10a.abbreviation}
-            bAbbreviation={g10b.abbreviation}
-            match={g10}
-            getScore={getScore}
-          />
-
-          <GameNode
-            left={x18}
-            top={y11}
-            width={gameWidth}
-            gameNumber={11}
-            week={18}
-            a={g11a.name}
-            b={g11b.name}
-            aId={g11a.id}
-            bId={g11b.id}
-            aLogoPath={g11a.logoPath}
-            bLogoPath={g11b.logoPath}
-            aAbbreviation={g11a.abbreviation}
-            bAbbreviation={g11b.abbreviation}
-            match={g11}
-            getScore={getScore}
-          />
-
-          <GameNode
-            left={x18}
-            top={y12}
-            width={gameWidth}
-            gameNumber={12}
-            week={18}
-            a={g12a.name}
-            b={g12b.name}
-            aId={g12a.id}
-            bId={g12b.id}
-            aLogoPath={g12a.logoPath}
-            bLogoPath={g12b.logoPath}
-            aAbbreviation={g12a.abbreviation}
-            bAbbreviation={g12b.abbreviation}
-            match={g12}
-            getScore={getScore}
-          />
-
-          <FinalNode
-            left={xFinal}
-            top={y9-10}
-            width={finalWidth}
-            match={g9}
-            winnerPlace={firstPlace}
-            loserPlace={firstPlace+1}
-            payouts={payouts}
-            championLabel={championLabel}
-          />
-
-          <FinalNode
-            left={xFinal}
-            top={y10-10}
-            width={finalWidth}
-            match={g10}
-            winnerPlace={firstPlace+2}
-            loserPlace={firstPlace+3}
-            payouts={payouts}
-          />
-
-          <FinalNode
-            left={xFinal}
-            top={y11-10}
-            width={finalWidth}
-            match={g11}
-            winnerPlace={firstPlace+4}
-            loserPlace={firstPlace+5}
-            payouts={payouts}
-          />
-
-          <FinalNode
-            left={xFinal}
-            top={y12-10}
-            width={finalWidth}
-            match={g12}
-            winnerPlace={firstPlace+6}
-            loserPlace={firstPlace+7}
-            payouts={payouts}
-          />
-
-        </div>
-      </div>
+                    return (
+                      <GroupCard
+                        key={code}
+                        title={
+                          groupTitle(
+                            code
+                          )
+                        }
+                        rows={
+                          groupRows
+                        }
+                      />
+                    )
+                  }
+                )}
+              </div>
+            )
+          }
+        )
+      )}
     </section>
   )
 }
 
-function derivedMatch(
-  row:any,
-  a:{
-    id:number|null
-    name:string
-    logoPath:string|null
-    abbreviation:string|null
-  },
-  b:{
-    id:number|null
-    name:string
-    logoPath:string|null
-    abbreviation:string|null
-  }
-){
-  if(!row){
-    return {
-      squad_a_id:a.id,
-      squad_b_id:b.id,
-
-      squad_a:{
-        id:a.id,
-        squad_name:a.name,
-        logo_path:a.logoPath,
-        nfl_teams:{
-          abbreviation:a.abbreviation
-        }
-      },
-
-      squad_b:{
-        id:b.id,
-        squad_name:b.name,
-        logo_path:b.logoPath,
-        nfl_teams:{
-          abbreviation:b.abbreviation
-        }
-      },
-
-      winner_squad_id:null,
-      loser_squad_id:null,
-      winner:null,
-      loser:null,
-      status:'waiting'
-    }
-  }
-
-  return {
-    ...row,
-
-    squad_a_id:a.id,
-    squad_b_id:b.id,
-
-    squad_a:{
-      id:a.id,
-      squad_name:a.name,
-      logo_path:a.logoPath,
-      nfl_teams:{
-        abbreviation:a.abbreviation
-      }
-    },
-
-    squad_b:{
-      id:b.id,
-      squad_name:b.name,
-      logo_path:b.logoPath,
-      nfl_teams:{
-        abbreviation:b.abbreviation
-      }
-    }
-  }
-}
-
-function RoundHeader({
-  left,
-  width,
-  label,
-  detail,
-  showArrow=false
+function GroupCard({
+  title,
+  rows
 }:{
-  left:number
-  width:number
-  label:string
-  detail:string
-  showArrow?:boolean
+  title:string
+  rows:any[]
 }){
   return (
     <div
       style={{
-        position:'absolute',
-        left,
-        top:4,
-        width,
-        textAlign:'center'
-      }}
-    >
-      <div
-        style={{
-          display:'flex',
-          alignItems:'center',
-          justifyContent:'center',
-          gap:8
-        }}
-      >
-        <span
-          style={{
-            fontWeight:900,
-            fontSize:'0.92rem'
-          }}
-        >
-          {label}
-        </span>
-
-        {showArrow && (
-          <span
-            aria-hidden="true"
-            style={{
-              fontWeight:900,
-              opacity:0.42,
-              letterSpacing:1
-            }}
-          >
-            ››
-          </span>
-        )}
-      </div>
-
-      <div
-        style={{
-          marginTop:2,
-          fontSize:'0.68rem',
-          fontWeight:700,
-          opacity:0.5,
-          textTransform:'uppercase',
-          letterSpacing:'0.08em'
-        }}
-      >
-        {detail}
-      </div>
-    </div>
-  )
-}
-
-function GameNode({
-  left,
-  top,
-  width,
-  gameNumber,
-  week,
-  a,
-  b,
-  aId,
-  bId,
-  aLogoPath,
-  bLogoPath,
-  aAbbreviation,
-  bAbbreviation,
-  match,
-  getScore
-}:{
-  left:number
-  top:number
-  width:number
-  gameNumber:number
-  week:number
-  a:string
-  b:string
-  aId:number|null|undefined
-  bId:number|null|undefined
-  aLogoPath?:string|null
-  bLogoPath?:string|null
-  aAbbreviation?:string|null
-  bAbbreviation?:string|null
-  match:any
-  getScore:(
-    squadId:number|null|undefined,
-    week:number
-  )=>number|null
-}){
-  const aScore=
-    getScore(
-      aId,
-      week
-    )
-
-  const bScore=
-    getScore(
-      bId,
-      week
-    )
-
-  const winnerId=
-    Number(
-      match?.winner_squad_id ||
-      0
-    )
-
-  const loserId=
-    Number(
-      match?.loser_squad_id ||
-      0
-    )
-
-  const colorFor=(
-    squadId:number|null|undefined
-  )=>{
-    if(
-      match?.status!=='final'
-    ){
-      return undefined
-    }
-
-    if(
-      Number(squadId)===
-      winnerId
-    ){
-      return '#16803c'
-    }
-
-    if(
-      Number(squadId)===
-      loserId
-    ){
-      return '#b42318'
-    }
-
-    return undefined
-  }
-
-  return (
-    <div
-      style={{
-        position:'absolute',
-        left,
-        top,
-        width,
         border:
-          '1px solid rgba(120,120,120,0.28)',
+          '1px solid rgba(120,120,120,0.25)',
         borderRadius:10,
-        background:
-          'var(--card, rgba(255,255,255,0.03))',
-        boxShadow:
-          '0 2px 8px rgba(0,0,0,0.06)',
-        overflow:'hidden'
+        overflow:'hidden',
+        marginBottom:14
       }}
     >
       <div
         style={{
           textAlign:'center',
-          fontSize:'0.67rem',
           fontWeight:900,
-          letterSpacing:'0.08em',
-          textTransform:'uppercase',
-          padding:'7px 8px 5px',
+          padding:'9px 8px',
           borderBottom:
-            '1px solid rgba(120,120,120,0.18)',
-          opacity:0.65
+            '1px solid rgba(120,120,120,0.2)'
         }}
       >
-        Game #{gameNumber}
+        {title}
       </div>
 
-      <ParticipantLine
-        name={a}
-        score={aScore}
-        color={colorFor(aId)}
-        logoPath={aLogoPath}
-        abbreviation={aAbbreviation}
-      />
-
-      <ParticipantLine
-        name={b}
-        score={bScore}
-        color={colorFor(bId)}
-        logoPath={bLogoPath}
-        abbreviation={bAbbreviation}
-      />
-
-      {match?.status==='needs_tiebreaker' && (
-        <div
-          style={{
-            textAlign:'center',
-            fontSize:'0.68rem',
-            fontWeight:900,
-            padding:'6px 8px',
-            borderTop:
-              '1px solid rgba(120,120,120,0.18)'
-          }}
-        >
-          O/U Tiebreaker Required
-        </div>
-      )}
-    </div>
-  )
-}
-
-function ParticipantLine({
-  name,
-  score,
-  color,
-  logoPath,
-  abbreviation
-}:{
-  name:string
-  score:number|null
-  color?:string
-  logoPath?:string|null
-  abbreviation?:string|null
-}){
-  return (
-    <div
-      style={{
-        minHeight:42,
-        display:'grid',
-        gridTemplateColumns:
-          'minmax(0,1fr) 50px',
-        alignItems:'center',
-        gap:8,
-        borderBottom:
-          '1px solid rgba(120,120,120,0.18)',
-        color,
-        padding:'4px 10px',
-        fontWeight:
-          color
-            ? 900
-            : 650
-      }}
-    >
       <div
         style={{
-          display:'flex',
-          alignItems:'center',
-          gap:6,
-          minWidth:0
+          overflowX:'auto'
         }}
       >
-        <SquadLogo
-          logoPath={logoPath}
-          nflAbbreviation={
-            abbreviation
-          }
-          squadName={name}
-          size={24}
-        />
-
-        <div
+        <table
           style={{
-            minWidth:0,
-            whiteSpace:'nowrap',
-            overflow:'hidden',
-            textOverflow:'ellipsis',
+            width:'100%',
+            textAlign:'center',
+            tableLayout:'fixed',
             fontSize:'0.82rem'
           }}
-          title={name}
         >
-          {name}
-        </div>
+          <thead>
+            <tr>
+              <th>
+                Rank
+              </th>
+
+              <th>
+                Squad
+              </th>
+
+              <th>
+                Result
+              </th>
+
+              <th>
+                Total
+              </th>
+
+              <th>
+                Diff
+              </th>
+
+              <th>
+                ATS
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.map(
+              (r:any)=>{
+
+                const result=
+                  resultStyle(
+                    r.result_code
+                  )
+
+                return (
+                  <tr
+                    key={r.id}
+                  >
+                    <td
+                      style={{
+                        fontWeight:900
+                      }}
+                    >
+                      {r.group_rank
+                        ?? '—'}
+                    </td>
+
+                    <td>
+                      <div
+                        style={{
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          gap:5
+                        }}
+                      >
+                        <SquadLogo
+                          logoPath={
+                            r.squads
+                              ?.logo_path
+                          }
+                          nflAbbreviation={
+                            r.squads
+                              ?.nfl_teams
+                              ?.abbreviation
+                          }
+                          squadName={
+                            r.squads
+                              ?.squad_name
+                          }
+                          size={24}
+                        />
+
+                        <b>
+                          {
+                            r.squads
+                              ?.squad_name
+                          }
+                        </b>
+                      </div>
+                    </td>
+
+                    <td
+                      style={{
+                        color:
+                          result.color,
+                        fontWeight:900
+                      }}
+                    >
+                      {result.label}
+                    </td>
+
+                    <td>
+                      {
+                        r.game_total_prediction
+                        ?? '—'
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        r.total_error
+                        ?? '—'
+                      }
+                    </td>
+
+                    <td>
+                      {signed(
+                        r.season_ats_margin
+                      )}
+                    </td>
+                  </tr>
+                )
+              }
+            )}
+          </tbody>
+        </table>
       </div>
 
-      <div
-        style={{
-          textAlign:'right',
-          fontWeight:900,
-          fontVariantNumeric:
-            'tabular-nums',
-          minHeight:'1em'
-        }}
-      >
-        {signedScore(score)}
-      </div>
-    </div>
-  )
-}
-
-function FinalNode({
-  left,
-  top,
-  width,
-  match,
-  winnerPlace,
-  loserPlace,
-  payouts,
-  championLabel=false
-}:{
-  left:number
-  top:number
-  width:number
-  match:any
-  winnerPlace:number
-  loserPlace:number
-  payouts:Record<number,number>
-  championLabel?:boolean
-}){
-  const winnerName=
-    match?.winner?.squad_name
-    ||
-    (
-      championLabel
-        ? 'SQUADS Bowl Champion!'
-        : `${ordinal(winnerPlace)} Place`
-    )
-
-  const loserName=
-    match?.loser?.squad_name
-    ||
-    `${ordinal(loserPlace)} Place`
-
-  return (
-    <div
-      style={{
-        position:'absolute',
-        left,
-        top,
-        width
-      }}
-    >
-      <PlacementLine
-        name={winnerName}
-        place={winnerPlace}
-        payout={
-          payouts[winnerPlace]
-        }
-        logoPath={
-          match?.winner?.logo_path
-        }
-        abbreviation={
-          match?.winner
-            ?.nfl_teams
-            ?.abbreviation
-        }
-        color={
-          match?.status==='final'
-            ? '#16803c'
-            : undefined
-        }
-        featured={
-          championLabel &&
-          winnerPlace===1
-        }
-      />
-
-      <div
-        style={{
-          height:12
-        }}
-      />
-
-      <PlacementLine
-        name={loserName}
-        place={loserPlace}
-        payout={
-          payouts[loserPlace]
-        }
-        logoPath={
-          match?.loser?.logo_path
-        }
-        abbreviation={
-          match?.loser
-            ?.nfl_teams
-            ?.abbreviation
-        }
-        color={
-          match?.status==='final'
-            ? '#b42318'
-            : undefined
-        }
-      />
-    </div>
-  )
-}
-
-function PlacementLine({
-  name,
-  place,
-  payout,
-  color,
-  logoPath,
-  abbreviation,
-  featured=false
-}:{
-  name:string
-  place:number
-  payout:number
-  color?:string
-  logoPath?:string|null
-  abbreviation?:string|null
-  featured?:boolean
-}){
-  return (
-    <div
-      style={{
-        border:
-          '1px solid rgba(120,120,120,0.28)',
-        borderRadius:9,
-        overflow:'hidden',
-        background:
-          'var(--card, rgba(255,255,255,0.03))',
-        boxShadow:
-          featured
-            ? '0 3px 12px rgba(0,0,0,0.09)'
-            : '0 2px 6px rgba(0,0,0,0.05)'
-      }}
-    >
-      <div
-        style={{
-          color,
-          display:'flex',
-          justifyContent:'center',
-          alignItems:'center',
-          gap:5,
-          fontWeight:900,
-          padding:'7px 7px 4px',
-          fontSize:
-            featured
-              ? '0.84rem'
-              : '0.8rem',
-          minWidth:0
-        }}
-      >
-        <SquadLogo
-          logoPath={logoPath}
-          nflAbbreviation={
-            abbreviation
-          }
-          squadName={name}
-          size={22}
-        />
-
-        <span
+      {rows.some(
+        (r:any)=>
+          r.status===
+          'needs_tiebreaker'
+      ) && (
+        <div
+          className="status"
           style={{
-            whiteSpace:'nowrap',
-            overflow:'hidden',
-            textOverflow:'ellipsis',
-            minWidth:0
+            textAlign:'center',
+            margin:10
           }}
-          title={name}
         >
-          {name}
-        </span>
-      </div>
-
-      <div
-        style={{
-          textAlign:'center',
-          fontSize:'0.7rem',
-          padding:'0 6px 7px',
-          opacity:0.72
-        }}
-      >
-        {ordinal(place)}
-        {' · '}
-
-        <b>
-          {money(payout)}
-        </b>
-      </div>
+          Exact tie remains after all
+          three playoff ranking criteria.
+        </div>
+      )}
     </div>
   )
 }

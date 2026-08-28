@@ -483,6 +483,13 @@ export default async function Dashboard(){
         )}`
       : null
 
+  const myRecordColor=
+    myStanding
+      ? myStanding.displayRank<=2
+        ? 'green'
+        : 'red'
+      : 'inherit'
+
   const homeSpread=
     game?.spread===null ||
     game?.spread===undefined
@@ -777,7 +784,11 @@ export default async function Dashboard(){
                 </b>
               </p>
 
-              <p>
+              <p
+                style={{
+                  color:myRecordColor
+                }}
+              >
                 <b>
                   Record:
                 </b>

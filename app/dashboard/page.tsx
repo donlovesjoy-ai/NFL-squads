@@ -483,7 +483,7 @@ export default async function Dashboard(){
         )}`
       : null
 
-  const myRecordColor=
+  const myPlaceColor=
     myStanding
       ? myStanding.displayRank<=2
         ? 'green'
@@ -778,17 +778,22 @@ export default async function Dashboard(){
                 <b>
                   {divisionTitle}
 
-                  {myPlace
-                    ? ` · ${myPlace} Place`
-                    : ''}
+                  {myPlace && (
+                    <>
+                      {' · '}
+                      <span
+                        style={{
+                          color:myPlaceColor
+                        }}
+                      >
+                        {myPlace} Place
+                      </span>
+                    </>
+                  )}
                 </b>
               </p>
 
-              <p
-                style={{
-                  color:myRecordColor
-                }}
-              >
+              <p>
                 <b>
                   Record:
                 </b>
@@ -1276,66 +1281,78 @@ export default async function Dashboard(){
 
                 <tbody>
                   {rankedDivRows.map(
-                    (r:any)=>(
-                      <tr key={r.squads.id}>
-                        <td>
-                          {r.tied?'T-':''}
-                          {ordinal(
-                            r.displayRank
-                          )}
-                        </td>
+                    (r:any)=>{
+                      const placeColor=
+                        r.displayRank<=2
+                          ? 'green'
+                          : 'red'
 
-                        <td>
-                          <Link
-                            href={`/squads/${r.squads.id}`}
+                      return (
+                        <tr key={r.squads.id}>
+                          <td
                             style={{
-                              display:'inline-flex',
-                              alignItems:'center',
-                              justifyContent:'center',
-                              gap:6,
-                              color:'inherit',
-                              textDecoration:'none',
-                              position:'relative',
-                              zIndex:3,
-                              pointerEvents:'auto',
-                              padding:'4px 2px'
+                              color:placeColor,
+                              fontWeight:800
                             }}
                           >
-                            <SquadLogo
-                              logoPath={
-                                r.squads.logo_path
-                              }
-                              nflAbbreviation={
-                                r.squads
-                                  .nfl_teams
-                                  ?.abbreviation
-                              }
-                              squadName={
-                                r.squads.squad_name
-                              }
-                              size={24}
-                            />
+                            {r.tied?'T-':''}
+                            {ordinal(
+                              r.displayRank
+                            )}
+                          </td>
 
-                            <b>
-                              {r.squads.squad_name}
-                            </b>
-                          </Link>
-                        </td>
+                          <td>
+                            <Link
+                              href={`/squads/${r.squads.id}`}
+                              style={{
+                                display:'inline-flex',
+                                alignItems:'center',
+                                justifyContent:'center',
+                                gap:6,
+                                color:'inherit',
+                                textDecoration:'none',
+                                position:'relative',
+                                zIndex:3,
+                                pointerEvents:'auto',
+                                padding:'4px 2px'
+                              }}
+                            >
+                              <SquadLogo
+                                logoPath={
+                                  r.squads.logo_path
+                                }
+                                nflAbbreviation={
+                                  r.squads
+                                    .nfl_teams
+                                    ?.abbreviation
+                                }
+                                squadName={
+                                  r.squads.squad_name
+                                }
+                                size={24}
+                              />
 
-                        <td>
-                          {r.wins}-{r.losses}-{r.pushes}
-                        </td>
+                              <b>
+                                {r.squads.squad_name}
+                              </b>
+                            </Link>
+                          </td>
 
-                        <td>
-                          {Number(
-                            r.ats_margin
-                          )>0
-                            ? '+'
-                            : ''}
-                          {r.ats_margin}
-                        </td>
-                      </tr>
-                    )
+                          <td>
+                            {r.wins}-{r.losses}-{r.pushes}
+                          </td>
+
+                          <td>
+                            {Number(
+                              r.ats_margin
+                            )>0
+                              ? '+'
+                              : ''}
+                            {r.ats_margin}
+                          </td>
+                        </tr>
+                      )
+                    }
                   )}
                 </tbody>
               </table>

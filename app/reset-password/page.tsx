@@ -1,6 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import {
+  useEffect,
+  useState
+} from 'react'
 import { useRouter } from 'next/navigation'
 import PasswordInput from '../components/PasswordInput'
 import { createClient } from '@/lib/supabase/client'
@@ -32,7 +35,7 @@ export default function ResetPassword(){
           const hash=
             window.location.hash
               .replace(/^#/,'')
-          
+
           const params=
             new URLSearchParams(
               hash
@@ -53,38 +56,53 @@ export default function ResetPassword(){
               'type'
             )
 
-          if(
-            accessToken &&
-            refreshToken &&
-            type==='recovery'
-          ){
-            const {
-              error:setSessionError
-            }=
-              await supabase.auth
-                .setSession({
-                  access_token:
-                    accessToken,
-                  refresh_token:
-                    refreshToken
-                })
+          const validRecoveryLink=
+            Boolean(
+              accessToken &&
+              refreshToken &&
+              type==='recovery'
+            )
 
-            if(setSessionError){
-              if(mounted){
-                setError(
-                  'Unable to verify this reset link. Please request a new password reset email.'
-                )
-              }
-
-              return
+          if(!validRecoveryLink){
+            if(mounted){
+              setError(
+                'Your reset link is invalid or has expired. Please request a new password reset email.'
+              )
             }
 
-            window.history
-              .replaceState(
-                {},
-                document.title,
-                window.location.pathname
+            return
+          }
+
+          /*
+           * Remove recovery credentials from
+           * the browser address bar immediately.
+           */
+          window.history
+            .replaceState(
+              {},
+              document.title,
+              window.location.pathname
+            )
+
+          const {
+            error:setSessionError
+          }=
+            await supabase.auth
+              .setSession({
+                access_token:
+                  accessToken!,
+                refresh_token:
+                  refreshToken!
+              })
+
+          if(setSessionError){
+            if(mounted){
+              setError(
+                'Unable to verify this reset link. Please request a new password reset email.'
               )
+            }
+
+            return
           }
 
           const {
@@ -96,9 +114,7 @@ export default function ResetPassword(){
             await supabase.auth
               .getUser()
 
-          if(
-            !mounted
-          ){
+          if(!mounted){
             return
           }
 
@@ -106,6 +122,9 @@ export default function ResetPassword(){
             userError ||
             !user
           ){
+            await supabase.auth
+              .signOut()
+
             setError(
               'Your reset link is invalid or has expired. Please request a new password reset email.'
             )
@@ -137,6 +156,13 @@ export default function ResetPassword(){
   async function handleSubmit(
     formData:FormData
   ){
+    if(
+      !ready ||
+      saving
+    ){
+      return
+    }
+
     setError('')
 
     const password=
@@ -162,7 +188,8 @@ export default function ResetPassword(){
     }
 
     if(
-      password!==confirmPassword
+      password!==
+      confirmPassword
     ){
       setError(
         'The passwords do not match.'
@@ -172,6 +199,29 @@ export default function ResetPassword(){
     }
 
     setSaving(true)
+
+    const {
+      data:{
+        user
+      },
+      error:userError
+    }=
+      await supabase.auth
+        .getUser()
+
+    if(
+      userError ||
+      !user
+    ){
+      setSaving(false)
+      setReady(false)
+
+      setError(
+        'Your reset session has expired. Please request a new password reset email.'
+      )
+
+      return
+    }
 
     const {
       error:updateError
@@ -270,7 +320,6 @@ export default function ResetPassword(){
             </form>
           </>
         )}
-
       </div>
     </main>
   )

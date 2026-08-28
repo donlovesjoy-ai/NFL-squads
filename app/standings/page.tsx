@@ -1,4 +1,5 @@
- import { redirect } from 'next/navigation'
+ import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
@@ -326,12 +327,17 @@ export default async function Standings(){
                                 lineHeight:1.2
                               }}
                             >
-                              <div
+                              <Link
+                                href={
+                                  `/squads/${r.squads.id}`
+                                }
                                 style={{
                                   display:'flex',
                                   alignItems:'center',
                                   justifyContent:'center',
-                                  gap:6
+                                  gap:6,
+                                  color:'inherit',
+                                  textDecoration:'none'
                                 }}
                               >
                                 <SquadLogo
@@ -357,7 +363,7 @@ export default async function Standings(){
                                       .squad_name
                                   }
                                 </b>
-                              </div>
+                              </Link>
                             </td>
 
                             <td

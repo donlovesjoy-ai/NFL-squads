@@ -1,4 +1,5 @@
- import { redirect } from 'next/navigation'
+ import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import WeekSelector from './week-selector'
@@ -556,6 +557,9 @@ export default async function Schedule({
                                     ?.abbreviation
                                 }
                                 name={s.squad_name}
+                                href={
+                                  `/squads/${s.id}`
+                                }
                               />
                             </td>
 
@@ -797,6 +801,9 @@ export default async function Schedule({
                               emphasized={
                                 pickedOwnTeam
                               }
+                              href={
+                                `/squads/${s.id}`
+                              }
                             />
                           </td>
 
@@ -839,6 +846,11 @@ export default async function Schedule({
                               }
                               emphasized={
                                 pickedOpponent
+                              }
+                              href={
+                                opponentSquad
+                                  ? `/squads/${opponentSquad.id}`
+                                  : undefined
                               }
                             />
                           </td>
@@ -1010,30 +1022,34 @@ function TeamDisplay({
   logoPath,
   abbreviation,
   name,
-  emphasized=false
+  emphasized=false,
+  href
 }:{
   logoPath?:string|null
   abbreviation?:string
   name:string
   emphasized?:boolean
+  href?:string
 }){
-  return (
-    <div
-      style={{
-        display:'flex',
-        alignItems:'center',
-        justifyContent:'center',
-        gap:4,
-        minWidth:0,
-        width:'100%',
-        boxSizing:'border-box',
-        padding:'4px 2px',
-        fontWeight:
-          emphasized
-            ? 800
-            : 600
-      }}
-    >
+  const style={
+    display:'flex',
+    alignItems:'center',
+    justifyContent:'center',
+    gap:4,
+    minWidth:0,
+    width:'100%',
+    boxSizing:'border-box' as const,
+    padding:'4px 2px',
+    fontWeight:
+      emphasized
+        ? 800
+        : 600,
+    color:'inherit',
+    textDecoration:'none'
+  }
+
+  const content=(
+    <>
       <SquadLogo
         logoPath={logoPath}
         nflAbbreviation={abbreviation}
@@ -1052,6 +1068,23 @@ function TeamDisplay({
       >
         {name}
       </span>
+    </>
+  )
+
+  if(href){
+    return (
+      <Link
+        href={href}
+        style={style}
+      >
+        {content}
+      </Link>
+    )
+  }
+
+  return (
+    <div style={style}>
+      {content}
     </div>
   )
 }

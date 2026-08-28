@@ -33,7 +33,7 @@ function lineText(
   }`
 }
 
-function gameTimeEastern(
+function gameDateEastern(
   value:string|Date|null
 ){
   if(!value){
@@ -41,13 +41,12 @@ function gameTimeEastern(
   }
 
   return new Date(value)
-    .toLocaleString(
+    .toLocaleDateString(
       'en-US',
       {
         timeZone:'America/New_York',
-        weekday:'short',
-        hour:'numeric',
-        minute:'2-digit'
+        month:'numeric',
+        day:'numeric'
       }
     )
 }
@@ -172,7 +171,7 @@ export default async function SquadSchedule({
   const [
     {data:scheduleRows},
     {data:leagueSquadData},
-    {data:seasonPicks}
+    {data:standing}
   ]=
     await Promise.all([
 
@@ -202,26 +201,21 @@ export default async function SquadSchedule({
         ),
 
       supabase
-        .from('picks')
+        .from('standings')
         .select(`
-          result,
-
-          games!inner(
-            season_year
-          )
+          wins,
+          losses,
+          pushes
         `)
+        .eq(
+          'season_year',
+          2026
+        )
         .eq(
           'squad_id',
           squadId
         )
-        .eq(
-          'games.season_year',
-          2026
-        )
-        .in(
-          'result',
-          ['W','L','P']
-        )
+        .maybeSingle()
     ])
 
   const leagueSquads:any[]=
@@ -242,27 +236,6 @@ export default async function SquadSchedule({
     )
   }
 
-  let overallWins=0
-  let overallLosses=0
-  let overallPushes=0
-
-  for(
-    const pick
-    of seasonPicks||[]
-  ){
-    if(pick.result==='W'){
-      overallWins++
-    }
-
-    if(pick.result==='L'){
-      overallLosses++
-    }
-
-    if(pick.result==='P'){
-      overallPushes++
-    }
-  }
-
   const squadNflTeam=
     Array.isArray(
       squad.nfl_teams
@@ -277,18 +250,18 @@ export default async function SquadSchedule({
 
   const headCell={
     textAlign:'center' as const,
-    padding:'9px 3px',
+    padding:'7px 1px',
     whiteSpace:'normal' as const,
-    fontSize:'0.76rem',
-    lineHeight:1.1
+    fontSize:'0.68rem',
+    lineHeight:1.05
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'9px 3px',
+    padding:'8px 1px',
     verticalAlign:'middle' as const,
-    fontSize:'0.78rem',
-    lineHeight:1.15
+    fontSize:'0.72rem',
+    lineHeight:1.05
   }
 
   return (
@@ -310,7 +283,7 @@ export default async function SquadSchedule({
           style={{
             display:'flex',
             justifyContent:'center',
-            marginBottom:10
+            marginBottom:6
           }}
         >
           <SquadLogo
@@ -323,13 +296,13 @@ export default async function SquadSchedule({
             squadName={
               squad.squad_name
             }
-            size={96}
+            size={143}
           />
         </div>
 
         <h1
           style={{
-            marginBottom:6
+            marginBottom:5
           }}
         >
           {squad.squad_name}
@@ -337,14 +310,14 @@ export default async function SquadSchedule({
 
         <div
           style={{
-            fontSize:'1.2rem',
+            fontSize:'1.15rem',
             fontWeight:800
           }}
         >
           {recordText(
-            overallWins,
-            overallLosses,
-            overallPushes
+            standing?.wins,
+            standing?.losses,
+            standing?.pushes
           )}
         </div>
 
@@ -360,357 +333,336 @@ export default async function SquadSchedule({
 
       <section className="card">
 
-        <div
+        <table
           style={{
             width:'100%',
-            overflowX:'auto',
-            WebkitOverflowScrolling:'touch'
+            borderCollapse:'collapse',
+            tableLayout:'fixed'
           }}
         >
-          <table
-            style={{
-              width:'100%',
-              minWidth:520,
-              borderCollapse:'collapse',
-              tableLayout:'fixed'
-            }}
-          >
-            <colgroup>
-              <col
-                style={{
-                  width:'10%'
-                }}
-              />
+          <colgroup>
+            <col
+              style={{
+                width:'8%'
+              }}
+            />
 
-              <col
-                style={{
-                  width:'25%'
-                }}
-              />
+            <col
+              style={{
+                width:'24%'
+              }}
+            />
 
-              <col
-                style={{
-                  width:'25%'
-                }}
-              />
+            <col
+              style={{
+                width:'27%'
+              }}
+            />
 
-              <col
-                style={{
-                  width:'24%'
-                }}
-              />
+            <col
+              style={{
+                width:'22%'
+              }}
+            />
 
-              <col
-                style={{
-                  width:'16%'
-                }}
-              />
-            </colgroup>
+            <col
+              style={{
+                width:'19%'
+              }}
+            />
+          </colgroup>
 
-            <thead>
-              <tr>
-                <th style={headCell}>
-                  Week
-                </th>
+          <thead>
+            <tr>
+              <th style={headCell}>
+                Wk
+              </th>
 
-                <th style={headCell}>
-                  Opponent
-                </th>
+              <th style={headCell}>
+                Opp
+              </th>
 
-                <th style={headCell}>
-                  Selection
-                  <br/>
-                  &amp; Line
-                </th>
+              <th style={headCell}>
+                Selection
+                <br/>
+                &amp; Line
+              </th>
 
-                <th style={headCell}>
-                  Game Time
-                  <br/>
-                  / Score
-                </th>
+              <th style={headCell}>
+                Date /
+                <br/>
+                Score
+              </th>
 
-                <th style={headCell}>
-                  Record
-                </th>
-              </tr>
-            </thead>
+              <th style={headCell}>
+                Record
+              </th>
+            </tr>
+          </thead>
 
-            <tbody>
-              {(scheduleRows||[])
-                .map(
-                  (row:any)=>{
+          <tbody>
+            {(scheduleRows||[])
+              .map(
+                (row:any)=>{
 
-                    const opponentSquad=
-                      row.opponent_team_id
-                        ? squadByNflTeam.get(
-                            Number(
-                              row.opponent_team_id
-                            )
+                  const opponentSquad=
+                    row.opponent_team_id
+                      ? squadByNflTeam.get(
+                          Number(
+                            row.opponent_team_id
                           )
-                        : null
+                        )
+                      : null
 
-                    const opponentLogo=
-                      opponentSquad
-                        ?.logo_path ||
-                      null
+                  const opponentLogo=
+                    opponentSquad
+                      ?.logo_path ||
+                    null
 
-                    const opponentHref=
-                      opponentSquad
-                        ? `/squads/${opponentSquad.id}`
-                        : null
+                  const opponentHref=
+                    opponentSquad
+                      ? `/squads/${opponentSquad.id}`
+                      : null
 
-                    const opponentName=
-                      row.is_bye
-                        ? 'BYE'
-                        : `${
-                            row.is_home
-                              ? 'vs'
-                              : '@'
-                          } ${
-                            opponentSquad
-                              ?.squad_name ||
-                            row.opponent_abbreviation ||
-                            row.opponent_name ||
-                            '—'
-                          }`
-
-                    const status=
-                      String(
-                        row.game_status||''
-                      ).toLowerCase()
-
-                    const kickedOff=
-                      status==='live' ||
-                      status==='final' ||
-                      (
-                        row.kickoff_time &&
-                        new Date(
-                          row.kickoff_time
-                        )<=new Date()
-                      )
-
-                    let gameDisplay='—'
-
-                    if(row.is_bye){
-                      gameDisplay='—'
-                    }else if(
-                      status==='live' ||
-                      status==='final'
-                    ){
-                      const ownScore=
-                        row.is_home
-                          ? row.home_score
-                          : row.away_score
-
-                      const opponentScore=
-                        row.is_home
-                          ? row.away_score
-                          : row.home_score
-
-                      gameDisplay=
-                        `${teamAbbreviation} ${
-                          ownScore ?? 0
-                        }-${
-                          opponentScore ?? 0
+                  const opponentText=
+                    row.is_bye
+                      ? 'BYE'
+                      : `${
+                          row.is_home
+                            ? 'vs'
+                            : '@'
                         } ${
                           row.opponent_abbreviation ||
-                          ''
+                          '—'
                         }`
-                    }else{
-                      gameDisplay=
-                        gameTimeEastern(
-                          row.kickoff_time
-                        )
-                    }
 
-                    const selection=
-                      kickedOff
-                        ? lineText(
-                            row.selection_abbreviation,
-                            row.selection_line
-                          )
-                        : ''
+                  const status=
+                    String(
+                      row.game_status||''
+                    ).toLowerCase()
 
-                    const color=
-                      resultColor(
-                        row.pick_result
-                      )
-
-                    const showRecord=
-                      Boolean(
-                        row.week_complete &&
-                        row.record_wins!==null &&
-                        row.record_losses!==null
-                      )
-
-                    return (
-                      <tr
-                        key={
-                          row.nfl_week
-                        }
-                      >
-                        <td
-                          style={{
-                            ...bodyCell,
-                            fontWeight:800
-                          }}
-                        >
-                          {row.nfl_week}
-                        </td>
-
-                        <td
-                          style={bodyCell}
-                        >
-                          {row.is_bye ? (
-                            <b>
-                              BYE
-                            </b>
-                          ) : opponentHref ? (
-                            <Link
-                              href={
-                                opponentHref
-                              }
-                              style={{
-                                display:'flex',
-                                alignItems:'center',
-                                justifyContent:'center',
-                                gap:5,
-                                color:'inherit',
-                                textDecoration:'none',
-                                fontWeight:700
-                              }}
-                            >
-                              <SquadLogo
-                                logoPath={
-                                  opponentLogo
-                                }
-                                nflAbbreviation={
-                                  row.opponent_abbreviation
-                                }
-                                squadName={
-                                  opponentName
-                                }
-                                size={22}
-                              />
-
-                              <span>
-                                {opponentName}
-                              </span>
-                            </Link>
-                          ) : (
-                            <div
-                              style={{
-                                display:'flex',
-                                alignItems:'center',
-                                justifyContent:'center',
-                                gap:5,
-                                fontWeight:700
-                              }}
-                            >
-                              <SquadLogo
-                                logoPath={
-                                  null
-                                }
-                                nflAbbreviation={
-                                  row.opponent_abbreviation
-                                }
-                                squadName={
-                                  opponentName
-                                }
-                                size={22}
-                              />
-
-                              <span>
-                                {opponentName}
-                              </span>
-                            </div>
-                          )}
-                        </td>
-
-                        <td
-                          style={bodyCell}
-                        >
-                          {selection ? (
-                            <span
-                              style={{
-                                display:'inline-block',
-                                padding:'5px 7px',
-                                borderRadius:9,
-                                border:
-                                  `2px solid ${
-                                    color ||
-                                    '#555'
-                                  }`,
-                                color:
-                                  color ||
-                                  'inherit',
-                                fontWeight:800,
-                                whiteSpace:'nowrap'
-                              }}
-                            >
-                              {selection}
-                            </span>
-                          ) : (
-                            <span>
-                              &nbsp;
-                            </span>
-                          )}
-                        </td>
-
-                        <td
-                          style={{
-                            ...bodyCell,
-                            whiteSpace:'nowrap',
-                            fontWeight:
-                              status==='live' ||
-                              status==='final'
-                                ? 700
-                                : 500,
-                            fontSize:
-                              status==='live' ||
-                              status==='final'
-                                ? '0.78rem'
-                                : '0.73rem'
-                          }}
-                        >
-                          {gameDisplay}
-                        </td>
-
-                        <td
-                          style={{
-                            ...bodyCell,
-                            whiteSpace:'nowrap',
-                            fontWeight:800
-                          }}
-                        >
-                          {showRecord
-                            ? recordText(
-                                row.record_wins,
-                                row.record_losses,
-                                row.record_pushes
-                              )
-                            : ''
-                          }
-                        </td>
-                      </tr>
+                  const kickedOff=
+                    status==='live' ||
+                    status==='final' ||
+                    (
+                      row.kickoff_time &&
+                      new Date(
+                        row.kickoff_time
+                      )<=new Date()
                     )
+
+                  let gameDisplay='—'
+
+                  if(row.is_bye){
+                    gameDisplay='—'
+                  }else if(kickedOff){
+                    const ownScore=
+                      row.is_home
+                        ? row.home_score
+                        : row.away_score
+
+                    const opponentScore=
+                      row.is_home
+                        ? row.away_score
+                        : row.home_score
+
+                    gameDisplay=
+                      `${ownScore ?? 0}-${opponentScore ?? 0}`
+                  }else{
+                    gameDisplay=
+                      gameDateEastern(
+                        row.kickoff_time
+                      )
                   }
-                )}
-            </tbody>
-          </table>
-        </div>
+
+                  const selection=
+                    kickedOff
+                      ? lineText(
+                          row.selection_abbreviation,
+                          row.selection_line
+                        )
+                      : ''
+
+                  const color=
+                    resultColor(
+                      row.pick_result
+                    )
+
+                  const showRecord=
+                    Boolean(
+                      row.week_complete &&
+                      row.record_wins!==null &&
+                      row.record_losses!==null
+                    )
+
+                  return (
+                    <tr
+                      key={
+                        row.nfl_week
+                      }
+                    >
+                      <td
+                        style={{
+                          ...bodyCell,
+                          fontWeight:800
+                        }}
+                      >
+                        {row.nfl_week}
+                      </td>
+
+                      <td
+                        style={bodyCell}
+                      >
+                        {row.is_bye ? (
+                          <b>
+                            BYE
+                          </b>
+                        ) : opponentHref ? (
+                          <Link
+                            href={
+                              opponentHref
+                            }
+                            style={{
+                              display:'flex',
+                              alignItems:'center',
+                              justifyContent:'center',
+                              gap:3,
+                              color:'inherit',
+                              textDecoration:'none',
+                              fontWeight:700,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
+                            <SquadLogo
+                              logoPath={
+                                opponentLogo
+                              }
+                              nflAbbreviation={
+                                row.opponent_abbreviation
+                              }
+                              squadName={
+                                opponentText
+                              }
+                              size={20}
+                            />
+
+                            <span>
+                              {opponentText}
+                            </span>
+                          </Link>
+                        ) : (
+                          <div
+                            style={{
+                              display:'flex',
+                              alignItems:'center',
+                              justifyContent:'center',
+                              gap:3,
+                              fontWeight:700,
+                              whiteSpace:'nowrap'
+                            }}
+                          >
+                            <SquadLogo
+                              logoPath={
+                                null
+                              }
+                              nflAbbreviation={
+                                row.opponent_abbreviation
+                              }
+                              squadName={
+                                opponentText
+                              }
+                              size={20}
+                            />
+
+                            <span>
+                              {opponentText}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+
+                      <td
+                        style={bodyCell}
+                      >
+                        {selection ? (
+                          <span
+                            style={{
+                              display:'inline-block',
+                              padding:'4px 4px',
+                              borderRadius:8,
+                              border:
+                                `2px solid ${
+                                  color ||
+                                  '#555'
+                                }`,
+                              color:
+                                color ||
+                                'inherit',
+                              fontWeight:800,
+                              whiteSpace:'nowrap',
+                              fontSize:'0.7rem'
+                            }}
+                          >
+                            {selection}
+                          </span>
+                        ) : (
+                          <span>
+                            &nbsp;
+                          </span>
+                        )}
+                      </td>
+
+                      <td
+                        style={{
+                          ...bodyCell,
+                          whiteSpace:'nowrap',
+                          fontWeight:
+                            kickedOff
+                              ? 800
+                              : 600,
+                          fontSize:
+                            kickedOff
+                              ? '0.76rem'
+                              : '0.72rem'
+                        }}
+                      >
+                        {gameDisplay}
+                      </td>
+
+                      <td
+                        style={{
+                          ...bodyCell,
+                          whiteSpace:'nowrap',
+                          fontWeight:800
+                        }}
+                      >
+                        {showRecord
+                          ? recordText(
+                              row.record_wins,
+                              row.record_losses,
+                              row.record_pushes
+                            )
+                          : ''
+                        }
+                      </td>
+                    </tr>
+                  )
+                }
+              )}
+          </tbody>
+        </table>
 
         <p
           className="muted"
           style={{
             textAlign:'center',
-            fontSize:'0.74rem',
-            marginTop:14,
+            fontSize:'0.7rem',
+            marginTop:12,
             marginBottom:0
           }}
         >
-          All times ET. Selections reveal at
-          kickoff and results update automatically.
+          Selections reveal at kickoff.
+          Results and records update automatically.
         </p>
       </section>
 

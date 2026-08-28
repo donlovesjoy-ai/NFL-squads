@@ -1,3 +1,4 @@
+ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
@@ -825,151 +826,252 @@ export default async function Dashboard(){
         <section
           className="card"
           style={{
-            textAlign:'center'
+            textAlign:'center',
+            position:'relative',
+            cursor:'pointer'
           }}
         >
-          <h2>
-            {game
-              ? `NFL Week ${game.nfl_week}`
-              : 'My Matchup'}
-          </h2>
+          <Link
+            href="/schedule"
+            aria-label="Open current week schedule"
+            style={{
+              position:'absolute',
+              inset:0,
+              zIndex:1,
+              borderRadius:'inherit'
+            }}
+          />
 
-          {game ? (
-            <>
-              <div
-                style={{
-                  display:'flex',
-                  alignItems:'center',
-                  justifyContent:'center',
-                  gap:16,
-                  marginBottom:12,
-                  flexWrap:'nowrap'
-                }}
-              >
+          <div
+            style={{
+              position:'relative',
+              zIndex:2,
+              pointerEvents:'none'
+            }}
+          >
+            <h2>
+              {game
+                ? `NFL Week ${game.nfl_week}`
+                : 'My Matchup'}
+            </h2>
+
+            {game ? (
+              <>
                 <div
                   style={{
-                    textAlign:'center',
-                    minWidth:100
+                    display:'flex',
+                    alignItems:'center',
+                    justifyContent:'center',
+                    gap:16,
+                    marginBottom:12,
+                    flexWrap:'nowrap'
                   }}
                 >
                   <div
                     style={{
-                      display:'flex',
-                      justifyContent:'center'
+                      textAlign:'center',
+                      minWidth:100
                     }}
                   >
-                    <SquadLogo
-                      logoPath={
-                        awaySquad?.logo_path
-                      }
-                      nflAbbreviation={
-                        game.away?.abbreviation
-                      }
-                      squadName={
-                        awaySquad?.squad_name ||
-                        game.away?.name
-                      }
-                      size={64}
-                    />
+                    {awaySquad ? (
+                      <Link
+                        href={`/squads/${awaySquad.id}`}
+                        style={{
+                          display:'block',
+                          color:'inherit',
+                          textDecoration:'none',
+                          position:'relative',
+                          zIndex:3,
+                          pointerEvents:'auto'
+                        }}
+                      >
+                        <div
+                          style={{
+                            display:'flex',
+                            justifyContent:'center'
+                          }}
+                        >
+                          <SquadLogo
+                            logoPath={
+                              awaySquad.logo_path
+                            }
+                            nflAbbreviation={
+                              game.away?.abbreviation
+                            }
+                            squadName={
+                              awaySquad.squad_name ||
+                              game.away?.name
+                            }
+                            size={64}
+                          />
+                        </div>
+
+                        <div style={{marginTop:4}}>
+                          <b>
+                            {awaySquad.squad_name ||
+                              game.away?.name}
+                          </b>
+                        </div>
+                      </Link>
+                    ) : (
+                      <>
+                        <div
+                          style={{
+                            display:'flex',
+                            justifyContent:'center'
+                          }}
+                        >
+                          <SquadLogo
+                            logoPath={null}
+                            nflAbbreviation={
+                              game.away?.abbreviation
+                            }
+                            squadName={
+                              game.away?.name
+                            }
+                            size={64}
+                          />
+                        </div>
+
+                        <div style={{marginTop:4}}>
+                          <b>
+                            {game.away?.name}
+                          </b>
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  <div style={{marginTop:4}}>
+                  <div style={{flexShrink:0}}>
                     <b>
-                      {awaySquad?.squad_name ||
-                        game.away?.name}
+                      at
                     </b>
+                  </div>
+
+                  <div
+                    style={{
+                      textAlign:'center',
+                      minWidth:100
+                    }}
+                  >
+                    {homeSquad ? (
+                      <Link
+                        href={`/squads/${homeSquad.id}`}
+                        style={{
+                          display:'block',
+                          color:'inherit',
+                          textDecoration:'none',
+                          position:'relative',
+                          zIndex:3,
+                          pointerEvents:'auto'
+                        }}
+                      >
+                        <div
+                          style={{
+                            display:'flex',
+                            justifyContent:'center'
+                          }}
+                        >
+                          <SquadLogo
+                            logoPath={
+                              homeSquad.logo_path
+                            }
+                            nflAbbreviation={
+                              game.home?.abbreviation
+                            }
+                            squadName={
+                              homeSquad.squad_name ||
+                              game.home?.name
+                            }
+                            size={64}
+                          />
+                        </div>
+
+                        <div style={{marginTop:4}}>
+                          <b>
+                            {homeSquad.squad_name ||
+                              game.home?.name}
+                          </b>
+                        </div>
+                      </Link>
+                    ) : (
+                      <>
+                        <div
+                          style={{
+                            display:'flex',
+                            justifyContent:'center'
+                          }}
+                        >
+                          <SquadLogo
+                            logoPath={null}
+                            nflAbbreviation={
+                              game.home?.abbreviation
+                            }
+                            squadName={
+                              game.home?.name
+                            }
+                            size={64}
+                          />
+                        </div>
+
+                        <div style={{marginTop:4}}>
+                          <b>
+                            {game.home?.name}
+                          </b>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <div style={{flexShrink:0}}>
+                <p>
                   <b>
-                    at
+                    {ownTeamName}:
                   </b>
-                </div>
+                  {' '}
+                  {fmtSpread(
+                    ownSpread
+                  )}
+                </p>
 
-                <div
-                  style={{
-                    textAlign:'center',
-                    minWidth:100
-                  }}
-                >
-                  <div
-                    style={{
-                      display:'flex',
-                      justifyContent:'center'
-                    }}
-                  >
-                    <SquadLogo
-                      logoPath={
-                        homeSquad?.logo_path
-                      }
-                      nflAbbreviation={
-                        game.home?.abbreviation
-                      }
-                      squadName={
-                        homeSquad?.squad_name ||
-                        game.home?.name
-                      }
-                      size={64}
-                    />
-                  </div>
+                <p>
+                  <b>
+                    Game total:
+                  </b>
+                  {' '}
+                  {game.total ?? 'Pending'}
+                </p>
 
-                  <div style={{marginTop:4}}>
-                    <b>
-                      {homeSquad?.squad_name ||
-                        game.home?.name}
-                    </b>
-                  </div>
-                </div>
-              </div>
-
-              <p>
-                <b>
-                  {ownTeamName}:
-                </b>
-                {' '}
-                {fmtSpread(
-                  ownSpread
-                )}
-              </p>
-
-              <p>
-                <b>
-                  Game total:
-                </b>
-                {' '}
-                {game.total ?? 'Pending'}
-              </p>
-
-              <p>
-                {new Date(
-                  game.kickoff_time
-                ).toLocaleString(
-                  'en-US',
-                  {
-                    timeZone:'America/New_York',
-                    month:'short',
-                    day:'numeric',
-                    hour:'numeric',
-                    minute:'2-digit',
-                    timeZoneName:'short'
-                  }
-                )}
-              </p>
-
-              <div style={{textAlign:'center'}}>
-                <KickoffCountdown
-                  kickoffTime={
+                <p>
+                  {new Date(
                     game.kickoff_time
-                  }
-                />
-              </div>
-            </>
-          ) : (
-            <p className="muted">
-              No upcoming game found.
-            </p>
-          )}
+                  ).toLocaleString(
+                    'en-US',
+                    {
+                      timeZone:'America/New_York',
+                      month:'short',
+                      day:'numeric',
+                      hour:'numeric',
+                      minute:'2-digit',
+                      timeZoneName:'short'
+                    }
+                  )}
+                </p>
+
+                <div style={{textAlign:'center'}}>
+                  <KickoffCountdown
+                    kickoffTime={
+                      game.kickoff_time
+                    }
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="muted">
+                No upcoming game found.
+              </p>
+            )}
+          </div>
         </section>
 
         <section
@@ -1113,94 +1215,122 @@ export default async function Dashboard(){
       <section
         className="card"
         style={{
-          textAlign:'center'
+          textAlign:'center',
+          position:'relative',
+          cursor:'pointer'
         }}
       >
-        <h2>
-          {divisionTitle}
-        </h2>
+        <Link
+          href="/standings"
+          aria-label="Open full standings"
+          style={{
+            position:'absolute',
+            inset:0,
+            zIndex:1,
+            borderRadius:'inherit'
+          }}
+        />
 
-        {rankedDivRows.length===0 ? (
-          <p className="muted">
-            Standings will appear after grading.
-          </p>
-        ) : (
-          <div style={{overflowX:'auto'}}>
-            <table
-              style={{
-                width:'100%',
-                textAlign:'center'
-              }}
-            >
-              <thead>
-                <tr>
-                  <th>Place</th>
-                  <th>Team</th>
-                  <th>Record</th>
-                  <th>Margin</th>
-                </tr>
-              </thead>
+        <div
+          style={{
+            position:'relative',
+            zIndex:2,
+            pointerEvents:'none'
+          }}
+        >
+          <h2>
+            {divisionTitle}
+          </h2>
 
-              <tbody>
-                {rankedDivRows.map(
-                  (r:any)=>(
-                    <tr key={r.squads.id}>
-                      <td>
-                        {r.tied?'T-':''}
-                        {ordinal(
-                          r.displayRank
-                        )}
-                      </td>
+          {rankedDivRows.length===0 ? (
+            <p className="muted">
+              Standings will appear after grading.
+            </p>
+          ) : (
+            <div style={{overflowX:'auto'}}>
+              <table
+                style={{
+                  width:'100%',
+                  textAlign:'center'
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th>Place</th>
+                    <th>Team</th>
+                    <th>Record</th>
+                    <th>Margin</th>
+                  </tr>
+                </thead>
 
-                      <td>
-                        <div
-                          style={{
-                            display:'flex',
-                            alignItems:'center',
-                            justifyContent:'center',
-                            gap:6
-                          }}
-                        >
-                          <SquadLogo
-                            logoPath={
-                              r.squads.logo_path
-                            }
-                            nflAbbreviation={
-                              r.squads
-                                .nfl_teams
-                                ?.abbreviation
-                            }
-                            squadName={
-                              r.squads.squad_name
-                            }
-                            size={24}
-                          />
+                <tbody>
+                  {rankedDivRows.map(
+                    (r:any)=>(
+                      <tr key={r.squads.id}>
+                        <td>
+                          {r.tied?'T-':''}
+                          {ordinal(
+                            r.displayRank
+                          )}
+                        </td>
 
-                          <b>
-                            {r.squads.squad_name}
-                          </b>
-                        </div>
-                      </td>
+                        <td>
+                          <Link
+                            href={`/squads/${r.squads.id}`}
+                            style={{
+                              display:'inline-flex',
+                              alignItems:'center',
+                              justifyContent:'center',
+                              gap:6,
+                              color:'inherit',
+                              textDecoration:'none',
+                              position:'relative',
+                              zIndex:3,
+                              pointerEvents:'auto',
+                              padding:'4px 2px'
+                            }}
+                          >
+                            <SquadLogo
+                              logoPath={
+                                r.squads.logo_path
+                              }
+                              nflAbbreviation={
+                                r.squads
+                                  .nfl_teams
+                                  ?.abbreviation
+                              }
+                              squadName={
+                                r.squads.squad_name
+                              }
+                              size={24}
+                            />
 
-                      <td>
-                        {r.wins}-{r.losses}-{r.pushes}
-                      </td>
+                            <b>
+                              {r.squads.squad_name}
+                            </b>
+                          </Link>
+                        </td>
 
-                      <td>
-                        {Number(
-                          r.ats_margin
-                        )>0
-                          ? '+'
-                          : ''}
-                        {r.ats_margin}
-                      </td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        <td>
+                          {r.wins}-{r.losses}-{r.pushes}
+                        </td>
+
+                        <td>
+                          {Number(
+                            r.ats_margin
+                          )>0
+                            ? '+'
+                            : ''}
+                          {r.ats_margin}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </section>
 
       <section

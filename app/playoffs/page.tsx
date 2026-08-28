@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
@@ -15,6 +15,31 @@ function money(
   }
 
   return '$0'
+}
+
+function playoffPayout(
+  place:number
+){
+  const payouts:Record<number,number>={
+    1:250,
+    2:200,
+    3:175,
+    4:150,
+    5:125,
+    6:100,
+    7:75,
+    8:50,
+    9:-50,
+    10:-75,
+    11:-100,
+    12:-125,
+    13:-150,
+    14:-175,
+    15:-200,
+    16:-250
+  }
+
+  return payouts[place] ?? 0
 }
 
 function ordinal(
@@ -942,6 +967,12 @@ function ResultSlot({
       }}
     >
       {ordinal(place)}
+      {' · '}
+      {money(
+        playoffPayout(
+          place
+        )
+      )}
     </div>
   )
 }

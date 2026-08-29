@@ -1,4 +1,4 @@
-  import Link from 'next/link'
+ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
@@ -122,16 +122,16 @@ export default async function Standings(){
 
   const headCell={
     textAlign:'center' as const,
-    padding:'8px 3px',
+    padding:'7px 2px',
     whiteSpace:'nowrap' as const,
-    fontSize:'0.86rem'
+    fontSize:'0.79rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'8px 3px',
+    padding:'7px 2px',
     verticalAlign:'middle' as const,
-    fontSize:'0.86rem'
+    fontSize:'0.79rem'
   }
 
   return (
@@ -218,31 +218,31 @@ export default async function Standings(){
                   <colgroup>
                     <col
                       style={{
-                        width:'27%'
+                        width:'24%'
                       }}
                     />
 
                     <col
                       style={{
-                        width:'34%'
+                        width:'40%'
                       }}
                     />
 
                     <col
                       style={{
-                        width:'7%'
+                        width:'6%'
                       }}
                     />
 
                     <col
                       style={{
-                        width:'7%'
+                        width:'6%'
                       }}
                     />
 
                     <col
                       style={{
-                        width:'7%'
+                        width:'6%'
                       }}
                     />
 
@@ -310,7 +310,7 @@ export default async function Standings(){
                                 whiteSpace:'normal',
                                 wordBreak:'normal',
                                 overflowWrap:'normal',
-                                lineHeight:1.2
+                                lineHeight:1.15
                               }}
                             >
                               {r.squads
@@ -323,8 +323,8 @@ export default async function Standings(){
                                 ...bodyCell,
                                 whiteSpace:'normal',
                                 wordBreak:'normal',
-                                overflowWrap:'break-word',
-                                lineHeight:1.2
+                                overflowWrap:'normal',
+                                lineHeight:1.15
                               }}
                             >
                               <Link
@@ -335,7 +335,7 @@ export default async function Standings(){
                                   display:'flex',
                                   alignItems:'center',
                                   justifyContent:'center',
-                                  gap:6,
+                                  gap:4,
                                   color:'inherit',
                                   textDecoration:'none'
                                 }}
@@ -354,10 +354,14 @@ export default async function Standings(){
                                     r.squads
                                       .squad_name
                                   }
-                                  size={24}
+                                  size={22}
                                 />
 
-                                <b>
+                                <b
+                                  style={{
+                                    lineHeight:1.15
+                                  }}
+                                >
                                   {
                                     r.squads
                                       .squad_name

@@ -74,9 +74,23 @@ export default async function RulesPage(){
           NFL Squads consists of 16 owners divided
           into four divisions of four squads.
           Each owner is assigned one NFL team.
+        </p>
+
+        <p>
+          During the regular season, each squad&apos;s
+          direct competition is only against the
+          other three squads in its division.
+        </p>
+
+        <p>
           The regular season runs from NFL Week 1
-          through Week 15. The playoffs are played
-          during Weeks 16, 17, and 18.
+          through Week 15.
+        </p>
+
+        <p>
+          The playoff matrix is played during
+          Weeks 16, 17, and 18, and all 16 squads
+          participate in all three playoff weeks.
         </p>
 
         <h2>
@@ -107,22 +121,6 @@ export default async function RulesPage(){
           Once the deadline is reached, or once
           the game begins, the pick is locked and
           cannot be changed.
-        </p>
-
-        <h2>
-          When Picks Open
-        </h2>
-
-        <p>
-          An owner&apos;s next pick generally opens
-          after completion of that owner&apos;s
-          previous NFL game.
-        </p>
-
-        <p>
-          If the previous week was a bye, the next
-          week&apos;s pick opens seven days before
-          the next scheduled kickoff.
         </p>
 
         <h2>
@@ -157,26 +155,8 @@ export default async function RulesPage(){
 
         <p>
           A missed regular-season pick is always
-          recorded as a Loss.
-        </p>
-
-        <p>
-          This includes a game that otherwise
-          would have resulted in a Push.
-        </p>
-
-        <p>
-          <b>
-            Submitted pick + exact spread result
-            = Push
-          </b>
-        </p>
-
-        <p>
-          <b>
-            Missed pick + exact spread result
-            = Loss
-          </b>
+          recorded as a Loss, regardless of the
+          actual scoring outcome.
         </p>
 
         <h2>

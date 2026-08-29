@@ -173,7 +173,8 @@ export default async function AuditLogPage(){
       >
         <div
           style={{
-            marginBottom:20
+            marginBottom:20,
+            textAlign:'center'
           }}
         >
           <h1
@@ -186,7 +187,8 @@ export default async function AuditLogPage(){
 
           <p
             style={{
-              margin:0,
+              margin:'0 auto',
+              maxWidth:760,
               opacity:.78,
               lineHeight:1.5
             }}

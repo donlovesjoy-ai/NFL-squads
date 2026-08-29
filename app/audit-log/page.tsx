@@ -18,11 +18,13 @@ function formatDate(value:string){
   return new Intl.DateTimeFormat(
     'en-US',
     {
+      timeZone:'America/New_York',
       month:'short',
       day:'numeric',
       year:'numeric',
       hour:'numeric',
-      minute:'2-digit'
+      minute:'2-digit',
+      timeZoneName:'short'
     }
   ).format(new Date(value))
 }

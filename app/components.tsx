@@ -42,6 +42,10 @@ export function Nav({
         Official Rules
       </Link>
 
+      <Link href="/audit-log">
+        Audit Log
+      </Link>
+
       <Link href="/chat">
         Chat
       </Link>

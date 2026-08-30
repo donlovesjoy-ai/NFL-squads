@@ -13,7 +13,15 @@ type LiveFeedSettings={
   last_sync_at:string|null
   last_sync_status:string|null
   last_sync_message:string|null
+  api_requests_used:number|null
+  api_requests_remaining:number|null
+  api_requests_last:number|null
+  api_quota_total:number|null
+  weekly_api_credits:number|null
+  weekly_api_week_start:string|null
 }
+
+const WEEKLY_CREDIT_LIMIT=98
 
 export default async function LiveFeed({
   searchParams
@@ -66,7 +74,7 @@ export default async function LiveFeed({
         'integration_settings'
       )
       .select(
-        'provider,bookmaker,enabled,last_sync_at,last_sync_status,last_sync_message'
+        'provider,bookmaker,enabled,last_sync_at,last_sync_status,last_sync_message,api_requests_used,api_requests_remaining,api_requests_last,api_quota_total,weekly_api_credits,weekly_api_week_start'
       )
       .eq(
         'id',
@@ -76,6 +84,54 @@ export default async function LiveFeed({
 
   const settings=
     settingsData as LiveFeedSettings|null
+
+  const weeklyUsed=
+    settings?.weekly_api_credits ??
+    0
+
+  const weeklyRemaining=
+    Math.max(
+      WEEKLY_CREDIT_LIMIT-
+      weeklyUsed,
+      0
+    )
+
+  const weeklyPercent=
+    Math.min(
+      Math.max(
+        weeklyUsed/
+        WEEKLY_CREDIT_LIMIT*
+        100,
+        0
+      ),
+      100
+    )
+
+  const monthlyUsed=
+    settings?.api_requests_used
+
+  const monthlyRemaining=
+    settings?.api_requests_remaining
+
+  const monthlyTotal=
+    settings?.api_quota_total
+
+  const monthlyPercent=
+    monthlyUsed!==null &&
+    monthlyUsed!==undefined &&
+    monthlyTotal!==null &&
+    monthlyTotal!==undefined &&
+    monthlyTotal>0
+      ? Math.min(
+          Math.max(
+            monthlyUsed/
+            monthlyTotal*
+            100,
+            0
+          ),
+          100
+        )
+      : null
 
   return (
     <main className="wrap">
@@ -113,15 +169,231 @@ export default async function LiveFeed({
 
       <section className="card">
         <h2>
+          API Credit Usage
+        </h2>
+
+        <div
+          style={{
+            display:'grid',
+            gridTemplateColumns:
+              'repeat(auto-fit,minmax(220px,1fr))',
+            gap:16,
+            marginTop:16
+          }}
+        >
+          <div
+            style={{
+              border:'1px solid #ddd',
+              borderRadius:10,
+              padding:16
+            }}
+          >
+            <div
+              className="muted"
+              style={{
+                fontWeight:700
+              }}
+            >
+              NFL Squads Weekly Budget
+            </div>
+
+            <div
+              style={{
+                fontSize:'1.8rem',
+                fontWeight:900,
+                marginTop:4
+              }}
+            >
+              {weeklyUsed} / {WEEKLY_CREDIT_LIMIT}
+            </div>
+
+            <div
+              className="muted"
+              style={{
+                marginTop:2
+              }}
+            >
+              {weeklyRemaining} credits remaining
+            </div>
+
+            <div
+              style={{
+                height:10,
+                borderRadius:999,
+                background:'#e5e5e5',
+                overflow:'hidden',
+                marginTop:12
+              }}
+            >
+              <div
+                style={{
+                  height:'100%',
+                  width:`${weeklyPercent}%`,
+                  background:
+                    weeklyUsed>=90
+                      ? '#b91c1c'
+                      : weeklyUsed>=72
+                        ? '#b45309'
+                        : '#15803d'
+                }}
+              />
+            </div>
+
+            <p
+              className="muted"
+              style={{
+                marginBottom:0
+              }}
+            >
+              Weekly counter resets Monday ET.
+              NFL Squads begins conserving credits
+              at 72 and will not exceed the
+              98-credit weekly safety limit.
+            </p>
+          </div>
+
+          <div
+            style={{
+              border:'1px solid #ddd',
+              borderRadius:10,
+              padding:16
+            }}
+          >
+            <div
+              className="muted"
+              style={{
+                fontWeight:700
+              }}
+            >
+              The Odds API Account
+            </div>
+
+            {monthlyUsed!==null &&
+             monthlyUsed!==undefined &&
+             monthlyRemaining!==null &&
+             monthlyRemaining!==undefined ? (
+              <>
+                <div
+                  style={{
+                    fontSize:'1.8rem',
+                    fontWeight:900,
+                    marginTop:4
+                  }}
+                >
+                  {monthlyUsed}
+                  {monthlyTotal
+                    ? ` / ${monthlyTotal}`
+                    : ''}
+                </div>
+
+                <div
+                  className="muted"
+                  style={{
+                    marginTop:2
+                  }}
+                >
+                  {monthlyRemaining} credits remaining
+                </div>
+
+                {monthlyPercent!==null && (
+                  <div
+                    style={{
+                      height:10,
+                      borderRadius:999,
+                      background:'#e5e5e5',
+                      overflow:'hidden',
+                      marginTop:12
+                    }}
+                  >
+                    <div
+                      style={{
+                        height:'100%',
+                        width:`${monthlyPercent}%`,
+                        background:
+                          monthlyPercent>=90
+                            ? '#b91c1c'
+                            : monthlyPercent>=75
+                              ? '#b45309'
+                              : '#15803d'
+                      }}
+                    />
+                  </div>
+                )}
+
+                <p
+                  className="muted"
+                  style={{
+                    marginBottom:0
+                  }}
+                >
+                  These numbers come directly
+                  from The Odds API usage headers.
+                </p>
+              </>
+            ):(
+              <p
+                className="muted"
+                style={{
+                  marginBottom:0
+                }}
+              >
+                Usage information will appear
+                after the next successful
+                The Odds API request.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {settings?.api_requests_last!==null &&
+         settings?.api_requests_last!==undefined && (
+          <p
+            className="muted"
+            style={{
+              marginTop:14
+            }}
+          >
+            Last API request used{' '}
+            <b>
+              {settings.api_requests_last}
+            </b>{' '}
+            credit
+            {settings.api_requests_last===1
+              ? ''
+              : 's'}.
+          </p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>
           Automatic NFL Feed
         </h2>
 
         <p>
-          The feed checks scores every minute
-          during active game windows and
-          refreshes odds every five minutes
-          near kickoff. Outside active windows
-          it automatically reduces calls.
+          NFL Squads uses a credit-controlled
+          polling schedule designed to remain
+          below 100 API credits per NFL week.
+          Odds requests are concentrated near
+          kickoff, when line accuracy matters
+          most.
+        </p>
+
+        <p>
+          On non-game days, odds are checked
+          approximately once per day. On game
+          days, additional checks are concentrated
+          around approximately six hours, two
+          hours, one hour, 30 minutes, 15 minutes,
+          five minutes, and one minute before
+          kickoff.
+        </p>
+
+        <p>
+          Once a game begins, odds polling for
+          that kickoff window stops. Live scores
+          are checked approximately every
+          30 minutes until games are final.
         </p>
 
         <p>
@@ -237,9 +509,25 @@ export default async function LiveFeed({
           {settings?.last_sync_at
             ? new Date(
                 settings.last_sync_at
-              ).toLocaleString()
+              ).toLocaleString(
+                'en-US',
+                {
+                  timeZone:
+                    'America/New_York',
+                  timeZoneName:'short'
+                }
+              )
             : 'Never'}
         </p>
+
+        {settings?.weekly_api_week_start && (
+          <p>
+            <b>
+              Current API week:
+            </b>{' '}
+            {settings.weekly_api_week_start}
+          </p>
+        )}
 
         <p className="muted">
           {settings?.last_sync_message ||

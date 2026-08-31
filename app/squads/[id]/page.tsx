@@ -131,6 +131,66 @@ function resultColor(
   return null
 }
 
+function currentStreak(
+  rows:any[]
+){
+  const completed=
+    rows
+      .filter(
+        (row:any)=>
+          row.week_complete &&
+          (
+            row.pick_result==='W' ||
+            row.pick_result==='L' ||
+            row.pick_result==='P'
+          )
+      )
+      .sort(
+        (a:any,b:any)=>
+          Number(a.nfl_week)-
+          Number(b.nfl_week)
+      )
+
+  if(!completed.length){
+    return {
+      label:'—',
+      color:'inherit'
+    }
+  }
+
+  const latestResult=
+    completed[
+      completed.length-1
+    ].pick_result
+
+  let count=0
+
+  for(
+    let i=
+      completed.length-1;
+    i>=0;
+    i--
+  ){
+    if(
+      completed[i].pick_result===
+      latestResult
+    ){
+      count++
+    }else{
+      break
+    }
+  }
+
+  return {
+    label:
+      `${latestResult}${count}`,
+    color:
+      resultColor(
+        latestResult
+      ) || 'inherit'
+  }
+}
+
 export default async function SquadSchedule({
   params
 }:{
@@ -268,6 +328,14 @@ export default async function SquadSchedule({
           2026
         )
     ])
+
+  const schedule:any[]=
+    scheduleRows||[]
+
+  const streak=
+    currentStreak(
+      schedule
+    )
 
   const leagueSquads:any[]=
     leagueSquadData||[]
@@ -446,9 +514,40 @@ export default async function SquadSchedule({
       <section
         className="card"
         style={{
-          textAlign:'center'
+          textAlign:'center',
+          position:'relative'
         }}
       >
+        <div
+          style={{
+            position:'absolute',
+            top:12,
+            right:14,
+            textAlign:'center'
+          }}
+        >
+          <div
+            className="muted"
+            style={{
+              fontSize:'0.7rem',
+              fontWeight:700
+            }}
+          >
+            STREAK
+          </div>
+
+          <div
+            style={{
+              marginTop:2,
+              fontSize:'1.15rem',
+              fontWeight:900,
+              color:streak.color
+            }}
+          >
+            {streak.label}
+          </div>
+        </div>
+
         <div
           style={{
             display:'flex',
@@ -562,254 +661,253 @@ export default async function SquadSchedule({
           </thead>
 
           <tbody>
-            {(scheduleRows||[])
-              .map(
-                (row:any)=>{
+            {schedule.map(
+              (row:any)=>{
 
-                  const opponentSquad=
-                    row.opponent_team_id
-                      ? squadByNflTeam.get(
-                          Number(
-                            row.opponent_team_id
-                          )
+                const opponentSquad=
+                  row.opponent_team_id
+                    ? squadByNflTeam.get(
+                        Number(
+                          row.opponent_team_id
                         )
-                      : null
-
-                  const opponentLogo=
-                    opponentSquad
-                      ?.logo_path ||
-                    null
-
-                  const opponentHref=
-                    opponentSquad
-                      ? `/squads/${opponentSquad.id}`
-                      : null
-
-                  const opponentText=
-                    row.is_bye
-                      ? 'BYE'
-                      : `${
-                          row.is_home
-                            ? 'vs'
-                            : '@'
-                        } ${
-                          row.opponent_abbreviation ||
-                          '—'
-                        }`
-
-                  const status=
-                    String(
-                      row.game_status||''
-                    ).toLowerCase()
-
-                  const kickedOff=
-                    status==='live' ||
-                    status==='final' ||
-                    (
-                      row.kickoff_time &&
-                      new Date(
-                        row.kickoff_time
-                      )<=new Date()
-                    )
-
-                  let gameDisplay='—'
-
-                  if(row.is_bye){
-                    gameDisplay='—'
-                  }else if(kickedOff){
-                    const ownScore=
-                      row.is_home
-                        ? row.home_score
-                        : row.away_score
-
-                    const opponentScore=
-                      row.is_home
-                        ? row.away_score
-                        : row.home_score
-
-                    gameDisplay=
-                      `${ownScore ?? 0}-${opponentScore ?? 0}`
-                  }else{
-                    gameDisplay=
-                      gameDateEastern(
-                        row.kickoff_time
                       )
-                  }
+                    : null
 
-                  const selection=
-                    kickedOff
-                      ? lineText(
-                          row.selection_abbreviation,
-                          row.selection_line
-                        )
-                      : ''
+                const opponentLogo=
+                  opponentSquad
+                    ?.logo_path ||
+                  null
 
-                  const color=
-                    resultColor(
-                      row.pick_result
-                    )
+                const opponentHref=
+                  opponentSquad
+                    ? `/squads/${opponentSquad.id}`
+                    : null
 
-                  const showRecord=
-                    Boolean(
-                      row.week_complete &&
-                      row.record_wins!==null &&
-                      row.record_losses!==null
-                    )
+                const opponentText=
+                  row.is_bye
+                    ? 'BYE'
+                    : `${
+                        row.is_home
+                          ? 'vs'
+                          : '@'
+                      } ${
+                        row.opponent_abbreviation ||
+                        '—'
+                      }`
 
-                  return (
-                    <tr
-                      key={
-                        row.nfl_week
-                      }
-                    >
-                      <td
-                        style={{
-                          ...bodyCell,
-                          fontWeight:800
-                        }}
-                      >
-                        {row.nfl_week}
-                      </td>
+                const status=
+                  String(
+                    row.game_status||''
+                  ).toLowerCase()
 
-                      <td
-                        style={bodyCell}
-                      >
-                        {row.is_bye ? (
-                          <b>
-                            BYE
-                          </b>
-                        ) : opponentHref ? (
-                          <Link
-                            href={
-                              opponentHref
-                            }
-                            style={{
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'center',
-                              gap:3,
-                              color:'inherit',
-                              textDecoration:'none',
-                              fontWeight:700,
-                              whiteSpace:'nowrap'
-                            }}
-                          >
-                            <SquadLogo
-                              logoPath={
-                                opponentLogo
-                              }
-                              nflAbbreviation={
-                                row.opponent_abbreviation
-                              }
-                              squadName={
-                                opponentText
-                              }
-                              size={20}
-                            />
-
-                            <span>
-                              {opponentText}
-                            </span>
-                          </Link>
-                        ) : (
-                          <div
-                            style={{
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'center',
-                              gap:3,
-                              fontWeight:700,
-                              whiteSpace:'nowrap'
-                            }}
-                          >
-                            <SquadLogo
-                              logoPath={
-                                null
-                              }
-                              nflAbbreviation={
-                                row.opponent_abbreviation
-                              }
-                              squadName={
-                                opponentText
-                              }
-                              size={20}
-                            />
-
-                            <span>
-                              {opponentText}
-                            </span>
-                          </div>
-                        )}
-                      </td>
-
-                      <td
-                        style={bodyCell}
-                      >
-                        {selection ? (
-                          <span
-                            style={{
-                              display:'inline-block',
-                              padding:'4px 4px',
-                              borderRadius:8,
-                              border:
-                                `2px solid ${
-                                  color ||
-                                  '#555'
-                                }`,
-                              color:
-                                color ||
-                                'inherit',
-                              fontWeight:800,
-                              whiteSpace:'nowrap',
-                              fontSize:'0.7rem'
-                            }}
-                          >
-                            {selection}
-                          </span>
-                        ) : (
-                          <span>
-                            &nbsp;
-                          </span>
-                        )}
-                      </td>
-
-                      <td
-                        style={{
-                          ...bodyCell,
-                          whiteSpace:'nowrap',
-                          fontWeight:
-                            kickedOff
-                              ? 800
-                              : 600,
-                          fontSize:
-                            kickedOff
-                              ? '0.76rem'
-                              : '0.72rem'
-                        }}
-                      >
-                        {gameDisplay}
-                      </td>
-
-                      <td
-                        style={{
-                          ...bodyCell,
-                          whiteSpace:'nowrap',
-                          fontWeight:800
-                        }}
-                      >
-                        {showRecord
-                          ? recordText(
-                              row.record_wins,
-                              row.record_losses,
-                              row.record_pushes
-                            )
-                          : ''
-                        }
-                      </td>
-                    </tr>
+                const kickedOff=
+                  status==='live' ||
+                  status==='final' ||
+                  (
+                    row.kickoff_time &&
+                    new Date(
+                      row.kickoff_time
+                    )<=new Date()
                   )
+
+                let gameDisplay='—'
+
+                if(row.is_bye){
+                  gameDisplay='—'
+                }else if(kickedOff){
+                  const ownScore=
+                    row.is_home
+                      ? row.home_score
+                      : row.away_score
+
+                  const opponentScore=
+                    row.is_home
+                      ? row.away_score
+                      : row.home_score
+
+                  gameDisplay=
+                    `${ownScore ?? 0}-${opponentScore ?? 0}`
+                }else{
+                  gameDisplay=
+                    gameDateEastern(
+                      row.kickoff_time
+                    )
                 }
-              )}
+
+                const selection=
+                  kickedOff
+                    ? lineText(
+                        row.selection_abbreviation,
+                        row.selection_line
+                      )
+                    : ''
+
+                const color=
+                  resultColor(
+                    row.pick_result
+                  )
+
+                const showRecord=
+                  Boolean(
+                    row.week_complete &&
+                    row.record_wins!==null &&
+                    row.record_losses!==null
+                  )
+
+                return (
+                  <tr
+                    key={
+                      row.nfl_week
+                    }
+                  >
+                    <td
+                      style={{
+                        ...bodyCell,
+                        fontWeight:800
+                      }}
+                    >
+                      {row.nfl_week}
+                    </td>
+
+                    <td
+                      style={bodyCell}
+                    >
+                      {row.is_bye ? (
+                        <b>
+                          BYE
+                        </b>
+                      ) : opponentHref ? (
+                        <Link
+                          href={
+                            opponentHref
+                          }
+                          style={{
+                            display:'flex',
+                            alignItems:'center',
+                            justifyContent:'center',
+                            gap:3,
+                            color:'inherit',
+                            textDecoration:'none',
+                            fontWeight:700,
+                            whiteSpace:'nowrap'
+                          }}
+                        >
+                          <SquadLogo
+                            logoPath={
+                              opponentLogo
+                            }
+                            nflAbbreviation={
+                              row.opponent_abbreviation
+                            }
+                            squadName={
+                              opponentText
+                            }
+                            size={20}
+                          />
+
+                          <span>
+                            {opponentText}
+                          </span>
+                        </Link>
+                      ) : (
+                        <div
+                          style={{
+                            display:'flex',
+                            alignItems:'center',
+                            justifyContent:'center',
+                            gap:3,
+                            fontWeight:700,
+                            whiteSpace:'nowrap'
+                          }}
+                        >
+                          <SquadLogo
+                            logoPath={
+                              null
+                            }
+                            nflAbbreviation={
+                              row.opponent_abbreviation
+                            }
+                            squadName={
+                              opponentText
+                            }
+                            size={20}
+                          />
+
+                          <span>
+                            {opponentText}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    <td
+                      style={bodyCell}
+                    >
+                      {selection ? (
+                        <span
+                          style={{
+                            display:'inline-block',
+                            padding:'4px 4px',
+                            borderRadius:8,
+                            border:
+                              `2px solid ${
+                                color ||
+                                '#555'
+                              }`,
+                            color:
+                              color ||
+                              'inherit',
+                            fontWeight:800,
+                            whiteSpace:'nowrap',
+                            fontSize:'0.7rem'
+                          }}
+                        >
+                          {selection}
+                        </span>
+                      ) : (
+                        <span>
+                          &nbsp;
+                        </span>
+                      )}
+                    </td>
+
+                    <td
+                      style={{
+                        ...bodyCell,
+                        whiteSpace:'nowrap',
+                        fontWeight:
+                          kickedOff
+                            ? 800
+                            : 600,
+                        fontSize:
+                          kickedOff
+                            ? '0.76rem'
+                            : '0.72rem'
+                      }}
+                    >
+                      {gameDisplay}
+                    </td>
+
+                    <td
+                      style={{
+                        ...bodyCell,
+                        whiteSpace:'nowrap',
+                        fontWeight:800
+                      }}
+                    >
+                      {showRecord
+                        ? recordText(
+                            row.record_wins,
+                            row.record_losses,
+                            row.record_pushes
+                          )
+                        : ''
+                      }
+                    </td>
+                  </tr>
+                )
+              }
+            )}
           </tbody>
         </table>
 

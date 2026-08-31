@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
+import ChatScroller from './ChatScroller'
 import {
   postMessage,
   togglePinMessage,
@@ -34,7 +35,7 @@ export default async function ChatPage(){
 
   const [
     {data:profile},
-    {data:messages}
+    {data:messageData}
   ]=
     await Promise.all([
       supabase
@@ -67,17 +68,6 @@ export default async function ChatPage(){
           )
         `)
         .order(
-          'is_pinned',
-          {ascending:false}
-        )
-        .order(
-          'pinned_at',
-          {
-            ascending:false,
-            nullsFirst:false
-          }
-        )
-        .order(
           'created_at',
           {ascending:false}
         )
@@ -87,10 +77,38 @@ export default async function ChatPage(){
   const commissioner=
     profile?.role==='commissioner'
 
+  /*
+    Retrieve the newest 100 messages from
+    Supabase, then reverse them so the
+    conversation reads oldest at the top
+    and newest at the bottom.
+  */
+  const messages=
+    messageData
+      ? [...messageData].reverse()
+      : []
+
   return (
-    <main className="wrap">
-      <div className="top">
-        <div>
+    <main
+      className="wrap"
+      style={{
+        paddingBottom:
+          'calc(150px + env(safe-area-inset-bottom))'
+      }}
+    >
+      <div
+        className="top"
+        style={{
+          justifyContent:'center',
+          textAlign:'center'
+        }}
+      >
+        <div
+          style={{
+            width:'100%',
+            textAlign:'center'
+          }}
+        >
           <div className="big">
             NFL SQUADS
           </div>
@@ -103,230 +121,284 @@ export default async function ChatPage(){
 
       <Nav commissioner={commissioner}/>
 
-      <section className="card">
-        <h1>
-          League Chat
-        </h1>
+      <ChatScroller>
+        <section
+          style={{
+            marginTop:16
+          }}
+        >
+          {!messages.length ? (
+            <div
+              style={{
+                textAlign:'center',
+                padding:'40px 12px'
+              }}
+            >
+              <p className="muted">
+                No messages yet.
+              </p>
+            </div>
+          ) : (
+            messages.map(
+              (m:any)=>{
+                const squad=
+                  m.squads
 
-        <p className="muted">
-          Talk league business, talk trash, or post updates.
-        </p>
+                const author=
+                  squad?.owner_name ||
+                  squad?.squad_name ||
+                  (
+                    m.is_commissioner
+                      ? 'Commissioner'
+                      : 'Owner'
+                  )
 
-        <form action={postMessage}>
-          <textarea
-            name="message"
-            placeholder="Post a message..."
-            maxLength={500}
-            required
-            rows={3}
-            style={{
-              width:'100%',
-              resize:'vertical'
-            }}
-          />
+                const isSystem=
+                  m.is_system===true
 
-          <button
-            className="submit"
-            type="submit"
-          >
-            Post Message
-          </button>
-        </form>
-      </section>
+                return (
+                  <div
+                    key={m.id}
+                    style={{
+                      padding:'12px',
+                      marginBottom:10,
+                      border:
+                        m.is_pinned
+                          ? '2px solid #999'
+                          : isSystem
+                            ? '2px solid #bbb'
+                            : '1px solid #ddd',
+                      borderRadius:10,
+                      background:
+                        isSystem
+                          ? '#f7f7f7'
+                          : '#fff'
+                    }}
+                  >
+                    {m.is_pinned && (
+                      <div
+                        style={{
+                          fontWeight:700,
+                          marginBottom:6
+                        }}
+                      >
+                        📌 Pinned Announcement
+                      </div>
+                    )}
 
-      <section className="card">
-        <h2>
-          Recent Messages
-        </h2>
-
-        {!messages?.length ? (
-          <p className="muted">
-            No messages yet.
-          </p>
-        ) : (
-          messages.map(
-            (m:any)=>{
-              const squad=
-                m.squads
-
-              const author=
-                squad?.owner_name ||
-                squad?.squad_name ||
-                (
-                  m.is_commissioner
-                    ? 'Commissioner'
-                    : 'Owner'
-                )
-
-              const isSystem=
-                m.is_system===true
-
-              return (
-                <div
-                  key={m.id}
-                  style={{
-                    padding:'12px',
-                    marginBottom:10,
-                    border:
-                      m.is_pinned
-                        ? '2px solid #999'
-                        : isSystem
-                          ? '2px solid #bbb'
-                          : '1px solid #ddd',
-                    borderRadius:8,
-                    background:
-                      isSystem
-                        ? '#f7f7f7'
-                        : undefined
-                  }}
-                >
-                  {m.is_pinned && (
-                    <div
-                      style={{
-                        fontWeight:700,
-                        marginBottom:6
-                      }}
-                    >
-                      📌 Pinned Announcement
-                    </div>
-                  )}
-
-                  {isSystem ? (
-                    <div>
-                      <b>
-                        🏈 NFL SQUADS · League Update
-                      </b>
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        display:'flex',
-                        alignItems:'center',
-                        gap:7
-                      }}
-                    >
-                      <SquadLogo
-                        logoPath={
-                          squad?.logo_path
-                        }
-                        nflAbbreviation={
-                          squad?.nfl_teams
-                            ?.abbreviation
-                        }
-                        squadName={
-                          squad?.squad_name
-                        }
-                        size={30}
-                      />
-
+                    {isSystem ? (
                       <div>
                         <b>
-                          {author}
+                          🏈 NFL SQUADS · League Update
                         </b>
-
-                        {squad?.squad_name &&
-                         squad.owner_name ? (
-                          <span className="muted">
-                            {' '}
-                            · {squad.squad_name}
-                          </span>
-                        ) : null}
-
-                        {m.is_commissioner ? (
-                          <span className="muted">
-                            {' '}
-                            · Commissioner
-                          </span>
-                        ) : null}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div
+                        style={{
+                          display:'flex',
+                          alignItems:'center',
+                          gap:7
+                        }}
+                      >
+                        <SquadLogo
+                          logoPath={
+                            squad?.logo_path
+                          }
+                          nflAbbreviation={
+                            squad
+                              ?.nfl_teams
+                              ?.abbreviation
+                          }
+                          squadName={
+                            squad?.squad_name
+                          }
+                          size={30}
+                        />
 
-                  <div
-                    style={{
-                      marginTop:6,
-                      fontWeight:
-                        isSystem
-                          ? 600
-                          : 400
-                    }}
-                  >
-                    {m.message}
-                  </div>
+                        <div>
+                          <b>
+                            {author}
+                          </b>
 
-                  <div
-                    className="muted"
-                    style={{
-                      marginTop:6,
-                      fontSize:'0.9rem'
-                    }}
-                  >
-                    {formatTime(
-                      m.created_at
-                    )}{' '}
-                    ET
-                  </div>
+                          {squad?.squad_name &&
+                           squad.owner_name ? (
+                            <span className="muted">
+                              {' '}
+                              · {squad.squad_name}
+                            </span>
+                          ) : null}
 
-                  {commissioner && (
+                          {m.is_commissioner ? (
+                            <span className="muted">
+                              {' '}
+                              · Commissioner
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+
                     <div
                       style={{
-                        marginTop:10,
-                        display:'flex',
-                        gap:8,
-                        flexWrap:'wrap'
+                        marginTop:6,
+                        fontWeight:
+                          isSystem
+                            ? 600
+                            : 400,
+                        whiteSpace:'pre-wrap',
+                        overflowWrap:'anywhere'
                       }}
                     >
-                      <form
-                        action={
-                          togglePinMessage
-                        }
-                      >
-                        <input
-                          type="hidden"
-                          name="id"
-                          value={m.id}
-                        />
-
-                        <input
-                          type="hidden"
-                          name="is_pinned"
-                          value={
-                            String(
-                              m.is_pinned
-                            )
-                          }
-                        />
-
-                        <button type="submit">
-                          {m.is_pinned
-                            ? 'Unpin'
-                            : 'Pin'}
-                        </button>
-                      </form>
-
-                      <form
-                        action={
-                          deleteMessage
-                        }
-                      >
-                        <input
-                          type="hidden"
-                          name="id"
-                          value={m.id}
-                        />
-
-                        <button type="submit">
-                          Delete
-                        </button>
-                      </form>
+                      {m.message}
                     </div>
-                  )}
-                </div>
-              )
-            }
-          )
-        )}
-      </section>
+
+                    <div
+                      className="muted"
+                      style={{
+                        marginTop:6,
+                        fontSize:'0.9rem'
+                      }}
+                    >
+                      {formatTime(
+                        m.created_at
+                      )}{' '}
+                      ET
+                    </div>
+
+                    {commissioner && (
+                      <div
+                        style={{
+                          marginTop:10,
+                          display:'flex',
+                          gap:8,
+                          flexWrap:'wrap'
+                        }}
+                      >
+                        <form
+                          action={
+                            togglePinMessage
+                          }
+                        >
+                          <input
+                            type="hidden"
+                            name="id"
+                            value={m.id}
+                          />
+
+                          <input
+                            type="hidden"
+                            name="is_pinned"
+                            value={
+                              String(
+                                m.is_pinned
+                              )
+                            }
+                          />
+
+                          <button
+                            type="submit"
+                          >
+                            {m.is_pinned
+                              ? 'Unpin'
+                              : 'Pin'}
+                          </button>
+                        </form>
+
+                        <form
+                          action={
+                            deleteMessage
+                          }
+                        >
+                          <input
+                            type="hidden"
+                            name="id"
+                            value={m.id}
+                          />
+
+                          <button
+                            type="submit"
+                          >
+                            Delete
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+            )
+          )}
+
+          <div
+            id="chat-bottom"
+            style={{
+              height:1
+            }}
+          />
+        </section>
+      </ChatScroller>
+
+      <div
+        style={{
+          position:'fixed',
+          left:0,
+          right:0,
+          bottom:0,
+          zIndex:100,
+          background:'#fff',
+          borderTop:'1px solid #d5d5d5',
+          boxShadow:
+            '0 -4px 14px rgba(0,0,0,0.08)',
+          padding:
+            '10px 12px calc(10px + env(safe-area-inset-bottom))'
+        }}
+      >
+        <div
+          style={{
+            width:'100%',
+            maxWidth:900,
+            margin:'0 auto'
+          }}
+        >
+          <form
+            action={postMessage}
+            style={{
+              display:'grid',
+              gridTemplateColumns:
+                'minmax(0,1fr) auto',
+              gap:8,
+              alignItems:'end'
+            }}
+          >
+            <textarea
+              name="message"
+              placeholder="Write a message..."
+              maxLength={500}
+              required
+              rows={2}
+              style={{
+                width:'100%',
+                minWidth:0,
+                resize:'none',
+                margin:0,
+                borderRadius:10
+              }}
+            />
+
+            <button
+              className="submit"
+              type="submit"
+              style={{
+                margin:0,
+                whiteSpace:'nowrap',
+                minHeight:48
+              }}
+            >
+              Got something to say?
+            </button>
+          </form>
+        </div>
+      </div>
     </main>
   )
 }

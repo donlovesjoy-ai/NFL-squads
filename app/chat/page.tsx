@@ -77,12 +77,6 @@ export default async function ChatPage(){
   const commissioner=
     profile?.role==='commissioner'
 
-  /*
-    Retrieve the newest 100 messages from
-    Supabase, then reverse them so the
-    conversation reads oldest at the top
-    and newest at the bottom.
-  */
   const messages=
     messageData
       ? [...messageData].reverse()
@@ -93,7 +87,7 @@ export default async function ChatPage(){
       className="wrap"
       style={{
         paddingBottom:
-          'calc(150px + env(safe-area-inset-bottom))'
+          'calc(190px + env(safe-area-inset-bottom))'
       }}
     >
       <div
@@ -363,11 +357,10 @@ export default async function ChatPage(){
           <form
             action={postMessage}
             style={{
-              display:'grid',
-              gridTemplateColumns:
-                'minmax(0,1fr) auto',
-              gap:8,
-              alignItems:'end'
+              display:'flex',
+              flexDirection:'column',
+              alignItems:'center',
+              gap:8
             }}
           >
             <textarea
@@ -378,7 +371,7 @@ export default async function ChatPage(){
               rows={2}
               style={{
                 width:'100%',
-                minWidth:0,
+                maxWidth:700,
                 resize:'none',
                 margin:0,
                 borderRadius:10
@@ -390,8 +383,10 @@ export default async function ChatPage(){
               type="submit"
               style={{
                 margin:0,
-                whiteSpace:'nowrap',
-                minHeight:48
+                minHeight:44,
+                width:'100%',
+                maxWidth:300,
+                textAlign:'center'
               }}
             >
               Got something to say?

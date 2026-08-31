@@ -718,40 +718,60 @@ export default async function Dashboard(){
           }}
         >
           {squad && (
-            <div
+            <Link
+              href={`/squads/${squad.id}`}
+              aria-label={`Open ${squad.squad_name} team page`}
               style={{
-                display:'flex',
-                justifyContent:'center',
-                marginBottom:6
+                display:'block',
+                color:'inherit',
+                textDecoration:'none'
               }}
             >
-              <SquadLogo
-                logoPath={
-                  (squad as any)
-                    ?.logo_path
-                }
-                nflAbbreviation={
-                  (squad as any)
-                    ?.nfl_teams
-                    ?.abbreviation
-                }
-                squadName={
-                  squad.squad_name
-                }
-                size={143}
-              />
-            </div>
+              <div
+                style={{
+                  display:'flex',
+                  justifyContent:'center',
+                  marginBottom:6
+                }}
+              >
+                <SquadLogo
+                  logoPath={
+                    (squad as any)
+                      ?.logo_path
+                  }
+                  nflAbbreviation={
+                    (squad as any)
+                      ?.nfl_teams
+                      ?.abbreviation
+                  }
+                  squadName={
+                    squad.squad_name
+                  }
+                  size={143}
+                />
+              </div>
+
+              <div
+                className="big"
+                style={{
+                  marginTop:4
+                }}
+              >
+                {squad.squad_name}
+              </div>
+            </Link>
           )}
 
-          <div
-            className="big"
-            style={{
-              marginTop:4
-            }}
-          >
-            {squad?.squad_name ||
-              'Not assigned yet'}
-          </div>
+          {!squad && (
+            <div
+              className="big"
+              style={{
+                marginTop:4
+              }}
+            >
+              Not assigned yet
+            </div>
+          )}
 
           {squad?.owner_name && (
             <div
@@ -1263,19 +1283,55 @@ export default async function Dashboard(){
               Standings will appear after grading.
             </p>
           ) : (
-            <div style={{overflowX:'auto'}}>
+            <div>
               <table
                 style={{
                   width:'100%',
-                  textAlign:'center'
+                  tableLayout:'fixed',
+                  textAlign:'center',
+                  fontSize:'0.9rem'
                 }}
               >
+                <colgroup>
+                  <col style={{width:'13%'}} />
+                  <col style={{width:'41%'}} />
+                  <col style={{width:'25%'}} />
+                  <col style={{width:'21%'}} />
+                </colgroup>
+
                 <thead>
                   <tr>
-                    <th>Place</th>
-                    <th>Team</th>
-                    <th>Record</th>
-                    <th>Margin</th>
+                    <th
+                      style={{
+                        padding:'6px 2px'
+                      }}
+                    >
+                      Place
+                    </th>
+
+                    <th
+                      style={{
+                        padding:'6px 2px'
+                      }}
+                    >
+                      Team
+                    </th>
+
+                    <th
+                      style={{
+                        padding:'6px 2px'
+                      }}
+                    >
+                      Record
+                    </th>
+
+                    <th
+                      style={{
+                        padding:'6px 2px'
+                      }}
+                    >
+                      Margin
+                    </th>
                   </tr>
                 </thead>
 
@@ -1292,29 +1348,34 @@ export default async function Dashboard(){
                           <td
                             style={{
                               color:placeColor,
-                              fontWeight:800
+                              fontWeight:800,
+                              padding:'6px 2px',
+                              whiteSpace:'nowrap'
                             }}
                           >
-                            {r.tied?'T-':''}
-                            {ordinal(
-                              r.displayRank
-                            )}
+                            {r.tied
+                              ? `T-${r.displayRank}`
+                              : r.displayRank}
                           </td>
 
-                          <td>
+                          <td
+                            style={{
+                              padding:'6px 2px'
+                            }}
+                          >
                             <Link
                               href={`/squads/${r.squads.id}`}
                               style={{
                                 display:'inline-flex',
                                 alignItems:'center',
                                 justifyContent:'center',
-                                gap:6,
+                                gap:4,
                                 color:'inherit',
                                 textDecoration:'none',
                                 position:'relative',
                                 zIndex:3,
                                 pointerEvents:'auto',
-                                padding:'4px 2px'
+                                maxWidth:'100%'
                               }}
                             >
                               <SquadLogo
@@ -1329,20 +1390,35 @@ export default async function Dashboard(){
                                 squadName={
                                   r.squads.squad_name
                                 }
-                                size={24}
+                                size={22}
                               />
 
-                              <b>
+                              <b
+                                style={{
+                                  lineHeight:1.1,
+                                  overflowWrap:'normal'
+                                }}
+                              >
                                 {r.squads.squad_name}
                               </b>
                             </Link>
                           </td>
 
-                          <td>
+                          <td
+                            style={{
+                              padding:'6px 2px',
+                              whiteSpace:'nowrap'
+                            }}
+                          >
                             {r.wins}-{r.losses}-{r.pushes}
                           </td>
 
-                          <td>
+                          <td
+                            style={{
+                              padding:'6px 2px',
+                              whiteSpace:'nowrap'
+                            }}
+                          >
                             {Number(
                               r.ats_margin
                             )>0

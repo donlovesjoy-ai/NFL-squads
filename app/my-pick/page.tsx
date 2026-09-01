@@ -376,8 +376,8 @@ export default async function MyPick({
             }}
           >
             Lines are subject to change.
-            Your official pick line will be the
-            closing line assigned at kickoff.
+            Your official line will be the
+            closing line assigned at kickoff by Bet MGM
           </p>
         </section>
       </main>

@@ -1,10 +1,11 @@
- import Link from 'next/link'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import KickoffCountdown from '../components/KickoffCountdown'
 import SquadLogo from '../components/SquadLogo'
 import SquadLogoUploader from '../components/SquadLogoUploader'
+import MessageReactions from '../chat/MessageReactions'
 
 function fmtSpread(n:any){
   if(n===null || n===undefined){
@@ -33,6 +34,16 @@ function formatChatTime(value:string){
       minute:'2-digit'
     }
   )
+}
+
+function chatAuthor(message:any){
+  const chatSquad=message?.squads
+
+  return message?.is_system===true
+    ? 'NFL SQUADS · League Update'
+    : chatSquad?.owner_name ||
+      chatSquad?.squad_name ||
+      (message?.is_commissioner ? 'Commissioner' : 'Owner')
 }
 
 function ordinal(n:number){
@@ -617,15 +628,26 @@ export default async function Dashboard(){
       .from('chat_messages')
       .select(`
         id,
+        user_id,
         message,
+        reply_to_id,
+        image_path,
+        gif_url,
         is_commissioner,
         is_system,
         is_pinned,
+        pinned_at,
         created_at,
 
         squads(
           squad_name,
-          owner_name
+          owner_name,
+          logo_path,
+
+          nfl_teams(
+            name,
+            abbreviation
+          )
         )
       `)
       .order(
@@ -648,6 +670,74 @@ export default async function Dashboard(){
         }
       )
       .limit(5)
+
+  const dashboardMessages:any[]=
+    chatMessages||[]
+
+  const chatMessageIds=
+    dashboardMessages.map(
+      (message:any)=>Number(message.id)
+    )
+
+  const replyIds=[
+    ...new Set(
+      dashboardMessages
+        .map((message:any)=>Number(message.reply_to_id))
+        .filter((id:number)=>Number.isInteger(id) && id>0)
+    )
+  ]
+
+  let replyMessages:any[]=[]
+
+  if(replyIds.length){
+    const {data}=await supabase
+      .from('chat_messages')
+      .select(`
+        id,
+        message,
+        is_commissioner,
+        is_system,
+        squads(
+          squad_name,
+          owner_name
+        )
+      `)
+      .in('id',replyIds)
+
+    replyMessages=data||[]
+  }
+
+  const dashboardMessageById=
+    new Map<number,any>()
+
+  for(const message of dashboardMessages){
+    dashboardMessageById.set(Number(message.id),message)
+  }
+
+  for(const message of replyMessages){
+    dashboardMessageById.set(Number(message.id),message)
+  }
+
+  let reactionData:any[]=[]
+
+  if(chatMessageIds.length){
+    const {data}=await supabase
+      .from('chat_message_reactions')
+      .select('message_id,user_id,emoji')
+      .in('message_id',chatMessageIds)
+
+    reactionData=data||[]
+  }
+
+  const reactionsByMessage=
+    new Map<number,any[]>()
+
+  for(const reaction of reactionData){
+    const messageId=Number(reaction.message_id)
+    const current=reactionsByMessage.get(messageId)||[]
+    current.push(reaction)
+    reactionsByMessage.set(messageId,current)
+  }
 
   return (
     <main className="wrap">
@@ -1311,7 +1401,8 @@ export default async function Dashboard(){
 
                     <th
                       style={{
-                        padding:'6px 2px'
+                        padding:'6px 2px',
+                        textAlign:'center'
                       }}
                     >
                       Team
@@ -1447,7 +1538,7 @@ export default async function Dashboard(){
           League Chat
         </h2>
 
-        {!chatMessages?.length ? (
+        {!dashboardMessages.length ? (
           <p className="muted">
             No messages yet.
           </p>
@@ -1459,79 +1550,238 @@ export default async function Dashboard(){
               textAlign:'left'
             }}
           >
-            {chatMessages.map(
+            {dashboardMessages.map(
               (m:any)=>{
-                const chatSquad=
-                  m.squads
+                const chatSquad=m.squads
+                const isSystem=m.is_system===true
+                const author=chatAuthor(m)
+                const repliedTo=m.reply_to_id
+                  ? dashboardMessageById.get(Number(m.reply_to_id))
+                  : null
 
-                const isSystem=
-                  m.is_system===true
+                const imageUrl=m.image_path
+                  ? supabase.storage
+                      .from('chat-media')
+                      .getPublicUrl(m.image_path)
+                      .data.publicUrl
+                  : null
 
-                const author=
-                  isSystem
-                    ? 'NFL SQUADS · League Update'
-                    : chatSquad?.owner_name ||
-                      chatSquad?.squad_name ||
-                      (
-                        m.is_commissioner
-                          ? 'Commissioner'
-                          : 'Owner'
-                      )
+                const rawReactions=
+                  reactionsByMessage.get(Number(m.id))||[]
+
+                const reactionGroups=
+                  new Map<string,{count:number,reactedByMe:boolean}>()
+
+                for(const reaction of rawReactions){
+                  const emoji=String(reaction.emoji)
+                  const current=reactionGroups.get(emoji)||{
+                    count:0,
+                    reactedByMe:false
+                  }
+
+                  current.count++
+
+                  if(reaction.user_id===user.id){
+                    current.reactedByMe=true
+                  }
+
+                  reactionGroups.set(emoji,current)
+                }
+
+                const reactions=[...reactionGroups.entries()].map(
+                  ([emoji,value])=>({
+                    emoji,
+                    count:value.count,
+                    reactedByMe:value.reactedByMe
+                  })
+                )
+
+                const canReact=
+                  !isSystem &&
+                  Boolean(m.user_id)
 
                 return (
                   <div
                     key={m.id}
                     style={{
-                      padding:'10px 0',
-                      borderBottom:
-                        '1px solid #ddd'
+                      padding:'12px',
+                      marginBottom:10,
+                      marginLeft:m.reply_to_id ? 14 : 0,
+                      border:m.is_pinned
+                        ? '2px solid #999'
+                        : isSystem
+                          ? '2px solid #bbb'
+                          : '1px solid #ddd',
+                      borderLeft:m.reply_to_id
+                        ? '4px solid #999'
+                        : undefined,
+                      borderRadius:10,
+                      background:isSystem ? '#f7f7f7' : '#fff'
                     }}
                   >
                     {m.is_pinned && (
                       <div
                         style={{
                           fontWeight:700,
-                          marginBottom:4
+                          marginBottom:6
                         }}
                       >
                         📌 Pinned Announcement
                       </div>
                     )}
 
-                    <div>
-                      <b>
-                        {isSystem
-                          ? '🏈 '
-                          : ''}
-                        {author}
-                      </b>
+                    {repliedTo && (
+                      <div
+                        style={{
+                          marginBottom:8,
+                          padding:'7px 9px',
+                          background:'#f3f3f3',
+                          borderRadius:8,
+                          fontSize:'0.8rem'
+                        }}
+                      >
+                        <div style={{fontWeight:800}}>
+                          Reply to {chatAuthor(repliedTo)}
+                        </div>
 
-                      {!isSystem &&
-                       chatSquad?.squad_name &&
-                       chatSquad.owner_name ? (
-                        <span className="muted">
-                          {' '}
-                          ·{' '}
-                          {chatSquad.squad_name}
-                        </span>
-                      ) : null}
-                    </div>
+                        <div
+                          className="muted"
+                          style={{
+                            overflow:'hidden',
+                            textOverflow:'ellipsis',
+                            whiteSpace:'nowrap'
+                          }}
+                        >
+                          {repliedTo.message || 'Photo'}
+                        </div>
+                      </div>
+                    )}
 
-                    <div style={{marginTop:4}}>
-                      {m.message}
-                    </div>
+                    {isSystem ? (
+                      <div>
+                        <b>🏈 {author}</b>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display:'flex',
+                          alignItems:'center',
+                          gap:7
+                        }}
+                      >
+                        <SquadLogo
+                          logoPath={chatSquad?.logo_path}
+                          nflAbbreviation={
+                            chatSquad?.nfl_teams?.abbreviation
+                          }
+                          squadName={chatSquad?.squad_name}
+                          size={30}
+                        />
+
+                        <div>
+                          <b>{author}</b>
+
+                          {chatSquad?.squad_name &&
+                           chatSquad.owner_name ? (
+                            <span className="muted">
+                              {' '}· {chatSquad.squad_name}
+                            </span>
+                          ) : null}
+
+                          {m.is_commissioner ? (
+                            <span className="muted">
+                              {' '}· Commissioner
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+
+                    {m.message ? (
+                      <div
+                        style={{
+                          marginTop:6,
+                          whiteSpace:'pre-wrap',
+                          overflowWrap:'anywhere',
+                          fontWeight:isSystem ? 600 : 400
+                        }}
+                      >
+                        {m.message}
+                      </div>
+                    ) : null}
+
+                    {imageUrl && (
+                      <div style={{marginTop:8}}>
+                        <img
+                          src={imageUrl}
+                          alt="Chat attachment"
+                          style={{
+                            display:'block',
+                            width:'100%',
+                            maxWidth:360,
+                            maxHeight:300,
+                            objectFit:'contain',
+                            borderRadius:10
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {m.gif_url && (
+                      <div style={{marginTop:8}}>
+                        <img
+                          src={m.gif_url}
+                          alt="GIF"
+                          style={{
+                            display:'block',
+                            width:'100%',
+                            maxWidth:360,
+                            maxHeight:300,
+                            objectFit:'contain',
+                            borderRadius:10
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {(reactions.length>0 || canReact) && (
+                      <MessageReactions
+                        messageId={Number(m.id)}
+                        reactions={reactions}
+                        canReact={canReact}
+                      />
+                    )}
 
                     <div
-                      className="muted"
                       style={{
-                        marginTop:4,
-                        fontSize:'0.85rem'
+                        marginTop:8,
+                        display:'flex',
+                        alignItems:'center',
+                        gap:10,
+                        flexWrap:'wrap'
                       }}
                     >
-                      {formatChatTime(
-                        m.created_at
-                      )}{' '}
-                      ET
+                      <div
+                        className="muted"
+                        style={{
+                          fontSize:'0.85rem'
+                        }}
+                      >
+                        {formatChatTime(m.created_at)} ET
+                      </div>
+
+                      {!isSystem && (
+                        <Link
+                          href={`/chat?reply=${m.id}#composer`}
+                          style={{
+                            fontSize:'0.82rem',
+                            fontWeight:800,
+                            textDecoration:'underline'
+                          }}
+                        >
+                          Reply
+                        </Link>
+                      )}
                     </div>
                   </div>
                 )

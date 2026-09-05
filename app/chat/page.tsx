@@ -1,10 +1,11 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
 import ChatScroller from './ChatScroller'
+import ChatComposer from './ChatComposer'
 import {
-  postMessage,
   togglePinMessage,
   deleteMessage
 } from './actions'
@@ -22,7 +23,21 @@ function formatTime(value:string){
   )
 }
 
-export default async function ChatPage(){
+function authorFor(message:any){
+  const squad=message?.squads
+  return (
+    squad?.owner_name ||
+    squad?.squad_name ||
+    (message?.is_commissioner ? 'Commissioner' : 'Owner')
+  )
+}
+
+export default async function ChatPage({
+  searchParams
+}:{
+  searchParams:Promise<{reply?:string}>
+}){
+  const sp=await searchParams
   const supabase=await createClient()
   const {data:{user}}=await supabase.auth.getUser()
 
@@ -46,6 +61,9 @@ export default async function ChatPage(){
         id,
         user_id,
         message,
+        reply_to_id,
+        image_path,
+        gif_url,
         is_commissioner,
         is_system,
         is_pinned,
@@ -64,17 +82,53 @@ export default async function ChatPage(){
         )
       `)
       .order('created_at',{ascending:false})
-      .limit(100)
+      .limit(150)
   ])
 
   const commissioner=profile?.role==='commissioner'
   const messages=messageData ? [...messageData].reverse() : []
+  const messageById=new Map<number,any>()
+
+  for(const message of messages){
+    messageById.set(Number(message.id),message)
+  }
+
+  const requestedReplyId=Number(sp.reply)
+  let replyTarget=Number.isInteger(requestedReplyId) && requestedReplyId>0
+    ? messageById.get(requestedReplyId) || null
+    : null
+
+  if(!replyTarget && Number.isInteger(requestedReplyId) && requestedReplyId>0){
+    const {data}=await supabase
+      .from('chat_messages')
+      .select(`
+        id,
+        message,
+        is_commissioner,
+        squads(
+          squad_name,
+          owner_name
+        )
+      `)
+      .eq('id',requestedReplyId)
+      .maybeSingle()
+
+    replyTarget=data||null
+  }
+
+  const replyInfo=replyTarget
+    ? {
+        id:Number(replyTarget.id),
+        author:authorFor(replyTarget),
+        message:String(replyTarget.message||'')
+      }
+    : null
 
   return (
     <main
       className="wrap"
       style={{
-        paddingBottom:'calc(190px + env(safe-area-inset-bottom))'
+        paddingBottom:'calc(300px + env(safe-area-inset-bottom))'
       }}
     >
       <div
@@ -101,11 +155,18 @@ export default async function ChatPage(){
           ) : (
             messages.map((m:any)=>{
               const squad=m.squads
-              const author=
-                squad?.owner_name ||
-                squad?.squad_name ||
-                (m.is_commissioner ? 'Commissioner' : 'Owner')
+              const author=authorFor(m)
               const isSystem=m.is_system===true
+              const repliedTo=m.reply_to_id
+                ? messageById.get(Number(m.reply_to_id))
+                : null
+
+              const imageUrl=m.image_path
+                ? supabase.storage
+                    .from('chat-media')
+                    .getPublicUrl(m.image_path)
+                    .data.publicUrl
+                : null
 
               return (
                 <div
@@ -113,11 +174,15 @@ export default async function ChatPage(){
                   style={{
                     padding:'12px',
                     marginBottom:10,
+                    marginLeft:m.reply_to_id ? 20 : 0,
                     border:m.is_pinned
                       ? '2px solid #999'
                       : isSystem
                         ? '2px solid #bbb'
                         : '1px solid #ddd',
+                    borderLeft:m.reply_to_id
+                      ? '4px solid #999'
+                      : undefined,
                     borderRadius:10,
                     background:isSystem ? '#f7f7f7' : '#fff'
                   }}
@@ -125,6 +190,41 @@ export default async function ChatPage(){
                   {m.is_pinned && (
                     <div style={{fontWeight:700,marginBottom:6}}>
                       📌 Pinned Announcement
+                    </div>
+                  )}
+
+                  {repliedTo && (
+                    <div
+                      style={{
+                        marginBottom:8,
+                        padding:'7px 9px',
+                        background:'#f3f3f3',
+                        borderRadius:8,
+                        fontSize:'0.8rem'
+                      }}
+                    >
+                      <div style={{fontWeight:800}}>
+                        Reply to {authorFor(repliedTo)}
+                      </div>
+                      <div
+                        className="muted"
+                        style={{
+                          overflow:'hidden',
+                          textOverflow:'ellipsis',
+                          whiteSpace:'nowrap'
+                        }}
+                      >
+                        {repliedTo.message || 'Photo / GIF'}
+                      </div>
+                    </div>
+                  )}
+
+                  {m.reply_to_id && !repliedTo && (
+                    <div
+                      className="muted"
+                      style={{fontSize:'0.78rem',marginBottom:8}}
+                    >
+                      Reply to an earlier message
                     </div>
                   )}
 
@@ -159,22 +259,81 @@ export default async function ChatPage(){
                     </div>
                   )}
 
-                  <div
-                    style={{
-                      marginTop:6,
-                      fontWeight:isSystem ? 600 : 400,
-                      whiteSpace:'pre-wrap',
-                      overflowWrap:'anywhere'
-                    }}
-                  >
-                    {m.message}
-                  </div>
+                  {m.message ? (
+                    <div
+                      style={{
+                        marginTop:6,
+                        fontWeight:isSystem ? 600 : 400,
+                        whiteSpace:'pre-wrap',
+                        overflowWrap:'anywhere'
+                      }}
+                    >
+                      {m.message}
+                    </div>
+                  ) : null}
+
+                  {imageUrl && (
+                    <div style={{marginTop:8}}>
+                      <img
+                        src={imageUrl}
+                        alt="Chat attachment"
+                        style={{
+                          display:'block',
+                          width:'100%',
+                          maxWidth:420,
+                          maxHeight:420,
+                          objectFit:'contain',
+                          borderRadius:10
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {m.gif_url && (
+                    <div style={{marginTop:8}}>
+                      <img
+                        src={m.gif_url}
+                        alt="GIF"
+                        style={{
+                          display:'block',
+                          width:'100%',
+                          maxWidth:420,
+                          maxHeight:420,
+                          objectFit:'contain',
+                          borderRadius:10
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <div
-                    className="muted"
-                    style={{marginTop:6,fontSize:'0.9rem'}}
+                    style={{
+                      marginTop:8,
+                      display:'flex',
+                      alignItems:'center',
+                      gap:10,
+                      flexWrap:'wrap'
+                    }}
                   >
-                    {formatTime(m.created_at)} ET
+                    <div
+                      className="muted"
+                      style={{fontSize:'0.9rem'}}
+                    >
+                      {formatTime(m.created_at)} ET
+                    </div>
+
+                    {!isSystem && (
+                      <Link
+                        href={`/chat?reply=${m.id}#composer`}
+                        style={{
+                          fontSize:'0.82rem',
+                          fontWeight:800,
+                          textDecoration:'underline'
+                        }}
+                      >
+                        Reply
+                      </Link>
+                    )}
                   </div>
 
                   {commissioner && (
@@ -213,61 +372,7 @@ export default async function ChatPage(){
         </section>
       </ChatScroller>
 
-      <div
-        style={{
-          position:'fixed',
-          left:0,
-          right:0,
-          bottom:0,
-          zIndex:100,
-          background:'#fff',
-          borderTop:'1px solid #d5d5d5',
-          boxShadow:'0 -4px 14px rgba(0,0,0,0.08)',
-          padding:'10px 12px calc(10px + env(safe-area-inset-bottom))'
-        }}
-      >
-        <div style={{width:'100%',maxWidth:900,margin:'0 auto'}}>
-          <form
-            action={postMessage}
-            style={{
-              display:'flex',
-              flexDirection:'column',
-              alignItems:'center',
-              gap:8
-            }}
-          >
-            <textarea
-              name="message"
-              placeholder="Write a message..."
-              maxLength={500}
-              required
-              rows={2}
-              style={{
-                width:'100%',
-                maxWidth:700,
-                resize:'none',
-                margin:0,
-                borderRadius:10,
-                fontSize:'16px'
-              }}
-            />
-
-            <button
-              className="submit"
-              type="submit"
-              style={{
-                margin:0,
-                minHeight:44,
-                width:'100%',
-                maxWidth:300,
-                textAlign:'center'
-              }}
-            >
-              Say it
-            </button>
-          </form>
-        </div>
-      </div>
+      <ChatComposer reply={replyInfo}/>
     </main>
   )
 }

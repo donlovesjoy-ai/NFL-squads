@@ -1,6 +1,5 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -35,23 +34,6 @@ async function requireUser(){
     user,
     commissioner:profile?.role==='commissioner'
   }
-}
-
-async function reactionReturnPath(){
-  const requestHeaders=await headers()
-  const referer=requestHeaders.get('referer')||''
-
-  try{
-    const pathname=new URL(referer).pathname
-
-    if(pathname==='/' || pathname==='/dashboard'){
-      return '/dashboard'
-    }
-  }catch{
-    // Fall through to chat.
-  }
-
-  return '/chat'
 }
 
 function cleanGifUrl(value:string){
@@ -135,14 +117,13 @@ export async function postMessage(formData:FormData){
 }
 
 export async function toggleReaction(formData:FormData){
-  const returnPath=await reactionReturnPath()
   const {supabase,user}=await requireUser()
 
   const messageId=Number(formData.get('message_id'))
   const emoji=String(formData.get('emoji')||'')
 
   if(!Number.isInteger(messageId) || messageId<=0 || !allowedReactionEmojis.has(emoji)){
-    redirect(returnPath)
+    return {ok:false as const}
   }
 
   const {data:message}=await supabase
@@ -152,7 +133,7 @@ export async function toggleReaction(formData:FormData){
     .maybeSingle()
 
   if(!message || message.is_system===true){
-    redirect(returnPath)
+    return {ok:false as const}
   }
 
   const {data:existing}=await supabase
@@ -162,34 +143,39 @@ export async function toggleReaction(formData:FormData){
     .eq('user_id',user.id)
     .maybeSingle()
 
-  if(existing?.id){
-    await supabase
+  if(existing?.id && existing.emoji===emoji){
+    const {error}=await supabase
       .from('chat_message_reactions')
       .delete()
       .eq('id',existing.id)
 
-    if(existing.emoji!==emoji){
-      await supabase
-        .from('chat_message_reactions')
-        .insert({
-          message_id:messageId,
-          user_id:user.id,
-          emoji
-        })
-    }
-  }else{
-    await supabase
-      .from('chat_message_reactions')
-      .insert({
-        message_id:messageId,
-        user_id:user.id,
-        emoji
-      })
+    return error
+      ? {ok:false as const}
+      : {ok:true as const,emoji:null}
   }
 
-  revalidatePath('/chat')
-  revalidatePath('/dashboard')
-  redirect(returnPath)
+  if(existing?.id){
+    const {error}=await supabase
+      .from('chat_message_reactions')
+      .update({emoji})
+      .eq('id',existing.id)
+
+    return error
+      ? {ok:false as const}
+      : {ok:true as const,emoji}
+  }
+
+  const {error}=await supabase
+    .from('chat_message_reactions')
+    .insert({
+      message_id:messageId,
+      user_id:user.id,
+      emoji
+    })
+
+  return error
+    ? {ok:false as const}
+    : {ok:true as const,emoji}
 }
 
 export async function togglePinMessage(formData:FormData){

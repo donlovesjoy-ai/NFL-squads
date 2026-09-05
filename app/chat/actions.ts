@@ -4,6 +4,15 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
+const MAX_IMAGE_SIZE=4*1024*1024
+
+const allowedImageTypes=new Map([
+  ['image/png','png'],
+  ['image/jpeg','jpg'],
+  ['image/webp','webp'],
+  ['image/gif','gif']
+])
+
 async function requireUser(){
   const supabase=await createClient()
 
@@ -23,11 +32,57 @@ async function requireUser(){
   }
 }
 
+function cleanGifUrl(value:string){
+  const raw=value.trim()
+  if(!raw) return null
+
+  try{
+    const url=new URL(raw)
+    if(url.protocol!=='https:') return null
+    return url.toString()
+  }catch{
+    return null
+  }
+}
+
 export async function postMessage(formData:FormData){
   const {supabase,user,commissioner}=await requireUser()
 
-  const message=String(formData.get('message')||'').trim()
-  if(!message) return
+  const message=String(formData.get('message')||'').trim().slice(0,500)
+  const gifUrl=cleanGifUrl(String(formData.get('gif_url')||''))
+  const replyValue=Number(formData.get('reply_to_id'))
+  const replyToId=Number.isInteger(replyValue) && replyValue>0
+    ? replyValue
+    : null
+
+  const image=formData.get('image')
+  let imagePath:string|null=null
+
+  if(image instanceof File && image.size>0){
+    const extension=allowedImageTypes.get(image.type)
+
+    if(!extension || image.size>MAX_IMAGE_SIZE){
+      redirect(replyToId ? `/chat?reply=${replyToId}#composer` : '/chat#composer')
+    }
+
+    imagePath=`${user.id}/${crypto.randomUUID()}.${extension}`
+
+    const {error:uploadError}=await supabase.storage
+      .from('chat-media')
+      .upload(imagePath,image,{
+        contentType:image.type,
+        cacheControl:'3600',
+        upsert:false
+      })
+
+    if(uploadError){
+      imagePath=null
+    }
+  }
+
+  if(!message && !gifUrl && !imagePath){
+    redirect(replyToId ? `/chat?reply=${replyToId}#composer` : '/chat#composer')
+  }
 
   const {data:squad}=await supabase
     .from('squads')
@@ -36,12 +91,21 @@ export async function postMessage(formData:FormData){
     .eq('season_year',2026)
     .maybeSingle()
 
-  await supabase.from('chat_messages').insert({
+  const {error:insertError}=await supabase.from('chat_messages').insert({
     user_id:user.id,
     squad_id:squad?.id || null,
     message,
-    is_commissioner:commissioner
+    is_commissioner:commissioner,
+    reply_to_id:replyToId,
+    image_path:imagePath,
+    gif_url:gifUrl
   })
+
+  if(insertError && imagePath){
+    await supabase.storage
+      .from('chat-media')
+      .remove([imagePath])
+  }
 
   revalidatePath('/chat')
   revalidatePath('/dashboard')

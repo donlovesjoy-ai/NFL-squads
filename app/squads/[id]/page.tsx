@@ -104,6 +104,12 @@ function selectionRecord(rows:any[],ownAbbreviation:string,ownTeam:boolean){
   return recordText(wins,losses,pushes)
 }
 
+function teamRegion(name:string){
+  const parts=String(name||'').trim().split(/\s+/).filter(Boolean)
+  if(parts.length<=1) return parts[0]||'Team'
+  return parts.slice(0,-1).join(' ')
+}
+
 export default async function SquadSchedule({
   params
 }:{
@@ -208,6 +214,7 @@ export default async function SquadSchedule({
     : squad.nfl_teams
 
   const teamAbbreviation=squadNflTeam?.abbreviation||''
+  const ownTeamRegion=teamRegion(squadNflTeam?.name||'')
   const ownPickRecord=selectionRecord(schedule,teamAbbreviation,true)
   const opponentPickRecord=selectionRecord(schedule,teamAbbreviation,false)
 
@@ -289,11 +296,11 @@ export default async function SquadSchedule({
             className="muted"
             style={{fontSize:'0.68rem',fontWeight:700,marginBottom:3}}
           >
-            PICK RECORDS
+            SELECTION
           </div>
           <div style={{fontSize:'0.72rem',fontWeight:800,lineHeight:1.35}}>
-            <div>OWN {ownPickRecord}</div>
-            <div>OPP {opponentPickRecord}</div>
+            <div>{ownTeamRegion} {ownPickRecord}</div>
+            <div>Opponent {opponentPickRecord}</div>
           </div>
         </div>
 
@@ -320,7 +327,14 @@ export default async function SquadSchedule({
           </div>
         </div>
 
-        <div style={{display:'flex',justifyContent:'center',marginBottom:6}}>
+        <div
+          style={{
+            display:'flex',
+            justifyContent:'center',
+            marginTop:12,
+            marginBottom:-8
+          }}
+        >
           <SquadLogo
             logoPath={squad.logo_path}
             nflAbbreviation={teamAbbreviation}
@@ -329,7 +343,7 @@ export default async function SquadSchedule({
           />
         </div>
 
-        <h1 style={{marginBottom:8}}>{squad.squad_name}</h1>
+        <h1 style={{marginTop:0,marginBottom:8}}>{squad.squad_name}</h1>
 
         <div style={{fontSize:'1rem',fontWeight:800}}>
           {recordText(

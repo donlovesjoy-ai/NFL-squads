@@ -128,11 +128,11 @@ export async function toggleReaction(formData:FormData){
 
   const {data:message}=await supabase
     .from('chat_messages')
-    .select('id,user_id,is_system')
+    .select('id,is_system')
     .eq('id',messageId)
     .maybeSingle()
 
-  if(!message || message.is_system===true || message.user_id===user.id){
+  if(!message || message.is_system===true){
     redirect('/chat')
   }
 

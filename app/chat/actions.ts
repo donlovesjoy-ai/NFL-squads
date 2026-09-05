@@ -1,5 +1,6 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -34,6 +35,23 @@ async function requireUser(){
     user,
     commissioner:profile?.role==='commissioner'
   }
+}
+
+async function reactionReturnPath(){
+  const requestHeaders=await headers()
+  const referer=requestHeaders.get('referer')||''
+
+  try{
+    const pathname=new URL(referer).pathname
+
+    if(pathname==='/' || pathname==='/dashboard'){
+      return '/dashboard'
+    }
+  }catch{
+    // Fall through to chat.
+  }
+
+  return '/chat'
 }
 
 function cleanGifUrl(value:string){
@@ -117,13 +135,14 @@ export async function postMessage(formData:FormData){
 }
 
 export async function toggleReaction(formData:FormData){
+  const returnPath=await reactionReturnPath()
   const {supabase,user}=await requireUser()
 
   const messageId=Number(formData.get('message_id'))
   const emoji=String(formData.get('emoji')||'')
 
   if(!Number.isInteger(messageId) || messageId<=0 || !allowedReactionEmojis.has(emoji)){
-    redirect('/chat')
+    redirect(returnPath)
   }
 
   const {data:message}=await supabase
@@ -133,7 +152,7 @@ export async function toggleReaction(formData:FormData){
     .maybeSingle()
 
   if(!message || message.is_system===true){
-    redirect('/chat')
+    redirect(returnPath)
   }
 
   const {data:existing}=await supabase
@@ -160,7 +179,8 @@ export async function toggleReaction(formData:FormData){
   }
 
   revalidatePath('/chat')
-  redirect('/chat')
+  revalidatePath('/dashboard')
+  redirect(returnPath)
 }
 
 export async function togglePinMessage(formData:FormData){

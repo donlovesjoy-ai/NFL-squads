@@ -157,10 +157,9 @@ export async function toggleReaction(formData:FormData){
 
   const {data:existing}=await supabase
     .from('chat_message_reactions')
-    .select('id')
+    .select('id,emoji')
     .eq('message_id',messageId)
     .eq('user_id',user.id)
-    .eq('emoji',emoji)
     .maybeSingle()
 
   if(existing?.id){
@@ -168,6 +167,16 @@ export async function toggleReaction(formData:FormData){
       .from('chat_message_reactions')
       .delete()
       .eq('id',existing.id)
+
+    if(existing.emoji!==emoji){
+      await supabase
+        .from('chat_message_reactions')
+        .insert({
+          message_id:messageId,
+          user_id:user.id,
+          emoji
+        })
+    }
   }else{
     await supabase
       .from('chat_message_reactions')

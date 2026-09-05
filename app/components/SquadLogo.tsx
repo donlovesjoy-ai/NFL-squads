@@ -1,4 +1,4 @@
- type SquadLogoProps={
+type SquadLogoProps={
   logoPath?:string|null
   nflAbbreviation?:string|null
   squadName?:string|null
@@ -30,19 +30,33 @@ function customLogoUrl(
   )
 }
 
+function helmetAbbreviation(
+  nflAbbreviation?:string|null
+){
+  if(!nflAbbreviation){
+    return null
+  }
+
+  return nflAbbreviation==='WAS'
+    ? 'WSH'
+    : nflAbbreviation
+}
+
 export default function SquadLogo({
   logoPath,
   nflAbbreviation,
   squadName,
   size=64
 }:SquadLogoProps){
+  const helmetCode=helmetAbbreviation(nflAbbreviation)
+
   const src=
     logoPath
       ? customLogoUrl(
           logoPath
         )
-      : nflAbbreviation
-        ? `/helmets/${nflAbbreviation}.png`
+      : helmetCode
+        ? `/helmets/${helmetCode}.png`
         : null
 
   if(!src){

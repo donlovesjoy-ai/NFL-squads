@@ -7,6 +7,7 @@ button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding
 .pick:hover{border-color:#111}.submit{width:100%;padding:14px;border:0;border-radius:10px;background:#111;color:#fff;font-weight:800;cursor:pointer;margin-top:12px}
 .submit:disabled{opacity:.45;cursor:not-allowed}.status{padding:10px 12px;border-radius:10px;background:#f1f1f1;display:inline-block}.division h2{text-decoration:underline}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid #eee}
+section.card>a[href="/standings"]+div table th,section.card>a[href="/standings"]+div table td{text-align:center}
 input[type=email],input[type=password]{width:100%;padding:12px;border:1px solid #bbb;border-radius:9px;margin:7px 0}
 
 select{width:100%;padding:12px;border:1px solid #bbb;border-radius:9px;margin:7px 0 14px;background:#fff}
@@ -18,4 +19,4 @@ td button{width:auto;padding:8px 12px;border:1px solid #bbb;border-radius:8px;ba
 .bracket-box>div{padding:8px 4px;border-bottom:1px solid #ddd}
 .bracket-box>div:last-of-type{border-bottom:0}
 .bracket-winner{font-weight:800}
-@media(max-width:760px){.bracket-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.bracket-grid{grid-template-columns:1fr}textarea,input,select{font-size:16px}}

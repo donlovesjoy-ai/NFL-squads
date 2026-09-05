@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
-const MAX_IMAGE_SIZE=4*1024*1024
+const MAX_IMAGE_SIZE=10*1024*1024
 
 const allowedImageTypes=new Map([
   ['image/png','png'],

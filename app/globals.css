@@ -8,7 +8,8 @@ button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding
 .submit:disabled{opacity:.45;cursor:not-allowed}.status{padding:10px 12px;border-radius:10px;background:#f1f1f1;display:inline-block}.division h2{text-decoration:underline}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid #eee}
 section.card>a[href="/standings"]+div table th,section.card>a[href="/standings"]+div table td{text-align:center}
-[aria-label="More information to the right"]{display:inline-block;transform:translateX(clamp(48px,14vw,92px))}
+td:has([aria-label="More information to the right"])>div{position:relative!important;justify-content:center!important;width:100%}
+[aria-label="More information to the right"]{position:absolute;right:0;top:50%;transform:translateY(-50%)}
 input[type=email],input[type=password]{width:100%;padding:12px;border:1px solid #bbb;border-radius:9px;margin:7px 0}
 
 select{width:100%;padding:12px;border:1px solid #bbb;border-radius:9px;margin:7px 0 14px;background:#fff}

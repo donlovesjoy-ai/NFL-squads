@@ -13,6 +13,10 @@ const allowedImageTypes=new Map([
   ['image/gif','gif']
 ])
 
+const allowedReactionEmojis=new Set([
+  '👍','👎','❤️','😂','🔥','👏','🏈','🍺','💯','😮'
+])
+
 async function requireUser(){
   const supabase=await createClient()
 
@@ -109,6 +113,53 @@ export async function postMessage(formData:FormData){
 
   revalidatePath('/chat')
   revalidatePath('/dashboard')
+  redirect('/chat')
+}
+
+export async function toggleReaction(formData:FormData){
+  const {supabase,user}=await requireUser()
+
+  const messageId=Number(formData.get('message_id'))
+  const emoji=String(formData.get('emoji')||'')
+
+  if(!Number.isInteger(messageId) || messageId<=0 || !allowedReactionEmojis.has(emoji)){
+    redirect('/chat')
+  }
+
+  const {data:message}=await supabase
+    .from('chat_messages')
+    .select('id,user_id,is_system')
+    .eq('id',messageId)
+    .maybeSingle()
+
+  if(!message || message.is_system===true || message.user_id===user.id){
+    redirect('/chat')
+  }
+
+  const {data:existing}=await supabase
+    .from('chat_message_reactions')
+    .select('id')
+    .eq('message_id',messageId)
+    .eq('user_id',user.id)
+    .eq('emoji',emoji)
+    .maybeSingle()
+
+  if(existing?.id){
+    await supabase
+      .from('chat_message_reactions')
+      .delete()
+      .eq('id',existing.id)
+  }else{
+    await supabase
+      .from('chat_message_reactions')
+      .insert({
+        message_id:messageId,
+        user_id:user.id,
+        emoji
+      })
+  }
+
+  revalidatePath('/chat')
   redirect('/chat')
 }
 

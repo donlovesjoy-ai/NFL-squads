@@ -11,7 +11,7 @@ import { postMessage } from './actions'
 
 const emojis=['😀','😂','🤣','😍','😎','🤔','🙄','😬','🔥','💯','👍','👎','👏','🏈','🍺','🎉']
 
-const MAX_IMAGE_SIZE=4*1024*1024
+const MAX_IMAGE_SIZE=10*1024*1024
 
 const allowedImageTypes=new Set([
   'image/png',
@@ -80,7 +80,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
     if(file.size>MAX_IMAGE_SIZE){
       setSelectedFile(null)
       event.target.value=''
-      setFileError('Photo must be 4 MB or smaller.')
+      setFileError('Photo or GIF must be 10 MB or smaller.')
       return
     }
 
@@ -206,17 +206,29 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
             <button
               type="button"
               onClick={()=>setShowEmoji(value=>!value)}
-              style={{padding:'8px 12px'}}
+              aria-label="Add emoji"
+              title="Add emoji"
+              style={{
+                padding:'7px 10px',
+                fontSize:'1.2rem',
+                lineHeight:1
+              }}
             >
-              😀 Emoji
+              😀
             </button>
 
             <button
               type="button"
               onClick={choosePhoto}
-              style={{padding:'8px 12px'}}
+              aria-label="Add photo or GIF"
+              title="Add photo or GIF"
+              style={{
+                padding:'7px 10px',
+                fontSize:'1.2rem',
+                lineHeight:1
+              }}
             >
-              📷 Photo
+              📷
             </button>
           </div>
 

@@ -50,9 +50,11 @@ export function Nav({
         Chat
       </Link>
 
-      <Link href="/notifications">
-        Scoring Alerts
-      </Link>
+      {commissioner && (
+        <Link href="/notifications">
+          Scoring Alerts
+        </Link>
+      )}
 
       {commissioner && (
         <Link href="/commissioner/setup">

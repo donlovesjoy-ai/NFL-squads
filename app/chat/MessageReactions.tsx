@@ -49,20 +49,19 @@ export default function MessageReactions({
             disabled={!canReact}
             aria-label={`${reaction.emoji} reaction, ${reaction.count}`}
             style={{
-              minWidth:42,
-              padding:'4px 8px',
-              borderRadius:999,
-              border:reaction.reactedByMe
-                ? '2px solid #111'
-                : '1px solid #ccc',
-              background:reaction.reactedByMe
-                ? '#f2f2f2'
-                : '#fff',
+              minWidth:38,
+              padding:'3px 7px',
+              borderRadius:8,
+              border:'1px solid #d8d8d8',
+              background:reaction.reactedByMe ? '#f3f3f3' : '#fff',
+              color:'#111',
               cursor:canReact ? 'pointer' : 'default',
-              fontSize:'0.88rem'
+              fontSize:'0.88rem',
+              fontWeight:700
             }}
           >
-            {reaction.emoji} {reaction.count}
+            <span>{reaction.emoji}</span>
+            <span style={{marginLeft:4,color:'#111'}}>{reaction.count}</span>
           </button>
         </form>
       ))}
@@ -72,17 +71,20 @@ export default function MessageReactions({
           <button
             type="button"
             onClick={()=>setShowPicker(value=>!value)}
+            aria-label="Add reaction"
+            title="Add reaction"
             style={{
-              padding:'4px 9px',
-              borderRadius:999,
-              border:'1px solid #ccc',
+              padding:'3px 7px',
+              borderRadius:8,
+              border:'1px solid #d8d8d8',
               background:'#fff',
-              fontSize:'0.82rem',
-              fontWeight:700,
+              color:'#111',
+              fontSize:'1rem',
+              lineHeight:1.2,
               cursor:'pointer'
             }}
           >
-            + React
+            🙂+
           </button>
 
           {showPicker && (
@@ -109,6 +111,7 @@ export default function MessageReactions({
                     style={{
                       border:'1px solid #ddd',
                       background:'#fff',
+                      color:'#111',
                       borderRadius:8,
                       padding:'5px 7px',
                       fontSize:'1.15rem',

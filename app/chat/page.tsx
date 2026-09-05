@@ -218,8 +218,7 @@ export default async function ChatPage({
 
               const canReact=
                 !isSystem &&
-                Boolean(m.user_id) &&
-                m.user_id!==user.id
+                Boolean(m.user_id)
 
               return (
                 <div

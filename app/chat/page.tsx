@@ -5,6 +5,7 @@ import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
 import ChatScroller from './ChatScroller'
 import ChatComposer from './ChatComposer'
+import MessageReactions from './MessageReactions'
 import {
   togglePinMessage,
   deleteMessage
@@ -93,6 +94,27 @@ export default async function ChatPage({
     messageById.set(Number(message.id),message)
   }
 
+  const messageIds=messages.map((message:any)=>Number(message.id))
+  let reactionData:any[]=[]
+
+  if(messageIds.length){
+    const {data}=await supabase
+      .from('chat_message_reactions')
+      .select('message_id,user_id,emoji')
+      .in('message_id',messageIds)
+
+    reactionData=data||[]
+  }
+
+  const reactionsByMessage=new Map<number,any[]>()
+
+  for(const reaction of reactionData){
+    const messageId=Number(reaction.message_id)
+    const current=reactionsByMessage.get(messageId)||[]
+    current.push(reaction)
+    reactionsByMessage.set(messageId,current)
+  }
+
   const requestedReplyId=Number(sp.reply)
   let replyTarget=Number.isInteger(requestedReplyId) && requestedReplyId>0
     ? messageById.get(requestedReplyId) || null
@@ -167,6 +189,37 @@ export default async function ChatPage({
                     .getPublicUrl(m.image_path)
                     .data.publicUrl
                 : null
+
+              const rawReactions=reactionsByMessage.get(Number(m.id))||[]
+              const reactionGroups=new Map<string,{count:number,reactedByMe:boolean}>()
+
+              for(const reaction of rawReactions){
+                const emoji=String(reaction.emoji)
+                const current=reactionGroups.get(emoji)||{
+                  count:0,
+                  reactedByMe:false
+                }
+
+                current.count++
+                if(reaction.user_id===user.id){
+                  current.reactedByMe=true
+                }
+
+                reactionGroups.set(emoji,current)
+              }
+
+              const reactions=[...reactionGroups.entries()].map(
+                ([emoji,value])=>({
+                  emoji,
+                  count:value.count,
+                  reactedByMe:value.reactedByMe
+                })
+              )
+
+              const canReact=
+                !isSystem &&
+                Boolean(m.user_id) &&
+                m.user_id!==user.id
 
               return (
                 <div
@@ -304,6 +357,14 @@ export default async function ChatPage({
                         }}
                       />
                     </div>
+                  )}
+
+                  {(reactions.length>0 || canReact) && (
+                    <MessageReactions
+                      messageId={Number(m.id)}
+                      reactions={reactions}
+                      canReact={canReact}
+                    />
                   )}
 
                   <div

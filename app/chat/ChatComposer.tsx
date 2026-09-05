@@ -1,10 +1,24 @@
 'use client'
 
 import Link from 'next/link'
-import { useRef,useState } from 'react'
+import {
+  ChangeEvent,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 import { postMessage } from './actions'
 
 const emojis=['😀','😂','🤣','😍','😎','🤔','🙄','😬','🔥','💯','👍','👎','👏','🏈','🍺','🎉']
+
+const MAX_IMAGE_SIZE=4*1024*1024
+
+const allowedImageTypes=new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif'
+])
 
 type ReplyInfo={
   id:number
@@ -12,16 +26,74 @@ type ReplyInfo={
   message:string
 }|null
 
-export default function ChatComposer({reply}: {reply:ReplyInfo}){
+export default function ChatComposer({reply}:{reply:ReplyInfo}){
   const [message,setMessage]=useState('')
   const [showEmoji,setShowEmoji]=useState(false)
-  const [showGif,setShowGif]=useState(false)
+  const [selectedFile,setSelectedFile]=useState<File|null>(null)
+  const [previewUrl,setPreviewUrl]=useState('')
+  const [fileError,setFileError]=useState('')
+
   const textareaRef=useRef<HTMLTextAreaElement|null>(null)
+  const fileInputRef=useRef<HTMLInputElement|null>(null)
+
+  useEffect(()=>{
+    if(!selectedFile){
+      setPreviewUrl('')
+      return
+    }
+
+    const url=URL.createObjectURL(selectedFile)
+    setPreviewUrl(url)
+
+    return ()=>{
+      URL.revokeObjectURL(url)
+    }
+  },[selectedFile])
 
   function addEmoji(emoji:string){
     setMessage(current=>`${current}${emoji}`)
     setShowEmoji(false)
     requestAnimationFrame(()=>textareaRef.current?.focus())
+  }
+
+  function choosePhoto(){
+    fileInputRef.current?.click()
+  }
+
+  function selectPhoto(event:ChangeEvent<HTMLInputElement>){
+    setFileError('')
+
+    const file=event.target.files?.[0]||null
+
+    if(!file){
+      setSelectedFile(null)
+      return
+    }
+
+    if(!allowedImageTypes.has(file.type)){
+      setSelectedFile(null)
+      event.target.value=''
+      setFileError('Choose a PNG, JPG, WebP, or GIF image.')
+      return
+    }
+
+    if(file.size>MAX_IMAGE_SIZE){
+      setSelectedFile(null)
+      event.target.value=''
+      setFileError('Photo must be 4 MB or smaller.')
+      return
+    }
+
+    setSelectedFile(file)
+  }
+
+  function removePhoto(){
+    setSelectedFile(null)
+    setFileError('')
+
+    if(fileInputRef.current){
+      fileInputRef.current.value=''
+    }
   }
 
   return (
@@ -55,6 +127,7 @@ export default function ChatComposer({reply}: {reply:ReplyInfo}){
             <div style={{fontWeight:800}}>
               Replying to {reply.author}
             </div>
+
             <div
               className="muted"
               style={{
@@ -63,8 +136,9 @@ export default function ChatComposer({reply}: {reply:ReplyInfo}){
                 whiteSpace:'nowrap'
               }}
             >
-              {reply.message || 'Photo / GIF'}
+              {reply.message || 'Photo'}
             </div>
+
             <Link
               href="/chat#composer"
               style={{
@@ -110,6 +184,15 @@ export default function ChatComposer({reply}: {reply:ReplyInfo}){
             }}
           />
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            name="image"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={selectPhoto}
+            style={{display:'none'}}
+          />
+
           <div
             style={{
               width:'100%',
@@ -128,32 +211,12 @@ export default function ChatComposer({reply}: {reply:ReplyInfo}){
               😀 Emoji
             </button>
 
-            <label
-              style={{
-                margin:0,
-                padding:'8px 12px',
-                border:'1px solid #bbb',
-                borderRadius:8,
-                fontWeight:700,
-                cursor:'pointer',
-                background:'#fff'
-              }}
-            >
-              📷 Photo
-              <input
-                type="file"
-                name="image"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                style={{display:'none'}}
-              />
-            </label>
-
             <button
               type="button"
-              onClick={()=>setShowGif(value=>!value)}
+              onClick={choosePhoto}
               style={{padding:'8px 12px'}}
             >
-              GIF
+              📷 Photo
             </button>
           </div>
 
@@ -190,21 +253,67 @@ export default function ChatComposer({reply}: {reply:ReplyInfo}){
             </div>
           )}
 
-          {showGif && (
-            <input
-              type="url"
-              name="gif_url"
-              placeholder="Paste a GIF link"
-              inputMode="url"
+          {selectedFile && previewUrl && (
+            <div
               style={{
                 width:'100%',
                 maxWidth:700,
-                padding:10,
-                border:'1px solid #bbb',
-                borderRadius:9,
-                fontSize:'16px'
+                padding:8,
+                border:'1px solid #ddd',
+                borderRadius:10,
+                background:'#fafafa'
               }}
-            />
+            >
+              <img
+                src={previewUrl}
+                alt="Selected attachment preview"
+                style={{
+                  display:'block',
+                  width:'100%',
+                  maxWidth:260,
+                  maxHeight:180,
+                  objectFit:'contain',
+                  margin:'0 auto',
+                  borderRadius:8
+                }}
+              />
+
+              <div
+                style={{
+                  marginTop:6,
+                  textAlign:'center',
+                  fontSize:'0.78rem',
+                  fontWeight:700,
+                  overflowWrap:'anywhere'
+                }}
+              >
+                {selectedFile.name}
+              </div>
+
+              <div style={{marginTop:6,textAlign:'center'}}>
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  style={{padding:'6px 10px'}}
+                >
+                  Remove photo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {fileError && (
+            <div
+              className="status"
+              style={{
+                width:'100%',
+                maxWidth:700,
+                textAlign:'center',
+                fontSize:'0.78rem'
+              }}
+            >
+              {fileError}
+            </div>
           )}
 
           <button

@@ -1,4 +1,4 @@
- import Link from 'next/link'
+import Link from 'next/link'
 import { logout } from './logout/actions'
 
 export function Nav({
@@ -48,6 +48,10 @@ export function Nav({
 
       <Link href="/chat">
         Chat
+      </Link>
+
+      <Link href="/notifications">
+        Scoring Alerts
       </Link>
 
       {commissioner && (

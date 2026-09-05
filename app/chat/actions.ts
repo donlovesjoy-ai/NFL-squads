@@ -155,17 +155,17 @@ export async function toggleReaction(formData:FormData){
   }
 
   if(existing?.id){
-    const {error}=await supabase
+    const {error:deleteError}=await supabase
       .from('chat_message_reactions')
-      .update({emoji})
+      .delete()
       .eq('id',existing.id)
 
-    return error
-      ? {ok:false as const}
-      : {ok:true as const,emoji}
+    if(deleteError){
+      return {ok:false as const}
+    }
   }
 
-  const {error}=await supabase
+  const {error:insertError}=await supabase
     .from('chat_message_reactions')
     .insert({
       message_id:messageId,
@@ -173,7 +173,7 @@ export async function toggleReaction(formData:FormData){
       emoji
     })
 
-  return error
+  return insertError
     ? {ok:false as const}
     : {ok:true as const,emoji}
 }

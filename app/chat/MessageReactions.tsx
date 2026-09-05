@@ -1,12 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect,useState } from 'react'
+import SquadLogo from '../components/SquadLogo'
+import { createClient } from '@/lib/supabase/client'
 import { toggleReaction } from './actions'
 
 type Reaction={
   emoji:string
   count:number
   reactedByMe:boolean
+}
+
+type ReactorLogo={
+  userId:string
+  squadName:string|null
+  logoPath:string|null
+  nflAbbreviation:string|null
 }
 
 type Props={
@@ -25,6 +34,104 @@ export default function MessageReactions({
   canReact
 }:Props){
   const [showPicker,setShowPicker]=useState(false)
+  const [reactorsByEmoji,setReactorsByEmoji]=useState<Record<string,ReactorLogo[]>>({})
+
+  const reactionSignature=reactions
+    .map(reaction=>`${reaction.emoji}:${reaction.count}:${reaction.reactedByMe}`)
+    .join('|')
+
+  useEffect(()=>{
+    let active=true
+
+    async function loadReactors(){
+      const supabase=createClient()
+
+      const {data:reactionRows}=await supabase
+        .from('chat_message_reactions')
+        .select('user_id,emoji')
+        .eq('message_id',messageId)
+
+      if(!active){
+        return
+      }
+
+      const rows=reactionRows||[]
+      const userIds=[
+        ...new Set(
+          rows
+            .map((row:any)=>String(row.user_id||''))
+            .filter(Boolean)
+        )
+      ]
+
+      if(!userIds.length){
+        setReactorsByEmoji({})
+        return
+      }
+
+      const {data:squads}=await supabase
+        .from('squads')
+        .select(`
+          user_id,
+          squad_name,
+          logo_path,
+          nfl_teams(
+            abbreviation
+          )
+        `)
+        .eq('season_year',2026)
+        .in('user_id',userIds)
+
+      if(!active){
+        return
+      }
+
+      const squadByUser=new Map<string,any>()
+
+      for(const squad of squads||[]){
+        if(squad.user_id){
+          squadByUser.set(String(squad.user_id),squad)
+        }
+      }
+
+      const grouped:Record<string,ReactorLogo[]>={}
+
+      for(const row of rows as any[]){
+        const userId=String(row.user_id||'')
+        const emoji=String(row.emoji||'')
+        const squad=squadByUser.get(userId)
+
+        if(!userId || !emoji || !squad){
+          continue
+        }
+
+        const nflTeam=Array.isArray(squad.nfl_teams)
+          ? squad.nfl_teams[0]
+          : squad.nfl_teams
+
+        const reactor:ReactorLogo={
+          userId,
+          squadName:squad.squad_name||null,
+          logoPath:squad.logo_path||null,
+          nflAbbreviation:nflTeam?.abbreviation||null
+        }
+
+        if(!grouped[emoji]){
+          grouped[emoji]=[]
+        }
+
+        grouped[emoji].push(reactor)
+      }
+
+      setReactorsByEmoji(grouped)
+    }
+
+    loadReactors()
+
+    return ()=>{
+      active=false
+    }
+  },[messageId,reactionSignature])
 
   return (
     <div
@@ -50,35 +157,59 @@ export default function MessageReactions({
             minWidth:0
           }}
         >
-          {reactions.map(reaction=>(
-            <form
-              key={reaction.emoji}
-              action={toggleReaction}
-              style={{margin:0}}
-            >
-              <input type="hidden" name="message_id" value={messageId}/>
-              <input type="hidden" name="emoji" value={reaction.emoji}/>
-              <button
-                type="submit"
-                disabled={!canReact}
-                aria-label={`${reaction.emoji} reaction, ${reaction.count}`}
-                style={{
-                  minWidth:38,
-                  padding:'3px 7px',
-                  borderRadius:8,
-                  border:'1px solid #d8d8d8',
-                  background:reaction.reactedByMe ? '#f3f3f3' : '#fff',
-                  color:'#111',
-                  cursor:canReact ? 'pointer' : 'default',
-                  fontSize:'0.88rem',
-                  fontWeight:700
-                }}
+          {reactions.map(reaction=>{
+            const reactors=reactorsByEmoji[reaction.emoji]||[]
+
+            return (
+              <form
+                key={reaction.emoji}
+                action={toggleReaction}
+                style={{margin:0}}
               >
-                <span>{reaction.emoji}</span>
-                <span style={{marginLeft:4,color:'#111'}}>{reaction.count}</span>
-              </button>
-            </form>
-          ))}
+                <input type="hidden" name="message_id" value={messageId}/>
+                <input type="hidden" name="emoji" value={reaction.emoji}/>
+                <button
+                  type="submit"
+                  disabled={!canReact}
+                  aria-label={`${reaction.emoji} reaction, ${reaction.count}`}
+                  style={{
+                    minWidth:38,
+                    padding:'3px 7px',
+                    borderRadius:8,
+                    border:'1px solid #d8d8d8',
+                    background:reaction.reactedByMe ? '#f3f3f3' : '#fff',
+                    color:'#111',
+                    cursor:canReact ? 'pointer' : 'default',
+                    fontSize:'0.88rem',
+                    fontWeight:700,
+                    display:'inline-flex',
+                    alignItems:'center',
+                    gap:4
+                  }}
+                >
+                  <span>{reaction.emoji}</span>
+
+                  {reactors.map((reactor,index)=>(
+                    <span
+                      key={reactor.userId}
+                      title={reactor.squadName||undefined}
+                      style={{
+                        display:'inline-flex',
+                        marginLeft:index===0 ? 1 : -3
+                      }}
+                    >
+                      <SquadLogo
+                        logoPath={reactor.logoPath}
+                        nflAbbreviation={reactor.nflAbbreviation}
+                        squadName={reactor.squadName}
+                        size={18}
+                      />
+                    </span>
+                  ))}
+                </button>
+              </form>
+            )
+          })}
         </div>
 
         {canReact && (

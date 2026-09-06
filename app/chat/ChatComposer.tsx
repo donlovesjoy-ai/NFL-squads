@@ -169,7 +169,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
           <textarea
             ref={textareaRef}
             name="message"
-            placeholder="Write a message..."
+            placeholder="Got something to say?"
             maxLength={500}
             rows={2}
             value={message}
@@ -211,7 +211,10 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
               style={{
                 padding:'7px 10px',
                 fontSize:'1.2rem',
-                lineHeight:1
+                lineHeight:1,
+                background:'#fff',
+                border:'1px solid #d8d8d8',
+                color:'#111'
               }}
             >
               😀
@@ -225,7 +228,10 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
               style={{
                 padding:'7px 10px',
                 fontSize:'1.2rem',
-                lineHeight:1
+                lineHeight:1,
+                background:'#fff',
+                border:'1px solid #d8d8d8',
+                color:'#111'
               }}
             >
               📷
@@ -243,7 +249,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
                 padding:8,
                 border:'1px solid #ddd',
                 borderRadius:10,
-                background:'#fafafa'
+                background:'#fff'
               }}
             >
               {emojis.map(emoji=>(
@@ -252,8 +258,10 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
                   type="button"
                   onClick={()=>addEmoji(emoji)}
                   style={{
-                    border:0,
-                    background:'transparent',
+                    border:'1px solid #ddd',
+                    background:'#fff',
+                    color:'#111',
+                    borderRadius:8,
                     fontSize:'1.35rem',
                     padding:5,
                     cursor:'pointer'
@@ -273,7 +281,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
                 padding:8,
                 border:'1px solid #ddd',
                 borderRadius:10,
-                background:'#fafafa'
+                background:'#fff'
               }}
             >
               <img
@@ -339,7 +347,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
               textAlign:'center'
             }}
           >
-            Say it
+            SAY IT!
           </button>
         </form>
       </div>

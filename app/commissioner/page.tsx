@@ -66,7 +66,7 @@ export default async function CommissionerHub(){
           </div>
 
           <div className="muted">
-            Commissioner Ship
+            Commissioner Shit
           </div>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default async function CommissionerHub(){
         }}
       >
         <h1>
-          Commissioner Ship
+          Commissioner Shit
         </h1>
 
         <div

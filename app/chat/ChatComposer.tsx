@@ -209,11 +209,12 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
               aria-label="Add emoji"
               title="Add emoji"
               style={{
-                padding:'7px 10px',
+                padding:'7px 11px',
                 fontSize:'1.2rem',
                 lineHeight:1,
                 background:'#fff',
                 border:'1px solid #d8d8d8',
+                borderRadius:10,
                 color:'#111'
               }}
             >
@@ -226,11 +227,12 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
               aria-label="Add photo or GIF"
               title="Add photo or GIF"
               style={{
-                padding:'7px 10px',
+                padding:'7px 11px',
                 fontSize:'1.2rem',
                 lineHeight:1,
                 background:'#fff',
                 border:'1px solid #d8d8d8',
+                borderRadius:10,
                 color:'#111'
               }}
             >
@@ -261,7 +263,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
                     border:'1px solid #ddd',
                     background:'#fff',
                     color:'#111',
-                    borderRadius:8,
+                    borderRadius:10,
                     fontSize:'1.35rem',
                     padding:5,
                     cursor:'pointer'

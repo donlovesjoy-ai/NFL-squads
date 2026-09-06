@@ -52,7 +52,7 @@ export function Nav({
 
       {commissioner && (
         <Link href="/commissioner">
-          Commissioner Ship
+          Commissioner Shit
         </Link>
       )}
 

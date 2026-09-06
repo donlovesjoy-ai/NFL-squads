@@ -536,7 +536,7 @@ export default async function SquadSchedule({
             marginBottom:0
           }}
         >
-          Selections reveal at kickoff. Results and records update automatically.
+          Selections reveal at kickoff.
         </p>
       </section>
     </main>

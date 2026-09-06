@@ -51,57 +51,35 @@ export function Nav({
       </Link>
 
       {commissioner && (
-        <Link href="/notifications">
-          Scoring Alerts
+        <Link href="/commissioner">
+          Commissioner Ship
         </Link>
       )}
 
-      {commissioner && (
-        <Link href="/commissioner/setup">
-          League Setup
-        </Link>
-      )}
-
-      {commissioner && (
-        <Link href="/commissioner/results">
-          Lines & Results
-        </Link>
-      )}
-
-      {commissioner && (
-        <Link href="/commissioner/live-feed">
-          Live Feed
-        </Link>
-      )}
-
-      {commissioner && (
-        <Link href="/commissioner/playoffs">
-          Playoff Control
-        </Link>
-      )}
-
-      <form
-        action={logout}
-        style={{
-          margin:0
-        }}
-      >
-        <button
-          type="submit"
+      {!commissioner && (
+        <form
+          action={logout}
           style={{
-            border:'none',
-            background:'transparent',
-            padding:0,
-            margin:0,
-            font:'inherit',
-            color:'inherit',
-            textDecoration:'underline',
-            cursor:'pointer'
+            margin:0
           }}
         >
-          Log Out
-        </button>
-      </form>
+          <button
+            type="submit"
+            style={{
+              border:'none',
+              background:'transparent',
+              padding:0,
+              margin:0,
+              font:'inherit',
+              color:'inherit',
+              textDecoration:'underline',
+              cursor:'pointer'
+            }}
+          >
+            Log Out
+          </button>
+        </form>
+      )}
     </nav>
   )
 }

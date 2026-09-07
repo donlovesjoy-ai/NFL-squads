@@ -148,7 +148,8 @@ export default async function Standings(){
               >
                 <colgroup>
                   <col style={{width:'24%'}}/>
-                  <col style={{width:'40%'}}/>
+                  <col style={{width:'10%'}}/>
+                  <col style={{width:'30%'}}/>
                   <col style={{width:'6%'}}/>
                   <col style={{width:'6%'}}/>
                   <col style={{width:'6%'}}/>
@@ -158,6 +159,7 @@ export default async function Standings(){
                 <thead>
                   <tr>
                     <th style={headCell}>Owner</th>
+                    <th style={headCell}></th>
                     <th style={headCell}>Team</th>
                     <th style={headCell}>W</th>
                     <th style={headCell}>L</th>
@@ -186,14 +188,13 @@ export default async function Standings(){
                           {r.squads.owner_name || '—'}
                         </td>
 
-                        <td style={{...bodyCell,whiteSpace:'normal',lineHeight:1.1}}>
+                        <td style={{...bodyCell,whiteSpace:'nowrap'}}>
                           <Link
                             href={`/squads/${r.squads.id}`}
                             style={{
                               display:'flex',
                               alignItems:'center',
                               justifyContent:'center',
-                              gap:5,
                               color:'inherit',
                               textDecoration:'none'
                             }}
@@ -204,7 +205,20 @@ export default async function Standings(){
                               squadName={r.squads.squad_name}
                               size={22}
                             />
+                          </Link>
+                        </td>
 
+                        <td style={{...bodyCell,whiteSpace:'normal',lineHeight:1.1}}>
+                          <Link
+                            href={`/squads/${r.squads.id}`}
+                            style={{
+                              display:'flex',
+                              alignItems:'center',
+                              justifyContent:'center',
+                              color:'inherit',
+                              textDecoration:'none'
+                            }}
+                          >
                             <b
                               style={{
                                 lineHeight:1.05,

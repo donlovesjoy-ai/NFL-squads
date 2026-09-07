@@ -1,6 +1,39 @@
- import Link from 'next/link'
+import Link from 'next/link'
 import { login } from './actions'
 import PasswordInput from '../components/PasswordInput'
+
+function safeNext(value?:string){
+  if(
+    !value ||
+    !value.startsWith('/') ||
+    value.startsWith('//')
+  ){
+    return '/dashboard'
+  }
+
+  try{
+    const parsed=
+      new URL(
+        value,
+        'https://nfl-squads.vercel.app'
+      )
+
+    if(
+      parsed.origin !==
+      'https://nfl-squads.vercel.app'
+    ){
+      return '/dashboard'
+    }
+
+    return (
+      parsed.pathname +
+      parsed.search +
+      parsed.hash
+    )
+  }catch{
+    return '/dashboard'
+  }
+}
 
 export default async function Login({
   searchParams
@@ -9,10 +42,21 @@ export default async function Login({
     error?:string
     created?:string
     reset?:string
+    next?:string
   }>
 }){
   const p=
     await searchParams
+
+  const next=
+    safeNext(p.next)
+
+  const signupHref=
+    next==='/dashboard'
+      ? '/signup'
+      : `/signup?next=${
+          encodeURIComponent(next)
+        }`
 
   return (
     <main
@@ -56,6 +100,12 @@ export default async function Login({
         <form action={login}>
 
           <input
+            type="hidden"
+            name="next"
+            value={next}
+          />
+
+          <input
             name="email"
             type="email"
             placeholder="Email"
@@ -83,7 +133,7 @@ export default async function Login({
         </p>
 
         <p>
-          <Link href="/signup">
+          <Link href={signupHref}>
             Create account
           </Link>
         </p>

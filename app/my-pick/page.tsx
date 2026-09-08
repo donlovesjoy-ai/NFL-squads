@@ -1,4 +1,4 @@
- import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
@@ -85,7 +85,8 @@ export default async function MyPick({
 
   const [
     {data:profile},
-    {data:squad}
+    {data:squad},
+    {data:feedSettings}
   ]=
     await Promise.all([
       supabase
@@ -108,11 +109,22 @@ export default async function MyPick({
         `)
         .eq('user_id',user.id)
         .eq('season_year',2026)
+        .maybeSingle(),
+
+      supabase
+        .from('integration_settings')
+        .select('last_sync_at')
+        .eq('id',1)
         .maybeSingle()
     ])
 
   const commissioner=
     profile?.role==='commissioner'
+
+  const oddsLastUpdated=
+    feedSettings?.last_sync_at
+      ? fmtEastern(feedSettings.last_sync_at)
+      : null
 
   if(!squad){
     return (
@@ -514,6 +526,19 @@ export default async function MyPick({
           </b>
           {' '}
           {fmtEastern(deadline)}
+        </p>
+
+        <p
+          className="muted"
+          style={{
+            margin:'6px 0 0',
+            fontSize:'0.78rem'
+          }}
+        >
+          Odds last updated:{' '}
+          <b>
+            {oddsLastUpdated || 'Not available yet'}
+          </b>
         </p>
 
         {!weekOpen && (

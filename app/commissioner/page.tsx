@@ -48,6 +48,10 @@ export default async function CommissionerHub(){
     {
       label:'Audit Log',
       href:'/audit-log'
+    },
+    {
+      label:'Login Log',
+      href:'/commissioner/login-log'
     }
   ]
 

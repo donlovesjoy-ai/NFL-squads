@@ -39,6 +39,12 @@ function gameStatusLabel(status:any){
   return 'Scheduled'
 }
 
+function bookmakerLabel(value:any){
+  const normalized=String(value||'').toLowerCase()
+  if(normalized==='betmgm') return 'BetMGM'
+  return value || 'Not available yet'
+}
+
 function AllTimesEastern(){
   return (
     <div
@@ -70,8 +76,7 @@ export default async function MyPick({
 
   const [
     {data:profile},
-    {data:squad},
-    {data:feedSettings}
+    {data:squad}
   ]=await Promise.all([
     supabase
       .from('users')
@@ -93,22 +98,10 @@ export default async function MyPick({
       `)
       .eq('user_id',user.id)
       .eq('season_year',2026)
-      .maybeSingle(),
-
-    supabase
-      .from('integration_settings')
-      .select('last_odds_request_at,bookmaker')
-      .eq('id',1)
       .maybeSingle()
   ])
 
   const commissioner=profile?.role==='commissioner'
-  const oddsLastUpdated=feedSettings?.last_odds_request_at
-    ? fmtEasternWithSeconds(feedSettings.last_odds_request_at)
-    : null
-  const oddsSource=feedSettings?.bookmaker==='betmgm'
-    ? 'BetMGM'
-    : feedSettings?.bookmaker || 'Not available yet'
 
   if(!squad){
     return (
@@ -155,6 +148,8 @@ export default async function MyPick({
         final_at,
         home_team_id,
         away_team_id,
+        odds_bookmaker,
+        odds_updated_at,
 
         home:
           nfl_teams!games_home_team_id_fkey(
@@ -289,7 +284,7 @@ export default async function MyPick({
             style={{marginTop:18,fontSize:'0.82rem'}}
           >
             Lines are subject to change. The line closes one second before
-            scheduled kickoff. Your official line is assigned at kickoff by Bet MGM.
+            scheduled kickoff. Your official line is assigned at kickoff by BetMGM.
           </p>
         </section>
       </main>
@@ -302,6 +297,11 @@ export default async function MyPick({
 
   const awayName=awaySquad?.squad_name || game.away?.name
   const homeName=homeSquad?.squad_name || game.home?.name
+
+  const oddsLastUpdated=game.odds_updated_at
+    ? fmtEasternWithSeconds(game.odds_updated_at)
+    : null
+  const oddsSource=bookmakerLabel(game.odds_bookmaker)
 
   const {data:pick}=await supabase
     .from('picks')

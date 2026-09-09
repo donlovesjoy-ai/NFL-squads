@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
+import PickDeadlineCountdown from './PickDeadlineCountdown'
 import { submitPick } from './actions'
 
 function fmtSpread(n:number|null){
@@ -273,8 +274,8 @@ export default async function MyPick({
             className="muted"
             style={{marginTop:18,fontSize:'0.82rem'}}
           >
-            Lines are subject to change. Your official line will be the closing
-            line assigned at kickoff by Bet MGM
+            Lines are subject to change. The line closes one second before
+            scheduled kickoff. Your official line is assigned at kickoff by Bet MGM.
           </p>
         </section>
       </main>
@@ -304,7 +305,7 @@ export default async function MyPick({
     .maybeSingle()
 
   const weekOpen=weekOpenMap.get(Number(game.nfl_week))===true
-  const deadline=new Date(new Date(game.kickoff_time).getTime()-60_000)
+  const deadline=new Date(new Date(game.kickoff_time).getTime()-1_000)
   const deadlinePassed=new Date()>=deadline
   const gameStatus=String(game.status||'').toLowerCase()
   const gameStarted=gameStatus==='live' || gameStatus==='final'
@@ -314,7 +315,7 @@ export default async function MyPick({
   const awaySpread=homeSpread===null ? null : -homeSpread
   const submissionDisabled=!weekOpen || locked || homeSpread===null
 
-  let buttonText='Submit / Update Pick'
+  let buttonText=pick && !pick.is_missed ? 'Change My Pick' : 'Submit Pick'
   if(!weekOpen) buttonText='Week Not Open Yet'
   else if(locked) buttonText='Pick Locked'
   else if(homeSpread===null) buttonText='Waiting for Closing Line'
@@ -538,11 +539,16 @@ export default async function MyPick({
               maxWidth:440
             }}
           >
-            Lines are subject to change. Your official pick line will be the
-            closing line assigned at kickoff.
+            Lines are subject to change. The line closes one second before
+            scheduled kickoff. Your official line is assigned at kickoff.
           </p>
 
           <div style={{textAlign:'center',marginTop:6}}>
+            <PickDeadlineCountdown
+              kickoffTime={new Date(game.kickoff_time).toISOString()}
+              lockTime={deadline.toISOString()}
+            />
+
             <button
               className="submit"
               type="submit"

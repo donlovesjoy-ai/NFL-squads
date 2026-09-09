@@ -537,7 +537,7 @@ export default async function Dashboard(){
           new Date(
             game.kickoff_time
           ).getTime()-
-          60_000
+          1_000
         )
       : null
 
@@ -1273,7 +1273,7 @@ export default async function Dashboard(){
               <p className="muted">
                 {pickLocked
                   ? 'Your pick is locked.'
-                  : 'You may change your pick up to one minute before kickoff.'}
+                  : 'You may change your pick up to one second before kickoff.'}
               </p>
 
               {game &&
@@ -1313,7 +1313,7 @@ export default async function Dashboard(){
                 {game
                   ? pickLocked
                     ? 'The pick window is closed.'
-                    : 'You may make or change your pick up to one minute before kickoff.'
+                    : 'You may make or change your pick up to one second before kickoff.'
                   : 'Waiting for your next matchup.'}
               </p>
 
@@ -1329,7 +1329,7 @@ export default async function Dashboard(){
                       textAlign:'center'
                     }}
                   >
-                    MAKE MY PICK →
+                    Make a Decision
                   </a>
                 </p>
               )}

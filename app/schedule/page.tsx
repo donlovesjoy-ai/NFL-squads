@@ -21,19 +21,8 @@ function kickoffEastern(value:string|Date){
   return kickoff.toLocaleString(
     'en-US',
     withinSevenDays
-      ? {
-          timeZone:'America/New_York',
-          weekday:'short',
-          hour:'numeric',
-          minute:'2-digit'
-        }
-      : {
-          timeZone:'America/New_York',
-          month:'short',
-          day:'numeric',
-          hour:'numeric',
-          minute:'2-digit'
-        }
+      ? {timeZone:'America/New_York',weekday:'short',hour:'numeric',minute:'2-digit'}
+      : {timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}
   )
 }
 
@@ -57,10 +46,7 @@ function squadNameParts(squadName:string,nflName?:string|null){
     nflWords.length===squadWords.length &&
     squadWords.every((word,index)=>word.toLowerCase()===nflWords[index]?.toLowerCase())
   ){
-    return {
-      area:squadWords.slice(0,-1).join(' '),
-      nickname:squadWords[squadWords.length-1]
-    }
+    return {area:squadWords.slice(0,-1).join(' '),nickname:squadWords[squadWords.length-1]}
   }
 
   let shared=0
@@ -68,40 +54,23 @@ function squadNameParts(squadName:string,nflName?:string|null){
     shared<squadWords.length &&
     shared<nflWords.length &&
     squadWords[shared].toLowerCase()===nflWords[shared].toLowerCase()
-  ){
-    shared++
-  }
+  ) shared++
 
   if(shared>0 && shared<squadWords.length){
-    return {
-      area:squadWords.slice(0,shared).join(' '),
-      nickname:squadWords.slice(shared).join(' ')
-    }
+    return {area:squadWords.slice(0,shared).join(' '),nickname:squadWords.slice(shared).join(' ')}
   }
 
-  if(squadWords.length<=1){
-    return {area:squadWords[0]||'',nickname:'\u00a0'}
-  }
-
-  return {
-    area:squadWords[0],
-    nickname:squadWords.slice(1).join(' ')
-  }
+  if(squadWords.length<=1) return {area:squadWords[0]||'',nickname:'\u00a0'}
+  return {area:squadWords[0],nickname:squadWords.slice(1).join(' ')}
 }
 
-export default async function Schedule({
-  searchParams
-}:{
-  searchParams:Promise<{week?:string}>
-}){
+export default async function Schedule({searchParams}:{searchParams:Promise<{week?:string}>}){
   const sp=await searchParams
   const supabase=await createClient()
   const {data:{user}}=await supabase.auth.getUser()
-
   if(!user) redirect('/login')
 
   let week:number
-
   if(sp.week){
     week=Math.min(18,Math.max(1,Number(sp.week)))
   }else{
@@ -112,23 +81,13 @@ export default async function Schedule({
       .neq('status','final')
       .order('nfl_week',{ascending:true})
       .limit(1)
-
     week=Math.min(18,Math.max(1,Number(activeGames?.[0]?.nfl_week||1)))
   }
 
-  const {data:profile}=await supabase
-    .from('users')
-    .select('role')
-    .eq('id',user.id)
-    .maybeSingle()
-
+  const {data:profile}=await supabase.from('users').select('role').eq('id',user.id).maybeSingle()
   const commissioner=profile?.role==='commissioner'
 
-  const [
-    {data:squads},
-    {data:games},
-    {data:divisionNames}
-  ]=await Promise.all([
+  const [{data:squads},{data:games},{data:divisionNames}]=await Promise.all([
     supabase
       .from('squads')
       .select(`
@@ -139,15 +98,11 @@ export default async function Schedule({
         nfl_team_id,
         division,
         logo_path,
-        nfl_teams(
-          name,
-          abbreviation
-        )
+        nfl_teams(name,abbreviation)
       `)
       .eq('season_year',2026)
       .order('division')
       .order('squad_name'),
-
     supabase
       .from('games')
       .select(`
@@ -161,19 +116,12 @@ export default async function Schedule({
         away_score,
         home_team_id,
         away_team_id,
-        home:nfl_teams!games_home_team_id_fkey(
-          name,
-          abbreviation
-        ),
-        away:nfl_teams!games_away_team_id_fkey(
-          name,
-          abbreviation
-        )
+        home:nfl_teams!games_home_team_id_fkey(name,abbreviation),
+        away:nfl_teams!games_away_team_id_fkey(name,abbreviation)
       `)
       .eq('season_year',2026)
       .eq('nfl_week',week)
       .order('kickoff_time'),
-
     supabase
       .from('division_names')
       .select('division,division_name')
@@ -183,34 +131,18 @@ export default async function Schedule({
 
   const gameIds=(games||[]).map((g:any)=>g.id)
   let weekPicks:any[]=[]
-
   if(gameIds.length){
     const {data:picks}=await supabase
       .from('picks')
-      .select(`
-        squad_id,
-        game_id,
-        selection_team_id,
-        result,
-        revealed,
-        is_missed,
-        ats_margin
-      `)
+      .select(`squad_id,game_id,selection_team_id,result,revealed,is_missed,ats_margin`)
       .in('game_id',gameIds)
-
     weekPicks=picks||[]
   }
 
-  const pickBySquadGame=new Map(
-    weekPicks.map((p:any)=>[`${p.squad_id}:${p.game_id}`,p])
-  )
-
+  const pickBySquadGame=new Map(weekPicks.map((p:any)=>[`${p.squad_id}:${p.game_id}`,p]))
   const mySquad=(squads||[]).find((s:any)=>s.user_id===user.id)
   const squadByNflTeam=new Map<number,any>()
-
-  for(const s of squads||[]){
-    squadByNflTeam.set(Number(s.nfl_team_id),s)
-  }
+  for(const s of squads||[]) squadByNflTeam.set(Number(s.nfl_team_id),s)
 
   const divisionOrder=mySquad
     ? [mySquad.division,...[1,2,3,4].filter(d=>d!==mySquad.division)]
@@ -247,6 +179,14 @@ export default async function Schedule({
     boxSizing:'border-box' as const
   }
 
+  const arrowStyle={
+    fontSize:'0.9rem',
+    fontWeight:800,
+    letterSpacing:'-0.1em',
+    opacity:0.7,
+    whiteSpace:'nowrap' as const
+  }
+
   return (
     <main className="wrap">
       <div className="top" style={{justifyContent:'center',textAlign:'center'}}>
@@ -260,15 +200,9 @@ export default async function Schedule({
 
       <section className="card" style={{textAlign:'center'}}>
         <h1>Schedule &amp; Results</h1>
-        <p className="muted">
-          Select any NFL week to view every league squad&apos;s matchup and result.
-        </p>
-        <p className="muted" style={{fontSize:'0.76rem',marginTop:-4}}>
-          * All times EDT
-        </p>
-        <div style={{display:'flex',justifyContent:'center'}}>
-          <WeekSelector week={week}/>
-        </div>
+        <p className="muted">Select any NFL week to view every league squad&apos;s matchup and result.</p>
+        <p className="muted" style={{fontSize:'0.76rem',marginTop:-4}}>* All times EDT</p>
+        <div style={{display:'flex',justifyContent:'center'}}><WeekSelector week={week}/></div>
       </section>
 
       <section className="card" style={{paddingLeft:8,paddingRight:8}}>
@@ -280,17 +214,18 @@ export default async function Schedule({
               borderCollapse:'separate',
               borderSpacing:0,
               tableLayout:'fixed',
-              width:520,
-              minWidth:520
+              width:552,
+              minWidth:552
             }}
           >
             <colgroup>
-              <col style={{width:24}}/>
+              <col style={{width:30}}/>
               <col style={{width:96}}/>
               <col style={{width:40}}/>
-              <col style={{width:24}}/>
+              <col style={{width:30}}/>
               <col style={{width:116}}/>
-              <col style={{width:92}}/>
+              <col style={{width:24}}/>
+              <col style={{width:88}}/>
               <col style={{width:128}}/>
             </colgroup>
 
@@ -301,6 +236,9 @@ export default async function Schedule({
                 <th style={headCell}>Line</th>
                 <th style={headCell} aria-label="Opponent logo"/>
                 <th style={headCell}>Opponent</th>
+                <th style={headCell} aria-label="More information to the right">
+                  <span className="muted" style={arrowStyle}>››</span>
+                </th>
                 <th style={headCell}>Score</th>
                 <th style={headCell}>Pick / Result</th>
               </tr>
@@ -309,30 +247,11 @@ export default async function Schedule({
             <tbody>
               {squadsByDivision.flatMap(({division,divisionName,squads:divisionSquads})=>[
                 <tr key={`division-${division}`}>
-                  <td colSpan={5} style={{padding:'12px 0 8px'}}>
-                    <div
-                      style={{
-                        display:'flex',
-                        alignItems:'center',
-                        justifyContent:'center',
-                        gap:5,
-                        whiteSpace:'nowrap'
-                      }}
-                    >
-                      <strong>{divisionName}</strong>
-                      <span
-                        className="muted"
-                        aria-label="More information to the right"
-                        style={{
-                          fontSize:'0.9rem',
-                          fontWeight:800,
-                          letterSpacing:'-0.1em',
-                          opacity:0.7
-                        }}
-                      >
-                        ››
-                      </span>
-                    </div>
+                  <td colSpan={5} style={{padding:'12px 0 8px',textAlign:'center'}}>
+                    <strong>{divisionName}</strong>
+                  </td>
+                  <td style={{...bodyCell,padding:'12px 0 8px'}}>
+                    <span className="muted" aria-label="More information to the right" style={arrowStyle}>››</span>
                   </td>
                   <td colSpan={2} style={{padding:'12px 0 8px'}}/>
                 </tr>,
@@ -345,26 +264,15 @@ export default async function Schedule({
                     return (
                       <tr key={s.id}>
                         <td style={bodyCell}>
-                          <LogoDisplay
-                            logoPath={s.logo_path}
-                            abbreviation={ownNfl?.abbreviation}
-                            name={s.squad_name}
-                            href={`/squads/${s.id}`}
-                          />
+                          <LogoDisplay logoPath={s.logo_path} abbreviation={ownNfl?.abbreviation} name={s.squad_name} href={`/squads/${s.id}`}/>
                         </td>
-                        <td
-                          style={bodyCell}
-                          title={s.owner_name ? `${s.owner_name}, Owner` : undefined}
-                        >
-                          <TeamNameDisplay
-                            name={s.squad_name}
-                            nflName={ownNfl?.name}
-                            href={`/squads/${s.id}`}
-                          />
+                        <td style={bodyCell} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}>
+                          <TeamNameDisplay name={s.squad_name} nflName={ownNfl?.name} href={`/squads/${s.id}`}/>
                         </td>
                         <td style={bodyCell}>—</td>
                         <td style={bodyCell}>—</td>
                         <td style={{...bodyCell,fontWeight:800}}>BYE</td>
+                        <td style={bodyCell}/>
                         <td style={bodyCell}>—</td>
                         <td style={bodyCell}>—</td>
                       </tr>
@@ -377,78 +285,57 @@ export default async function Schedule({
                   const opponentSquad=squadByNflTeam.get(Number(opponentTeamId))
                   const opponentLabel=opponentSquad?.squad_name || opponentNfl?.name || '—'
 
-                  const ownedSpread=g.spread===null
-                    ? null
-                    : isHome ? Number(g.spread) : -Number(g.spread)
+                  const ownedSpread=g.spread===null ? null : isHome ? Number(g.spread) : -Number(g.spread)
                   const opponentSpread=ownedSpread===null ? null : -ownedSpread
                   const pick:any=pickBySquadGame.get(`${s.id}:${g.id}`)
-                  const kickedOff=
-                    g.status==='live' ||
-                    g.status==='final' ||
-                    new Date(g.kickoff_time)<=new Date()
+                  const kickedOff=g.status==='live' || g.status==='final' || new Date(g.kickoff_time)<=new Date()
                   const pickRevealed=Boolean(kickedOff && pick && !pick.is_missed)
-                  const pickedOwnTeam=Boolean(
-                    pickRevealed && Number(pick.selection_team_id)===Number(s.nfl_team_id)
-                  )
-                  const pickedOpponent=Boolean(
-                    pickRevealed && Number(pick.selection_team_id)===Number(opponentTeamId)
-                  )
+                  const pickedOwnTeam=Boolean(pickRevealed && Number(pick.selection_team_id)===Number(s.nfl_team_id))
+                  const pickedOpponent=Boolean(pickRevealed && Number(pick.selection_team_id)===Number(opponentTeamId))
                   const displayedSpread=pickedOpponent ? opponentSpread : ownedSpread
                   const outlineColor=pickRevealed ? pickOutlineColor(g.status,pick) : null
 
-                  const teamLogoSelectionStyle=pickedOwnTeam && outlineColor
-                    ? {
-                        borderTop:`2px solid ${outlineColor}`,
-                        borderBottom:`2px solid ${outlineColor}`,
-                        borderLeft:`2px solid ${outlineColor}`,
-                        borderTopLeftRadius:10,
-                        borderBottomLeftRadius:10
-                      }
-                    : {}
+                  const teamLogoSelectionStyle=pickedOwnTeam && outlineColor ? {
+                    borderTop:`2px solid ${outlineColor}`,
+                    borderBottom:`2px solid ${outlineColor}`,
+                    borderLeft:`2px solid ${outlineColor}`,
+                    borderTopLeftRadius:10,
+                    borderBottomLeftRadius:10
+                  } : {}
 
-                  const teamNameSelectionStyle=pickedOwnTeam && outlineColor
-                    ? {
-                        borderTop:`2px solid ${outlineColor}`,
-                        borderBottom:`2px solid ${outlineColor}`
-                      }
-                    : {}
+                  const teamNameSelectionStyle=pickedOwnTeam && outlineColor ? {
+                    borderTop:`2px solid ${outlineColor}`,
+                    borderBottom:`2px solid ${outlineColor}`
+                  } : {}
 
-                  const lineOwnSelectionStyle=pickedOwnTeam && outlineColor
-                    ? {
-                        borderTop:`2px solid ${outlineColor}`,
-                        borderBottom:`2px solid ${outlineColor}`,
-                        borderRight:`2px solid ${outlineColor}`,
-                        borderTopRightRadius:10,
-                        borderBottomRightRadius:10
-                      }
-                    : {}
+                  const lineOwnSelectionStyle=pickedOwnTeam && outlineColor ? {
+                    borderTop:`2px solid ${outlineColor}`,
+                    borderBottom:`2px solid ${outlineColor}`,
+                    borderRight:`2px solid ${outlineColor}`,
+                    borderTopRightRadius:10,
+                    borderBottomRightRadius:10
+                  } : {}
 
-                  const lineOpponentSelectionStyle=pickedOpponent && outlineColor
-                    ? {
-                        borderTop:`2px solid ${outlineColor}`,
-                        borderBottom:`2px solid ${outlineColor}`,
-                        borderLeft:`2px solid ${outlineColor}`,
-                        borderTopLeftRadius:10,
-                        borderBottomLeftRadius:10
-                      }
-                    : {}
+                  const lineOpponentSelectionStyle=pickedOpponent && outlineColor ? {
+                    borderTop:`2px solid ${outlineColor}`,
+                    borderBottom:`2px solid ${outlineColor}`,
+                    borderLeft:`2px solid ${outlineColor}`,
+                    borderTopLeftRadius:10,
+                    borderBottomLeftRadius:10
+                  } : {}
 
-                  const opponentLogoSelectionStyle=pickedOpponent && outlineColor
-                    ? {
-                        borderTop:`2px solid ${outlineColor}`,
-                        borderBottom:`2px solid ${outlineColor}`
-                      }
-                    : {}
+                  const opponentLogoSelectionStyle=pickedOpponent && outlineColor ? {
+                    borderTop:`2px solid ${outlineColor}`,
+                    borderBottom:`2px solid ${outlineColor}`
+                  } : {}
 
-                  const opponentNameSelectionStyle=pickedOpponent && outlineColor
-                    ? {
-                        borderTop:`2px solid ${outlineColor}`,
-                        borderBottom:`2px solid ${outlineColor}`,
-                        borderRight:`2px solid ${outlineColor}`,
-                        borderTopRightRadius:10,
-                        borderBottomRightRadius:10
-                      }
-                    : {}
+                  const opponentNameSelectionStyle=pickedOpponent && outlineColor ? {
+                    borderTop:`2px solid ${outlineColor}`,
+                    borderBottom:`2px solid ${outlineColor}`,
+                    borderRight:`2px solid ${outlineColor}`,
+                    borderTopRightRadius:10,
+                    borderBottomRightRadius:10
+                  } : {}
 
                   let score=kickoffEastern(g.kickoff_time)
                   if(g.status==='live' || g.status==='final'){
@@ -460,94 +347,38 @@ export default async function Schedule({
                   return (
                     <tr key={s.id}>
                       <td style={{...bodyCell,...teamLogoSelectionStyle}}>
-                        <LogoDisplay
-                          logoPath={s.logo_path}
-                          abbreviation={ownNfl?.abbreviation}
-                          name={s.squad_name}
-                          href={`/squads/${s.id}`}
-                        />
+                        <LogoDisplay logoPath={s.logo_path} abbreviation={ownNfl?.abbreviation} name={s.squad_name} href={`/squads/${s.id}`}/>
                       </td>
-
-                      <td
-                        style={{...bodyCell,...teamNameSelectionStyle}}
-                        title={s.owner_name ? `${s.owner_name}, Owner` : undefined}
-                      >
-                        <TeamNameDisplay
-                          name={s.squad_name}
-                          nflName={ownNfl?.name}
-                          emphasized={pickedOwnTeam}
-                          href={`/squads/${s.id}`}
-                        />
+                      <td style={{...bodyCell,...teamNameSelectionStyle}} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}>
+                        <TeamNameDisplay name={s.squad_name} nflName={ownNfl?.name} emphasized={pickedOwnTeam} href={`/squads/${s.id}`}/>
                       </td>
-
-                      <td
-                        style={{
-                          ...bodyCell,
-                          ...lineOwnSelectionStyle,
-                          ...lineOpponentSelectionStyle,
-                          whiteSpace:'nowrap',
-                          fontWeight:pickRevealed ? 800 : 600
-                        }}
-                      >
+                      <td style={{...bodyCell,...lineOwnSelectionStyle,...lineOpponentSelectionStyle,whiteSpace:'nowrap',fontWeight:pickRevealed ? 800 : 600}}>
                         {signed(displayedSpread)}
                       </td>
-
                       <td style={{...bodyCell,...opponentLogoSelectionStyle}}>
-                        <LogoDisplay
-                          logoPath={opponentSquad?.logo_path}
-                          abbreviation={opponentNfl?.abbreviation}
-                          name={opponentLabel}
-                          href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}
-                        />
+                        <LogoDisplay logoPath={opponentSquad?.logo_path} abbreviation={opponentNfl?.abbreviation} name={opponentLabel} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/>
                       </td>
-
                       <td style={{...bodyCell,...opponentNameSelectionStyle}}>
-                        <TeamNameDisplay
-                          name={opponentLabel}
-                          nflName={opponentNfl?.name}
-                          prefix={isHome ? 'vs' : '@'}
-                          emphasized={pickedOpponent}
-                          href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}
-                        />
+                        <TeamNameDisplay name={opponentLabel} nflName={opponentNfl?.name} prefix={isHome ? 'vs' : '@'} emphasized={pickedOpponent} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/>
                       </td>
-
-                      <td
-                        style={{
-                          ...bodyCell,
-                          whiteSpace:'nowrap',
-                          fontWeight:kickedOff ? 700 : 500,
-                          fontSize:kickedOff ? '0.78rem' : '0.72rem'
-                        }}
-                      >
+                      <td style={bodyCell}/>
+                      <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:kickedOff ? 700 : 500,fontSize:kickedOff ? '0.78rem' : '0.72rem'}}>
                         {score}
                       </td>
-
                       <td style={{...bodyCell,whiteSpace:'nowrap'}}>
                         {(()=>{
                           if(!kickedOff){
-                            return pick && !pick.is_missed ? (
-                              <span style={{color:'green',fontWeight:700,fontSize:'1.15rem'}}>✓</span>
-                            ) : (
-                              <span className="muted">—</span>
-                            )
+                            return pick && !pick.is_missed
+                              ? <span style={{color:'green',fontWeight:700,fontSize:'1.15rem'}}>✓</span>
+                              : <span className="muted">—</span>
                           }
-
                           if(pick?.is_missed){
                             if(g.status==='final'){
                               const margin=Number(pick.ats_margin ?? 0)
-                              return (
-                                <b
-                                  style={{
-                                    color:margin<0 ? 'red' : margin>0 ? 'green' : '#1565c0'
-                                  }}
-                                >
-                                  NO PICK {margin>0 ? '+' : ''}{margin}
-                                </b>
-                              )
+                              return <b style={{color:margin<0 ? 'red' : margin>0 ? 'green' : '#1565c0'}}>NO PICK {margin>0 ? '+' : ''}{margin}</b>
                             }
                             return <b>NO PICK</b>
                           }
-
                           if(!pick) return <span className="muted">—</span>
 
                           const pickedHome=Number(pick.selection_team_id)===Number(g.home_team_id)
@@ -557,13 +388,8 @@ export default async function Schedule({
                           if(g.status==='final'){
                             const margin=Number(pick.ats_margin ?? 0)
                             const color=margin>0 ? 'green' : margin<0 ? 'red' : '#1565c0'
-                            return (
-                              <b style={{color}}>
-                                {teamLabel} {margin>0 ? '+' : ''}{margin}
-                              </b>
-                            )
+                            return <b style={{color}}>{teamLabel} {margin>0 ? '+' : ''}{margin}</b>
                           }
-
                           return <b>{teamLabel}</b>
                         })()}
                       </td>
@@ -579,55 +405,25 @@ export default async function Schedule({
   )
 }
 
-function LogoDisplay({
-  logoPath,
-  abbreviation,
-  name,
-  href
-}:{
-  logoPath?:string|null
-  abbreviation?:string
-  name:string
-  href?:string
-}){
+function LogoDisplay({logoPath,abbreviation,name,href}:{logoPath?:string|null,abbreviation?:string,name:string,href?:string}){
   const content=(
-    <SquadLogo
-      logoPath={logoPath}
-      nflAbbreviation={abbreviation}
-      squadName={name}
-      size={22}
-    />
+    <SquadLogo logoPath={logoPath} nflAbbreviation={abbreviation} squadName={name} size={22}/>
   )
-
   const style={
     display:'flex',
     alignItems:'center',
     justifyContent:'flex-end',
     width:'100%',
+    paddingRight:3,
+    boxSizing:'border-box' as const,
     color:'inherit',
     textDecoration:'none'
   }
-
-  if(href){
-    return <Link href={href} style={style}>{content}</Link>
-  }
-
+  if(href) return <Link href={href} style={style}>{content}</Link>
   return <div style={style}>{content}</div>
 }
 
-function TeamNameDisplay({
-  name,
-  nflName,
-  prefix,
-  emphasized=false,
-  href
-}:{
-  name:string
-  nflName?:string|null
-  prefix?:string
-  emphasized?:boolean
-  href?:string
-}){
+function TeamNameDisplay({name,nflName,prefix,emphasized=false,href}:{name:string,nflName?:string|null,prefix?:string,emphasized?:boolean,href?:string}){
   const parts=squadNameParts(name,nflName)
   const style={
     display:'flex',
@@ -636,34 +432,17 @@ function TeamNameDisplay({
     minWidth:0,
     width:'100%',
     boxSizing:'border-box' as const,
-    padding:'4px 0',
+    padding:'4px 0 4px 3px',
     fontWeight:emphasized ? 800 : 600,
     color:'inherit',
     textDecoration:'none'
   }
-
   const content=(
-    <span
-      style={{
-        minWidth:0,
-        lineHeight:1.04,
-        display:'flex',
-        flexDirection:'column',
-        alignItems:'flex-start'
-      }}
-    >
-      <span style={{display:'block',whiteSpace:'nowrap'}}>
-        {prefix ? `${prefix} ` : ''}{parts.area}
-      </span>
-      <span style={{display:'block',whiteSpace:'nowrap'}}>
-        {parts.nickname}
-      </span>
+    <span style={{minWidth:0,lineHeight:1.04,display:'flex',flexDirection:'column',alignItems:'flex-start'}}>
+      <span style={{display:'block',whiteSpace:'nowrap'}}>{prefix ? `${prefix} ` : ''}{parts.area}</span>
+      <span style={{display:'block',whiteSpace:'nowrap'}}>{parts.nickname}</span>
     </span>
   )
-
-  if(href){
-    return <Link href={href} style={style}>{content}</Link>
-  }
-
+  if(href) return <Link href={href} style={style}>{content}</Link>
   return <div style={style}>{content}</div>
 }

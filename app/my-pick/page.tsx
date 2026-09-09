@@ -97,15 +97,18 @@ export default async function MyPick({
 
     supabase
       .from('integration_settings')
-      .select('last_odds_request_at')
+      .select('last_odds_request_at,bookmaker')
       .eq('id',1)
       .maybeSingle()
   ])
 
   const commissioner=profile?.role==='commissioner'
   const oddsLastUpdated=feedSettings?.last_odds_request_at
-    ? fmtEastern(feedSettings.last_odds_request_at)
+    ? fmtEasternWithSeconds(feedSettings.last_odds_request_at)
     : null
+  const oddsSource=feedSettings?.bookmaker==='betmgm'
+    ? 'BetMGM'
+    : feedSettings?.bookmaker || 'Not available yet'
 
   if(!squad){
     return (
@@ -356,6 +359,7 @@ export default async function MyPick({
         >
           Odds last updated:{' '}
           <b>{oddsLastUpdated || 'Not available yet'}</b>
+          {' · '}Source: <b>{oddsSource}</b>
         </p>
 
         {!weekOpen && (

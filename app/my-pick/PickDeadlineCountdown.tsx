@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 
 function formatRemaining(milliseconds:number){
   const totalSeconds=Math.max(0,Math.ceil(milliseconds/1000))
-  const minutes=Math.floor(totalSeconds/60)
+  const hours=Math.floor(totalSeconds/3600)
+  const minutes=Math.floor((totalSeconds%3600)/60)
   const seconds=totalSeconds%60
-  return `${minutes}:${String(seconds).padStart(2,'0')}`
+
+  return `${hours}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`
 }
 
 export default function PickDeadlineCountdown({
@@ -25,9 +27,9 @@ export default function PickDeadlineCountdown({
 
   const kickoff=new Date(kickoffTime).getTime()
   const lock=new Date(lockTime).getTime()
-  const oneHourBefore=kickoff-(60*60*1000)
+  const twentyFourHoursBefore=kickoff-(24*60*60*1000)
 
-  if(now<oneHourBefore || now>=lock){
+  if(now<twentyFourHoursBefore || now>=lock){
     return null
   }
 
@@ -41,7 +43,7 @@ export default function PickDeadlineCountdown({
         fontVariantNumeric:'tabular-nums'
       }}
     >
-      Pick locks in {formatRemaining(lock-now)}
+      Pick window closes in {formatRemaining(lock-now)}
     </div>
   )
 }

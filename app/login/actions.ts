@@ -75,5 +75,7 @@ export async function login(
     )
   }
 
+  await supabase.rpc('record_login_activity')
+
   redirect(next)
 }

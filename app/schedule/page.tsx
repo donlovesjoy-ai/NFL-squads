@@ -84,7 +84,12 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
     week=Math.min(18,Math.max(1,Number(activeGames?.[0]?.nfl_week||1)))
   }
 
-  const {data:profile}=await supabase.from('users').select('role').eq('id',user.id).maybeSingle()
+  const {data:profile}=await supabase
+    .from('users')
+    .select('role')
+    .eq('id',user.id)
+    .maybeSingle()
+
   const commissioner=profile?.role==='commissioner'
 
   const [{data:squads},{data:games},{data:divisionNames}]=await Promise.all([
@@ -134,7 +139,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
   if(gameIds.length){
     const {data:picks}=await supabase
       .from('picks')
-      .select(`squad_id,game_id,selection_team_id,result,revealed,is_missed,ats_margin`)
+      .select('squad_id,game_id,selection_team_id,result,revealed,is_missed,ats_margin')
       .in('game_id',gameIds)
     weekPicks=picks||[]
   }
@@ -180,10 +185,12 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
   }
 
   const arrowStyle={
-    fontSize:'0.9rem',
-    fontWeight:800,
-    letterSpacing:'-0.1em',
-    opacity:0.7,
+    display:'inline-block',
+    fontSize:'1rem',
+    fontWeight:900,
+    lineHeight:1,
+    letterSpacing:'-0.12em',
+    color:'#111',
     whiteSpace:'nowrap' as const
   }
 
@@ -202,7 +209,9 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
         <h1>Schedule &amp; Results</h1>
         <p className="muted">Select any NFL week to view every league squad&apos;s matchup and result.</p>
         <p className="muted" style={{fontSize:'0.76rem',marginTop:-4}}>* All times EDT</p>
-        <div style={{display:'flex',justifyContent:'center'}}><WeekSelector week={week}/></div>
+        <div style={{display:'flex',justifyContent:'center'}}>
+          <WeekSelector week={week}/>
+        </div>
       </section>
 
       <section className="card" style={{paddingLeft:8,paddingRight:8}}>
@@ -214,19 +223,19 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
               borderCollapse:'separate',
               borderSpacing:0,
               tableLayout:'fixed',
-              width:552,
-              minWidth:552
+              width:534,
+              minWidth:534
             }}
           >
             <colgroup>
               <col style={{width:30}}/>
-              <col style={{width:96}}/>
-              <col style={{width:40}}/>
+              <col style={{width:90}}/>
+              <col style={{width:38}}/>
               <col style={{width:30}}/>
-              <col style={{width:116}}/>
-              <col style={{width:24}}/>
-              <col style={{width:88}}/>
-              <col style={{width:128}}/>
+              <col style={{width:108}}/>
+              <col style={{width:28}}/>
+              <col style={{width:86}}/>
+              <col style={{width:124}}/>
             </colgroup>
 
             <thead>
@@ -237,7 +246,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                 <th style={headCell} aria-label="Opponent logo"/>
                 <th style={headCell}>Opponent</th>
                 <th style={headCell} aria-label="More information to the right">
-                  <span className="muted" style={arrowStyle}>››</span>
+                  <span style={arrowStyle}>››</span>
                 </th>
                 <th style={headCell}>Score</th>
                 <th style={headCell}>Pick / Result</th>
@@ -251,7 +260,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                     <strong>{divisionName}</strong>
                   </td>
                   <td style={{...bodyCell,padding:'12px 0 8px'}}>
-                    <span className="muted" aria-label="More information to the right" style={arrowStyle}>››</span>
+                    <span aria-label="More information to the right" style={arrowStyle}>››</span>
                   </td>
                   <td colSpan={2} style={{padding:'12px 0 8px'}}/>
                 </tr>,
@@ -264,10 +273,19 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                     return (
                       <tr key={s.id}>
                         <td style={bodyCell}>
-                          <LogoDisplay logoPath={s.logo_path} abbreviation={ownNfl?.abbreviation} name={s.squad_name} href={`/squads/${s.id}`}/>
+                          <LogoDisplay
+                            logoPath={s.logo_path}
+                            abbreviation={ownNfl?.abbreviation}
+                            name={s.squad_name}
+                            href={`/squads/${s.id}`}
+                          />
                         </td>
                         <td style={bodyCell} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}>
-                          <TeamNameDisplay name={s.squad_name} nflName={ownNfl?.name} href={`/squads/${s.id}`}/>
+                          <TeamNameDisplay
+                            name={s.squad_name}
+                            nflName={ownNfl?.name}
+                            href={`/squads/${s.id}`}
+                          />
                         </td>
                         <td style={bodyCell}>—</td>
                         <td style={bodyCell}>—</td>
@@ -347,24 +365,54 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                   return (
                     <tr key={s.id}>
                       <td style={{...bodyCell,...teamLogoSelectionStyle}}>
-                        <LogoDisplay logoPath={s.logo_path} abbreviation={ownNfl?.abbreviation} name={s.squad_name} href={`/squads/${s.id}`}/>
+                        <LogoDisplay
+                          logoPath={s.logo_path}
+                          abbreviation={ownNfl?.abbreviation}
+                          name={s.squad_name}
+                          href={`/squads/${s.id}`}
+                        />
                       </td>
+
                       <td style={{...bodyCell,...teamNameSelectionStyle}} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}>
-                        <TeamNameDisplay name={s.squad_name} nflName={ownNfl?.name} emphasized={pickedOwnTeam} href={`/squads/${s.id}`}/>
+                        <TeamNameDisplay
+                          name={s.squad_name}
+                          nflName={ownNfl?.name}
+                          emphasized={pickedOwnTeam}
+                          href={`/squads/${s.id}`}
+                        />
                       </td>
+
                       <td style={{...bodyCell,...lineOwnSelectionStyle,...lineOpponentSelectionStyle,whiteSpace:'nowrap',fontWeight:pickRevealed ? 800 : 600}}>
                         {signed(displayedSpread)}
                       </td>
+
                       <td style={{...bodyCell,...opponentLogoSelectionStyle}}>
-                        <LogoDisplay logoPath={opponentSquad?.logo_path} abbreviation={opponentNfl?.abbreviation} name={opponentLabel} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/>
+                        <LogoDisplay
+                          logoPath={opponentSquad?.logo_path}
+                          abbreviation={opponentNfl?.abbreviation}
+                          name={opponentLabel}
+                          href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}
+                        />
                       </td>
+
                       <td style={{...bodyCell,...opponentNameSelectionStyle}}>
-                        <TeamNameDisplay name={opponentLabel} nflName={opponentNfl?.name} prefix={isHome ? 'vs' : '@'} emphasized={pickedOpponent} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/>
+                        <TeamNameDisplay
+                          name={opponentLabel}
+                          nflName={opponentNfl?.name}
+                          prefix={isHome ? 'vs' : '@'}
+                          emphasized={pickedOpponent}
+                          href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}
+                        />
                       </td>
-                      <td style={bodyCell}/>
+
+                      <td style={bodyCell}>
+                        <span aria-label="More information to the right" style={arrowStyle}>››</span>
+                      </td>
+
                       <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:kickedOff ? 700 : 500,fontSize:kickedOff ? '0.78rem' : '0.72rem'}}>
                         {score}
                       </td>
+
                       <td style={{...bodyCell,whiteSpace:'nowrap'}}>
                         {(()=>{
                           if(!kickedOff){
@@ -372,13 +420,19 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                               ? <span style={{color:'green',fontWeight:700,fontSize:'1.15rem'}}>✓</span>
                               : <span className="muted">—</span>
                           }
+
                           if(pick?.is_missed){
                             if(g.status==='final'){
                               const margin=Number(pick.ats_margin ?? 0)
-                              return <b style={{color:margin<0 ? 'red' : margin>0 ? 'green' : '#1565c0'}}>NO PICK {margin>0 ? '+' : ''}{margin}</b>
+                              return (
+                                <b style={{color:margin<0 ? 'red' : margin>0 ? 'green' : '#1565c0'}}>
+                                  NO PICK {margin>0 ? '+' : ''}{margin}
+                                </b>
+                              )
                             }
                             return <b>NO PICK</b>
                           }
+
                           if(!pick) return <span className="muted">—</span>
 
                           const pickedHome=Number(pick.selection_team_id)===Number(g.home_team_id)
@@ -390,6 +444,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                             const color=margin>0 ? 'green' : margin<0 ? 'red' : '#1565c0'
                             return <b style={{color}}>{teamLabel} {margin>0 ? '+' : ''}{margin}</b>
                           }
+
                           return <b>{teamLabel}</b>
                         })()}
                       </td>
@@ -405,10 +460,26 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
   )
 }
 
-function LogoDisplay({logoPath,abbreviation,name,href}:{logoPath?:string|null,abbreviation?:string,name:string,href?:string}){
+function LogoDisplay({
+  logoPath,
+  abbreviation,
+  name,
+  href
+}:{
+  logoPath?:string|null
+  abbreviation?:string
+  name:string
+  href?:string
+}){
   const content=(
-    <SquadLogo logoPath={logoPath} nflAbbreviation={abbreviation} squadName={name} size={22}/>
+    <SquadLogo
+      logoPath={logoPath}
+      nflAbbreviation={abbreviation}
+      squadName={name}
+      size={22}
+    />
   )
+
   const style={
     display:'flex',
     alignItems:'center',
@@ -419,30 +490,57 @@ function LogoDisplay({logoPath,abbreviation,name,href}:{logoPath?:string|null,ab
     color:'inherit',
     textDecoration:'none'
   }
+
   if(href) return <Link href={href} style={style}>{content}</Link>
   return <div style={style}>{content}</div>
 }
 
-function TeamNameDisplay({name,nflName,prefix,emphasized=false,href}:{name:string,nflName?:string|null,prefix?:string,emphasized?:boolean,href?:string}){
+function TeamNameDisplay({
+  name,
+  nflName,
+  prefix,
+  emphasized=false,
+  href
+}:{
+  name:string
+  nflName?:string|null
+  prefix?:string
+  emphasized?:boolean
+  href?:string
+}){
   const parts=squadNameParts(name,nflName)
   const style={
     display:'flex',
     alignItems:'center',
-    justifyContent:'flex-start',
+    justifyContent:'center',
     minWidth:0,
     width:'100%',
     boxSizing:'border-box' as const,
-    padding:'4px 0 4px 3px',
+    padding:'4px 2px',
     fontWeight:emphasized ? 800 : 600,
     color:'inherit',
-    textDecoration:'none'
+    textDecoration:'none',
+    textAlign:'center' as const
   }
+
   const content=(
-    <span style={{minWidth:0,lineHeight:1.04,display:'flex',flexDirection:'column',alignItems:'flex-start'}}>
-      <span style={{display:'block',whiteSpace:'nowrap'}}>{prefix ? `${prefix} ` : ''}{parts.area}</span>
+    <span
+      style={{
+        minWidth:0,
+        lineHeight:1.04,
+        display:'flex',
+        flexDirection:'column',
+        alignItems:'center',
+        textAlign:'center'
+      }}
+    >
+      <span style={{display:'block',whiteSpace:'nowrap'}}>
+        {prefix ? `${prefix} ` : ''}{parts.area}
+      </span>
       <span style={{display:'block',whiteSpace:'nowrap'}}>{parts.nickname}</span>
     </span>
   )
+
   if(href) return <Link href={href} style={style}>{content}</Link>
   return <div style={style}>{content}</div>
 }

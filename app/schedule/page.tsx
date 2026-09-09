@@ -234,15 +234,15 @@ export default async function Schedule({
 
   const headCell={
     textAlign:'center' as const,
-    padding:'8px 2px',
+    padding:'8px 0',
     whiteSpace:'nowrap' as const,
-    fontSize:'0.8rem'
+    fontSize:'0.76rem'
   }
 
   const bodyCell={
     textAlign:'center' as const,
-    padding:'8px 2px',
-    fontSize:'0.8rem',
+    padding:'8px 0',
+    fontSize:'0.78rem',
     verticalAlign:'middle' as const,
     boxSizing:'border-box' as const
   }
@@ -271,7 +271,7 @@ export default async function Schedule({
         </div>
       </section>
 
-      <section className="card">
+      <section className="card" style={{paddingLeft:8,paddingRight:8}}>
         <h2 style={{textAlign:'center'}}>Week {week}</h2>
 
         <div style={{width:'100%',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
@@ -280,26 +280,26 @@ export default async function Schedule({
               borderCollapse:'separate',
               borderSpacing:0,
               tableLayout:'fixed',
-              width:650,
-              minWidth:650
+              width:520,
+              minWidth:520
             }}
           >
             <colgroup>
-              <col style={{width:38}}/>
-              <col style={{width:105}}/>
-              <col style={{width:48}}/>
-              <col style={{width:38}}/>
-              <col style={{width:112}}/>
-              <col style={{width:135}}/>
-              <col style={{width:174}}/>
+              <col style={{width:24}}/>
+              <col style={{width:96}}/>
+              <col style={{width:40}}/>
+              <col style={{width:24}}/>
+              <col style={{width:116}}/>
+              <col style={{width:92}}/>
+              <col style={{width:128}}/>
             </colgroup>
 
             <thead>
               <tr>
-                <th style={headCell} aria-label="Team logo">Logo</th>
+                <th style={headCell} aria-label="Team logo"/>
                 <th style={headCell}>Team</th>
                 <th style={headCell}>Line</th>
-                <th style={headCell} aria-label="Opponent logo">Logo</th>
+                <th style={headCell} aria-label="Opponent logo"/>
                 <th style={headCell}>Opponent</th>
                 <th style={headCell}>Score</th>
                 <th style={headCell}>Pick / Result</th>
@@ -309,13 +309,13 @@ export default async function Schedule({
             <tbody>
               {squadsByDivision.flatMap(({division,divisionName,squads:divisionSquads})=>[
                 <tr key={`division-${division}`}>
-                  <td colSpan={5} style={{padding:'12px 4px 8px'}}>
+                  <td colSpan={5} style={{padding:'12px 0 8px'}}>
                     <div
                       style={{
                         display:'flex',
                         alignItems:'center',
                         justifyContent:'center',
-                        gap:8,
+                        gap:5,
                         whiteSpace:'nowrap'
                       }}
                     >
@@ -334,7 +334,7 @@ export default async function Schedule({
                       </span>
                     </div>
                   </td>
-                  <td colSpan={2} style={{padding:'12px 4px 8px'}}/>
+                  <td colSpan={2} style={{padding:'12px 0 8px'}}/>
                 </tr>,
 
                 ...divisionSquads.map((s:any)=>{
@@ -516,7 +516,7 @@ export default async function Schedule({
                           ...bodyCell,
                           whiteSpace:'nowrap',
                           fontWeight:kickedOff ? 700 : 500,
-                          fontSize:kickedOff ? '0.8rem' : '0.74rem'
+                          fontSize:kickedOff ? '0.78rem' : '0.72rem'
                         }}
                       >
                         {score}
@@ -602,7 +602,7 @@ function LogoDisplay({
   const style={
     display:'flex',
     alignItems:'center',
-    justifyContent:'center',
+    justifyContent:'flex-end',
     width:'100%',
     color:'inherit',
     textDecoration:'none'
@@ -632,11 +632,11 @@ function TeamNameDisplay({
   const style={
     display:'flex',
     alignItems:'center',
-    justifyContent:'center',
+    justifyContent:'flex-start',
     minWidth:0,
     width:'100%',
     boxSizing:'border-box' as const,
-    padding:'4px 2px',
+    padding:'4px 0',
     fontWeight:emphasized ? 800 : 600,
     color:'inherit',
     textDecoration:'none'
@@ -649,7 +649,7 @@ function TeamNameDisplay({
         lineHeight:1.04,
         display:'flex',
         flexDirection:'column',
-        alignItems:'center'
+        alignItems:'flex-start'
       }}
     >
       <span style={{display:'block',whiteSpace:'nowrap'}}>

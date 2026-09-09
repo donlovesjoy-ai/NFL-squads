@@ -97,14 +97,14 @@ export default async function MyPick({
 
     supabase
       .from('integration_settings')
-      .select('last_sync_at')
+      .select('last_odds_request_at')
       .eq('id',1)
       .maybeSingle()
   ])
 
   const commissioner=profile?.role==='commissioner'
-  const oddsLastUpdated=feedSettings?.last_sync_at
-    ? fmtEastern(feedSettings.last_sync_at)
+  const oddsLastUpdated=feedSettings?.last_odds_request_at
+    ? fmtEastern(feedSettings.last_odds_request_at)
     : null
 
   if(!squad){

@@ -21,6 +21,17 @@ function fmtEastern(value:string|Date){
   })
 }
 
+function fmtEasternWithSeconds(value:string|Date){
+  return new Date(value).toLocaleString('en-US',{
+    timeZone:'America/New_York',
+    month:'short',
+    day:'numeric',
+    hour:'numeric',
+    minute:'2-digit',
+    second:'2-digit'
+  })
+}
+
 function gameStatusLabel(status:any){
   const normalized=String(status||'').toLowerCase()
   if(normalized==='final') return 'Final'
@@ -315,7 +326,7 @@ export default async function MyPick({
   const awaySpread=homeSpread===null ? null : -homeSpread
   const submissionDisabled=!weekOpen || locked || homeSpread===null
 
-  let buttonText=pick && !pick.is_missed ? 'Change My Pick' : 'Submit Pick'
+  let buttonText='Make a Decision'
   if(!weekOpen) buttonText='Week Not Open Yet'
   else if(locked) buttonText='Pick Locked'
   else if(homeSpread===null) buttonText='Waiting for Closing Line'
@@ -336,7 +347,7 @@ export default async function MyPick({
 
         <p>
           <b>Pick deadline:</b>{' '}
-          {fmtEastern(deadline)}
+          {fmtEasternWithSeconds(deadline)}
         </p>
 
         <p

@@ -280,22 +280,26 @@ export default async function Schedule({
               borderCollapse:'separate',
               borderSpacing:0,
               tableLayout:'fixed',
-              width:550,
-              minWidth:550
+              width:650,
+              minWidth:650
             }}
           >
             <colgroup>
-              <col style={{width:115}}/>
-              <col style={{width:45}}/>
-              <col style={{width:130}}/>
-              <col style={{width:125}}/>
+              <col style={{width:38}}/>
+              <col style={{width:105}}/>
+              <col style={{width:48}}/>
+              <col style={{width:38}}/>
+              <col style={{width:112}}/>
               <col style={{width:135}}/>
+              <col style={{width:174}}/>
             </colgroup>
 
             <thead>
               <tr>
+                <th style={headCell} aria-label="Team logo">Logo</th>
                 <th style={headCell}>Team</th>
                 <th style={headCell}>Line</th>
+                <th style={headCell} aria-label="Opponent logo">Logo</th>
                 <th style={headCell}>Opponent</th>
                 <th style={headCell}>Score</th>
                 <th style={headCell}>Pick / Result</th>
@@ -305,7 +309,7 @@ export default async function Schedule({
             <tbody>
               {squadsByDivision.flatMap(({division,divisionName,squads:divisionSquads})=>[
                 <tr key={`division-${division}`}>
-                  <td colSpan={3} style={{padding:'12px 4px 8px'}}>
+                  <td colSpan={5} style={{padding:'12px 4px 8px'}}>
                     <div
                       style={{
                         display:'flex',
@@ -340,18 +344,25 @@ export default async function Schedule({
                   if(!g){
                     return (
                       <tr key={s.id}>
+                        <td style={bodyCell}>
+                          <LogoDisplay
+                            logoPath={s.logo_path}
+                            abbreviation={ownNfl?.abbreviation}
+                            name={s.squad_name}
+                            href={`/squads/${s.id}`}
+                          />
+                        </td>
                         <td
                           style={bodyCell}
                           title={s.owner_name ? `${s.owner_name}, Owner` : undefined}
                         >
-                          <TeamDisplay
-                            logoPath={s.logo_path}
-                            abbreviation={ownNfl?.abbreviation}
+                          <TeamNameDisplay
                             name={s.squad_name}
                             nflName={ownNfl?.name}
                             href={`/squads/${s.id}`}
                           />
                         </td>
+                        <td style={bodyCell}>—</td>
                         <td style={bodyCell}>—</td>
                         <td style={{...bodyCell,fontWeight:800}}>BYE</td>
                         <td style={bodyCell}>—</td>
@@ -385,13 +396,20 @@ export default async function Schedule({
                   const displayedSpread=pickedOpponent ? opponentSpread : ownedSpread
                   const outlineColor=pickRevealed ? pickOutlineColor(g.status,pick) : null
 
-                  const teamSelectionStyle=pickedOwnTeam && outlineColor
+                  const teamLogoSelectionStyle=pickedOwnTeam && outlineColor
                     ? {
                         borderTop:`2px solid ${outlineColor}`,
                         borderBottom:`2px solid ${outlineColor}`,
                         borderLeft:`2px solid ${outlineColor}`,
                         borderTopLeftRadius:10,
                         borderBottomLeftRadius:10
+                      }
+                    : {}
+
+                  const teamNameSelectionStyle=pickedOwnTeam && outlineColor
+                    ? {
+                        borderTop:`2px solid ${outlineColor}`,
+                        borderBottom:`2px solid ${outlineColor}`
                       }
                     : {}
 
@@ -415,7 +433,14 @@ export default async function Schedule({
                       }
                     : {}
 
-                  const opponentSelectionStyle=pickedOpponent && outlineColor
+                  const opponentLogoSelectionStyle=pickedOpponent && outlineColor
+                    ? {
+                        borderTop:`2px solid ${outlineColor}`,
+                        borderBottom:`2px solid ${outlineColor}`
+                      }
+                    : {}
+
+                  const opponentNameSelectionStyle=pickedOpponent && outlineColor
                     ? {
                         borderTop:`2px solid ${outlineColor}`,
                         borderBottom:`2px solid ${outlineColor}`,
@@ -434,13 +459,20 @@ export default async function Schedule({
 
                   return (
                     <tr key={s.id}>
-                      <td
-                        style={{...bodyCell,...teamSelectionStyle}}
-                        title={s.owner_name ? `${s.owner_name}, Owner` : undefined}
-                      >
-                        <TeamDisplay
+                      <td style={{...bodyCell,...teamLogoSelectionStyle}}>
+                        <LogoDisplay
                           logoPath={s.logo_path}
                           abbreviation={ownNfl?.abbreviation}
+                          name={s.squad_name}
+                          href={`/squads/${s.id}`}
+                        />
+                      </td>
+
+                      <td
+                        style={{...bodyCell,...teamNameSelectionStyle}}
+                        title={s.owner_name ? `${s.owner_name}, Owner` : undefined}
+                      >
+                        <TeamNameDisplay
                           name={s.squad_name}
                           nflName={ownNfl?.name}
                           emphasized={pickedOwnTeam}
@@ -460,10 +492,17 @@ export default async function Schedule({
                         {signed(displayedSpread)}
                       </td>
 
-                      <td style={{...bodyCell,...opponentSelectionStyle}}>
-                        <TeamDisplay
+                      <td style={{...bodyCell,...opponentLogoSelectionStyle}}>
+                        <LogoDisplay
                           logoPath={opponentSquad?.logo_path}
                           abbreviation={opponentNfl?.abbreviation}
+                          name={opponentLabel}
+                          href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}
+                        />
+                      </td>
+
+                      <td style={{...bodyCell,...opponentNameSelectionStyle}}>
+                        <TeamNameDisplay
                           name={opponentLabel}
                           nflName={opponentNfl?.name}
                           prefix={isHome ? 'vs' : '@'}
@@ -540,17 +579,49 @@ export default async function Schedule({
   )
 }
 
-function TeamDisplay({
+function LogoDisplay({
   logoPath,
   abbreviation,
+  name,
+  href
+}:{
+  logoPath?:string|null
+  abbreviation?:string
+  name:string
+  href?:string
+}){
+  const content=(
+    <SquadLogo
+      logoPath={logoPath}
+      nflAbbreviation={abbreviation}
+      squadName={name}
+      size={22}
+    />
+  )
+
+  const style={
+    display:'flex',
+    alignItems:'center',
+    justifyContent:'center',
+    width:'100%',
+    color:'inherit',
+    textDecoration:'none'
+  }
+
+  if(href){
+    return <Link href={href} style={style}>{content}</Link>
+  }
+
+  return <div style={style}>{content}</div>
+}
+
+function TeamNameDisplay({
   name,
   nflName,
   prefix,
   emphasized=false,
   href
 }:{
-  logoPath?:string|null
-  abbreviation?:string
   name:string
   nflName?:string|null
   prefix?:string
@@ -562,7 +633,6 @@ function TeamDisplay({
     display:'flex',
     alignItems:'center',
     justifyContent:'center',
-    gap:4,
     minWidth:0,
     width:'100%',
     boxSizing:'border-box' as const,
@@ -573,31 +643,22 @@ function TeamDisplay({
   }
 
   const content=(
-    <>
-      <SquadLogo
-        logoPath={logoPath}
-        nflAbbreviation={abbreviation}
-        squadName={name}
-        size={22}
-      />
-
-      <span
-        style={{
-          minWidth:0,
-          lineHeight:1.04,
-          display:'flex',
-          flexDirection:'column',
-          alignItems:'center'
-        }}
-      >
-        <span style={{display:'block',whiteSpace:'nowrap'}}>
-          {prefix ? `${prefix} ` : ''}{parts.area}
-        </span>
-        <span style={{display:'block',whiteSpace:'nowrap'}}>
-          {parts.nickname}
-        </span>
+    <span
+      style={{
+        minWidth:0,
+        lineHeight:1.04,
+        display:'flex',
+        flexDirection:'column',
+        alignItems:'center'
+      }}
+    >
+      <span style={{display:'block',whiteSpace:'nowrap'}}>
+        {prefix ? `${prefix} ` : ''}{parts.area}
       </span>
-    </>
+      <span style={{display:'block',whiteSpace:'nowrap'}}>
+        {parts.nickname}
+      </span>
+    </span>
   )
 
   if(href){

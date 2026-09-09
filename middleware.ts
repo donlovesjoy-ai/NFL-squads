@@ -101,6 +101,8 @@ export async function middleware(
     )
   }
 
+  await supabase.rpc('record_hourly_visit')
+
   const [
     {data:profile},
     {data:squad}
@@ -165,9 +167,13 @@ export const config={
     '/my-pick/:path*',
     '/schedule/:path*',
     '/standings/:path*',
+    '/squads/:path*',
     '/playoffs/:path*',
     '/playoff-tiebreaker/:path*',
     '/chat/:path*',
+    '/rules/:path*',
+    '/audit-log/:path*',
+    '/notifications/:path*',
     '/commissioner/:path*'
   ]
 }

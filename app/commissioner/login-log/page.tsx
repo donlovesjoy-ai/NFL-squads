@@ -50,7 +50,8 @@ export default async function LoginLogPage(){
 
   const {data:logs}=await supabase
     .from('login_activity_log')
-    .select('id,user_id,logged_in_at,source,historical_backfill')
+    .select('id,user_id,logged_in_at,source,historical_backfill,visit_hour')
+    .or('source.eq.visit,historical_backfill.eq.true')
     .order('logged_in_at',{ascending:false})
     .limit(1000)
 
@@ -93,25 +94,25 @@ export default async function LoginLogPage(){
       <div className="top" style={{justifyContent:'center',textAlign:'center'}}>
         <div style={{width:'100%'}}>
           <div className="big">NFL SQUADS</div>
-          <div className="muted">Login Activity</div>
+          <div className="muted">Owner Activity</div>
         </div>
       </div>
 
       <Nav commissioner={true}/>
 
       <section className="card" style={{maxWidth:900,margin:'0 auto'}}>
-        <h1 style={{textAlign:'center'}}>Login Log</h1>
+        <h1 style={{textAlign:'center'}}>Activity Log</h1>
 
         <p className="muted" style={{textAlign:'center',fontSize:'0.82rem'}}>
-          Successful NFL Squads logins are grouped by day in Eastern time.
+          One authenticated NFL Squads visit is recorded per owner per hour and grouped by day in Eastern time.
         </p>
 
         <p className="muted" style={{textAlign:'center',fontSize:'0.78rem'}}>
-          Historical entries from before this tracker was installed represent each account&apos;s most recent Supabase sign-in since Monday, September 7, 2026. New logins are recorded individually going forward.
+          Historical entries from before hourly visit tracking was installed represent each account&apos;s most recent Supabase sign-in since Monday, September 7, 2026.
         </p>
 
         {groups.size===0 ? (
-          <p className="muted" style={{textAlign:'center'}}>No login activity recorded yet.</p>
+          <p className="muted" style={{textAlign:'center'}}>No owner activity recorded yet.</p>
         ) : (
           [...groups.entries()].map(([key,rows])=>(
             <div key={key} style={{marginTop:24}}>
@@ -125,7 +126,7 @@ export default async function LoginLogPage(){
                     <tr>
                       <th style={{padding:'8px 6px'}}>Owner</th>
                       <th style={{padding:'8px 6px'}}>Squad</th>
-                      <th style={{padding:'8px 6px'}}>Login Time</th>
+                      <th style={{padding:'8px 6px'}}>Visit Time</th>
                       <th style={{padding:'8px 6px'}}>Status</th>
                     </tr>
                   </thead>
@@ -147,7 +148,7 @@ export default async function LoginLogPage(){
                             {formatEastern(row.logged_in_at)}
                           </td>
                           <td style={{padding:'8px 6px',borderTop:'1px solid #e5e5e5'}}>
-                            {row.historical_backfill ? 'Historical' : 'Recorded'}
+                            {row.historical_backfill ? 'Historical' : 'Hourly Visit'}
                           </td>
                         </tr>
                       )

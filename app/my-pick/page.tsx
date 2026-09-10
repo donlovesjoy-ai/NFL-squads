@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
 import PickDeadlineCountdown from './PickDeadlineCountdown'
+import LiveRefresh from './LiveRefresh'
 import { submitPick } from './actions'
 
 function fmtSpread(n:number|null){
@@ -143,6 +144,8 @@ export default async function MyPick({
         id,
         nfl_week,
         kickoff_time,
+        scheduled_kickoff_time,
+        pick_lock_at,
         spread,
         status,
         final_at,
@@ -150,6 +153,9 @@ export default async function MyPick({
         away_team_id,
         odds_bookmaker,
         odds_updated_at,
+        closing_bookmaker,
+        closing_received_at,
+        closing_finalized_at,
 
         home:
           nfl_teams!games_home_team_id_fkey(
@@ -240,6 +246,7 @@ export default async function MyPick({
       (g:any)=>Number(g.nfl_week)===previousWeek
     )
     const previousWeekWasBye=previousWeek>=1 && !previousGame
+    const nextKickoff=nextGame.scheduled_kickoff_time || nextGame.kickoff_time
 
     return (
       <main className="wrap">
@@ -262,7 +269,7 @@ export default async function MyPick({
 
               <p className="muted">
                 Week {nextWeek} kickoff:{' '}
-                {fmtEastern(nextGame.kickoff_time)}
+                {fmtEastern(nextKickoff)}
               </p>
             </>
           ) : (
@@ -283,8 +290,8 @@ export default async function MyPick({
             className="muted"
             style={{marginTop:18,fontSize:'0.82rem'}}
           >
-            Lines are subject to change. The line closes one second before
-            scheduled kickoff. Your official line is assigned at kickoff by BetMGM.
+            Lines are subject to change. Bet window closes one second before kickoff.
+            Your official line is assigned at kickoff by BetMGM.
           </p>
         </section>
       </main>
@@ -297,11 +304,27 @@ export default async function MyPick({
 
   const awayName=awaySquad?.squad_name || game.away?.name
   const homeName=homeSquad?.squad_name || game.home?.name
+  const kickoffTime=game.scheduled_kickoff_time || game.kickoff_time
 
-  const oddsLastUpdated=game.odds_updated_at
-    ? fmtEasternWithSeconds(game.odds_updated_at)
-    : null
-  const oddsSource=bookmakerLabel(game.odds_bookmaker)
+  const gameStatus=String(game.status||'').toLowerCase()
+  const gameStarted=gameStatus==='live' || gameStatus==='final'
+  const officialLineAvailable=Boolean(game.closing_finalized_at && game.closing_received_at)
+
+  const oddsTimestamp=officialLineAvailable
+    ? fmtEasternWithSeconds(game.closing_received_at)
+    : game.odds_updated_at
+      ? fmtEasternWithSeconds(game.odds_updated_at)
+      : null
+
+  const oddsSource=bookmakerLabel(
+    officialLineAvailable
+      ? game.closing_bookmaker
+      : game.odds_bookmaker
+  )
+
+  const oddsLabel=officialLineAvailable
+    ? 'Official line pulled'
+    : 'Odds last updated'
 
   const {data:pick}=await supabase
     .from('picks')
@@ -319,15 +342,19 @@ export default async function MyPick({
     .maybeSingle()
 
   const weekOpen=weekOpenMap.get(Number(game.nfl_week))===true
-  const deadline=new Date(new Date(game.kickoff_time).getTime()-1_000)
+  const deadline=game.pick_lock_at
+    ? new Date(game.pick_lock_at)
+    : new Date(new Date(kickoffTime).getTime()-1_000)
   const deadlinePassed=new Date()>=deadline
-  const gameStatus=String(game.status||'').toLowerCase()
-  const gameStarted=gameStatus==='live' || gameStatus==='final'
   const locked=deadlinePassed || gameStarted || pick?.is_locked===true
 
   const homeSpread=game.spread===null ? null : Number(game.spread)
   const awaySpread=homeSpread===null ? null : -homeSpread
   const submissionDisabled=!weekOpen || locked || homeSpread===null
+
+  const kickoffMs=new Date(kickoffTime).getTime()
+  const sixHoursMs=6*60*60*1000
+  const autoRefreshEnabled=gameStatus!=='final' && kickoffMs<=Date.now()+sixHoursMs && kickoffMs>=Date.now()-sixHoursMs
 
   let buttonText='Make a Decision'
   if(!weekOpen) buttonText='Week Not Open Yet'
@@ -336,6 +363,7 @@ export default async function MyPick({
 
   return (
     <main className="wrap">
+      <LiveRefresh enabled={autoRefreshEnabled}/>
       <Nav commissioner={commissioner}/>
       <h1 style={{textAlign:'center'}}>My Pick</h1>
 
@@ -346,7 +374,7 @@ export default async function MyPick({
         <h2>NFL Week {game.nfl_week}</h2>
         <AllTimesEastern/>
 
-        <p>{fmtEastern(game.kickoff_time)}</p>
+        <p>{fmtEastern(kickoffTime)}</p>
 
         <p>
           <b>Pick deadline:</b>{' '}
@@ -357,8 +385,8 @@ export default async function MyPick({
           className="muted"
           style={{margin:'6px 0 0',fontSize:'0.78rem'}}
         >
-          Odds last updated:{' '}
-          <b>{oddsLastUpdated || 'Not available yet'}</b>
+          {oddsLabel}:{' '}
+          <b>{oddsTimestamp || 'Not available yet'}</b>
           {' · '}Source: <b>{oddsSource}</b>
         </p>
 
@@ -380,7 +408,7 @@ export default async function MyPick({
           </p>
         )}
 
-        {sp.saved && <p className="status">Pick saved.</p>}
+        {sp.saved && !gameStarted && <p className="status">Pick saved.</p>}
 
         {sp.error==='week_closed' && (
           <p className="status">
@@ -416,7 +444,7 @@ export default async function MyPick({
           </p>
         )}
 
-        {pick && !pick.is_missed && (
+        {pick && !pick.is_missed && !gameStarted && (
           <p className="status">Current pick submitted.</p>
         )}
 
@@ -554,13 +582,13 @@ export default async function MyPick({
               maxWidth:440
             }}
           >
-            Lines are subject to change. The line closes one second before
-            scheduled kickoff. Your official line is assigned at kickoff.
+            Lines are subject to change. Bet window closes one second before kickoff.
+            Your official line is assigned at kickoff.
           </p>
 
           <div style={{textAlign:'center',marginTop:6}}>
             <PickDeadlineCountdown
-              kickoffTime={new Date(game.kickoff_time).toISOString()}
+              kickoffTime={new Date(kickoffTime).toISOString()}
               lockTime={deadline.toISOString()}
             />
 

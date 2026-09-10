@@ -186,134 +186,37 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
     (g:any)=>Number(g.home_team_id)===teamId || Number(g.away_team_id)===teamId
   )
 
-  const headCell={
-    textAlign:'center' as const,
-    padding:'8px 0',
-    whiteSpace:'nowrap' as const,
-    fontSize:'0.76rem'
-  }
-
-  const bodyCell={
-    textAlign:'center' as const,
-    padding:'8px 0',
-    fontSize:'0.78rem',
-    verticalAlign:'middle' as const,
-    boxSizing:'border-box' as const
-  }
-
-  const arrowStyle={
-    display:'inline-block',
-    fontSize:'1rem',
-    fontWeight:900,
-    lineHeight:1,
-    letterSpacing:'-0.12em',
-    color:'#111',
-    whiteSpace:'nowrap' as const
-  }
+  const headCell={textAlign:'center' as const,padding:'8px 0',whiteSpace:'nowrap' as const,fontSize:'0.76rem'}
+  const bodyCell={textAlign:'center' as const,padding:'8px 0',fontSize:'0.78rem',verticalAlign:'middle' as const,boxSizing:'border-box' as const}
+  const arrowStyle={display:'inline-block',fontSize:'1rem',fontWeight:900,lineHeight:1,letterSpacing:'-0.12em',color:'#111',whiteSpace:'nowrap' as const}
 
   return (
     <main className="wrap">
       <LiveRefresh enabled={autoRefreshEnabled}/>
-
-      <div className="top" style={{justifyContent:'center',textAlign:'center'}}>
-        <div>
-          <div className="big">NFL SQUADS</div>
-          <div className="muted">2026 Schedule &amp; Results</div>
-        </div>
-      </div>
-
+      <div className="top" style={{justifyContent:'center',textAlign:'center'}}><div><div className="big">NFL SQUADS</div><div className="muted">2026 Schedule &amp; Results</div></div></div>
       <Nav commissioner={commissioner}/>
 
       <section className="card" style={{textAlign:'center'}}>
         <h1>Schedule &amp; Results</h1>
         <p className="muted">Select any NFL week to view every league squad&apos;s matchup and result.</p>
         <p className="muted" style={{fontSize:'0.76rem',marginTop:-4}}>* All times EDT</p>
-        <div style={{display:'flex',justifyContent:'center'}}>
-          <WeekSelector week={week}/>
-        </div>
+        <div style={{display:'flex',justifyContent:'center'}}><WeekSelector week={week}/></div>
       </section>
 
       <section className="card" style={{paddingLeft:8,paddingRight:8}}>
         <h2 style={{textAlign:'center'}}>Week {week}</h2>
-
         <div style={{width:'100%',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
-          <table
-            style={{
-              borderCollapse:'separate',
-              borderSpacing:0,
-              tableLayout:'fixed',
-              width:534,
-              minWidth:534
-            }}
-          >
-            <colgroup>
-              <col style={{width:30}}/>
-              <col style={{width:90}}/>
-              <col style={{width:38}}/>
-              <col style={{width:30}}/>
-              <col style={{width:108}}/>
-              <col style={{width:28}}/>
-              <col style={{width:86}}/>
-              <col style={{width:124}}/>
-            </colgroup>
-
-            <thead>
-              <tr>
-                <th style={headCell} aria-label="Team logo"/>
-                <th style={headCell}>Team</th>
-                <th style={headCell}>Line</th>
-                <th style={headCell} aria-label="Opponent logo"/>
-                <th style={headCell}>Opponent</th>
-                <th style={headCell} aria-label="More information to the right">
-                  <span style={arrowStyle}>››</span>
-                </th>
-                <th style={headCell}>Score</th>
-                <th style={headCell}>Pick / Result</th>
-              </tr>
-            </thead>
-
+          <table style={{borderCollapse:'separate',borderSpacing:0,tableLayout:'fixed',width:534,minWidth:534}}>
+            <colgroup><col style={{width:30}}/><col style={{width:90}}/><col style={{width:38}}/><col style={{width:30}}/><col style={{width:108}}/><col style={{width:28}}/><col style={{width:86}}/><col style={{width:124}}/></colgroup>
+            <thead><tr><th style={headCell} aria-label="Team logo"/><th style={headCell}>Team</th><th style={headCell}>Line</th><th style={headCell} aria-label="Opponent logo"/><th style={headCell}>Opponent</th><th style={headCell} aria-label="More information to the right"><span style={arrowStyle}>››</span></th><th style={headCell}>Score</th><th style={headCell}>Pick / Result</th></tr></thead>
             <tbody>
               {squadsByDivision.flatMap(({division,divisionName,squads:divisionSquads})=>[
-                <tr key={`division-${division}`}>
-                  <td colSpan={5} style={{padding:'12px 0 8px',textAlign:'center'}}>
-                    <strong>{divisionName}</strong>
-                  </td>
-                  <td style={{...bodyCell,padding:'12px 0 8px'}}>
-                    <span aria-label="More information to the right" style={arrowStyle}>››</span>
-                  </td>
-                  <td colSpan={2} style={{padding:'12px 0 8px'}}/>
-                </tr>,
-
+                <tr key={`division-${division}`}><td colSpan={5} style={{padding:'12px 0 8px',textAlign:'center'}}><strong>{divisionName}</strong></td><td style={{...bodyCell,padding:'12px 0 8px'}}><span aria-label="More information to the right" style={arrowStyle}>››</span></td><td colSpan={2} style={{padding:'12px 0 8px'}}/></tr>,
                 ...divisionSquads.map((s:any)=>{
                   const g:any=gameForTeam(Number(s.nfl_team_id))
                   const ownNfl=Array.isArray(s.nfl_teams) ? s.nfl_teams[0] : s.nfl_teams
-
                   if(!g){
-                    return (
-                      <tr key={s.id}>
-                        <td style={bodyCell}>
-                          <LogoDisplay
-                            logoPath={s.logo_path}
-                            abbreviation={ownNfl?.abbreviation}
-                            name={s.squad_name}
-                            href={`/squads/${s.id}`}
-                          />
-                        </td>
-                        <td style={bodyCell} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}>
-                          <TeamNameDisplay
-                            name={s.squad_name}
-                            nflName={ownNfl?.name}
-                            href={`/squads/${s.id}`}
-                          />
-                        </td>
-                        <td style={bodyCell}>—</td>
-                        <td style={bodyCell}>—</td>
-                        <td style={{...bodyCell,fontWeight:800}}>BYE</td>
-                        <td style={bodyCell}/>
-                        <td style={bodyCell}>—</td>
-                        <td style={bodyCell}>—</td>
-                      </tr>
-                    )
+                    return <tr key={s.id}><td style={bodyCell}><LogoDisplay logoPath={s.logo_path} abbreviation={ownNfl?.abbreviation} name={s.squad_name} href={`/squads/${s.id}`}/></td><td style={bodyCell} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}><TeamNameDisplay name={s.squad_name} nflName={ownNfl?.name} href={`/squads/${s.id}`}/></td><td style={bodyCell}>—</td><td style={bodyCell}>—</td><td style={{...bodyCell,fontWeight:800}}>BYE</td><td style={bodyCell}/><td style={bodyCell}>—</td><td style={bodyCell}>—</td></tr>
                   }
 
                   const isHome=Number(g.home_team_id)===Number(s.nfl_team_id)
@@ -321,7 +224,6 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                   const opponentNfl=isHome ? g.away : g.home
                   const opponentSquad=squadByNflTeam.get(Number(opponentTeamId))
                   const opponentLabel=opponentSquad?.squad_name || opponentNfl?.name || '—'
-
                   const ownedSpread=g.spread===null ? null : isHome ? Number(g.spread) : -Number(g.spread)
                   const opponentSpread=ownedSpread===null ? null : -ownedSpread
                   const pick:any=pickBySquadGame.get(`${s.id}:${g.id}`)
@@ -331,48 +233,15 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                   const pickedOpponent=Boolean(pickRevealed && Number(pick.selection_team_id)===Number(opponentTeamId))
                   const displayedSpread=pickedOpponent ? opponentSpread : ownedSpread
                   const outlineColor=pickRevealed ? pickOutlineColor(g.status,pick) : null
+                  const livePulse=String(g.status||'').toLowerCase()==='live' && pickRevealed
+                  const liveClass=livePulse ? ' live-pick-border' : ''
 
-                  const teamLogoSelectionStyle=pickedOwnTeam && outlineColor ? {
-                    borderTop:`2px solid ${outlineColor}`,
-                    borderBottom:`2px solid ${outlineColor}`,
-                    borderLeft:`2px solid ${outlineColor}`,
-                    borderTopLeftRadius:10,
-                    borderBottomLeftRadius:10
-                  } : {}
-
-                  const teamNameSelectionStyle=pickedOwnTeam && outlineColor ? {
-                    borderTop:`2px solid ${outlineColor}`,
-                    borderBottom:`2px solid ${outlineColor}`
-                  } : {}
-
-                  const lineOwnSelectionStyle=pickedOwnTeam && outlineColor ? {
-                    borderTop:`2px solid ${outlineColor}`,
-                    borderBottom:`2px solid ${outlineColor}`,
-                    borderRight:`2px solid ${outlineColor}`,
-                    borderTopRightRadius:10,
-                    borderBottomRightRadius:10
-                  } : {}
-
-                  const lineOpponentSelectionStyle=pickedOpponent && outlineColor ? {
-                    borderTop:`2px solid ${outlineColor}`,
-                    borderBottom:`2px solid ${outlineColor}`,
-                    borderLeft:`2px solid ${outlineColor}`,
-                    borderTopLeftRadius:10,
-                    borderBottomLeftRadius:10
-                  } : {}
-
-                  const opponentLogoSelectionStyle=pickedOpponent && outlineColor ? {
-                    borderTop:`2px solid ${outlineColor}`,
-                    borderBottom:`2px solid ${outlineColor}`
-                  } : {}
-
-                  const opponentNameSelectionStyle=pickedOpponent && outlineColor ? {
-                    borderTop:`2px solid ${outlineColor}`,
-                    borderBottom:`2px solid ${outlineColor}`,
-                    borderRight:`2px solid ${outlineColor}`,
-                    borderTopRightRadius:10,
-                    borderBottomRightRadius:10
-                  } : {}
+                  const teamLogoSelectionStyle=pickedOwnTeam && outlineColor ? {borderTop:`2px solid ${outlineColor}`,borderBottom:`2px solid ${outlineColor}`,borderLeft:`2px solid ${outlineColor}`,borderTopLeftRadius:10,borderBottomLeftRadius:10} : {}
+                  const teamNameSelectionStyle=pickedOwnTeam && outlineColor ? {borderTop:`2px solid ${outlineColor}`,borderBottom:`2px solid ${outlineColor}`} : {}
+                  const lineOwnSelectionStyle=pickedOwnTeam && outlineColor ? {borderTop:`2px solid ${outlineColor}`,borderBottom:`2px solid ${outlineColor}`,borderRight:`2px solid ${outlineColor}`,borderTopRightRadius:10,borderBottomRightRadius:10} : {}
+                  const lineOpponentSelectionStyle=pickedOpponent && outlineColor ? {borderTop:`2px solid ${outlineColor}`,borderBottom:`2px solid ${outlineColor}`,borderLeft:`2px solid ${outlineColor}`,borderTopLeftRadius:10,borderBottomLeftRadius:10} : {}
+                  const opponentLogoSelectionStyle=pickedOpponent && outlineColor ? {borderTop:`2px solid ${outlineColor}`,borderBottom:`2px solid ${outlineColor}`} : {}
+                  const opponentNameSelectionStyle=pickedOpponent && outlineColor ? {borderTop:`2px solid ${outlineColor}`,borderBottom:`2px solid ${outlineColor}`,borderRight:`2px solid ${outlineColor}`,borderTopRightRadius:10,borderBottomRightRadius:10} : {}
 
                   let score=kickoffEastern(g.kickoff_time)
                   if(g.status==='live' || g.status==='final'){
@@ -384,90 +253,33 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
 
                   return (
                     <tr key={s.id}>
-                      <td style={{...bodyCell,...teamLogoSelectionStyle}}>
-                        <LogoDisplay
-                          logoPath={s.logo_path}
-                          abbreviation={ownNfl?.abbreviation}
-                          name={s.squad_name}
-                          href={`/squads/${s.id}`}
-                        />
-                      </td>
-
-                      <td style={{...bodyCell,...teamNameSelectionStyle}} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}>
-                        <TeamNameDisplay
-                          name={s.squad_name}
-                          nflName={ownNfl?.name}
-                          emphasized={pickedOwnTeam}
-                          href={`/squads/${s.id}`}
-                        />
-                      </td>
-
-                      <td style={{...bodyCell,...lineOwnSelectionStyle,...lineOpponentSelectionStyle,whiteSpace:'nowrap',fontWeight:pickRevealed ? 800 : 600}}>
-                        {signed(displayedSpread)}
-                      </td>
-
-                      <td style={{...bodyCell,...opponentLogoSelectionStyle}}>
-                        <LogoDisplay
-                          logoPath={opponentSquad?.logo_path}
-                          abbreviation={opponentNfl?.abbreviation}
-                          name={opponentLabel}
-                          href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}
-                        />
-                      </td>
-
-                      <td style={{...bodyCell,...opponentNameSelectionStyle}}>
-                        <TeamNameDisplay
-                          name={opponentLabel}
-                          nflName={opponentNfl?.name}
-                          prefix={isHome ? 'vs' : '@'}
-                          emphasized={pickedOpponent}
-                          href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}
-                        />
-                      </td>
-
-                      <td style={bodyCell}>
-                        <span aria-label="More information to the right" style={arrowStyle}>››</span>
-                      </td>
-
-                      <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:kickedOff ? 700 : 500,fontSize:kickedOff ? '0.78rem' : '0.72rem'}}>
-                        {score}
-                      </td>
-
-                      <td style={{...bodyCell,whiteSpace:'nowrap'}}>
-                        {(()=>{
-                          if(!kickedOff){
-                            return pick && !pick.is_missed
-                              ? <span style={{color:'green',fontWeight:700,fontSize:'1.15rem'}}>✓</span>
-                              : <span className="muted">—</span>
-                          }
-
-                          if(pick?.is_missed){
-                            if(g.status==='final'){
-                              const margin=Number(pick.ats_margin ?? 0)
-                              return (
-                                <b style={{color:margin<0 ? 'red' : margin>0 ? 'green' : '#1565c0'}}>
-                                  NO PICK {margin>0 ? '+' : ''}{margin}
-                                </b>
-                              )
-                            }
-                            return <b>NO PICK</b>
-                          }
-
-                          if(!pick) return <span className="muted">—</span>
-
-                          const pickedHome=Number(pick.selection_team_id)===Number(g.home_team_id)
-                          const pickedTeam=pickedHome ? g.home : g.away
-                          const teamLabel=pickedTeam?.abbreviation || pickedTeam?.name || 'Pick'
-
+                      <td className={pickedOwnTeam ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...teamLogoSelectionStyle}}><LogoDisplay logoPath={s.logo_path} abbreviation={ownNfl?.abbreviation} name={s.squad_name} href={`/squads/${s.id}`}/></td>
+                      <td className={pickedOwnTeam ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...teamNameSelectionStyle}} title={s.owner_name ? `${s.owner_name}, Owner` : undefined}><TeamNameDisplay name={s.squad_name} nflName={ownNfl?.name} emphasized={pickedOwnTeam} href={`/squads/${s.id}`}/></td>
+                      <td className={(pickedOwnTeam || pickedOpponent) ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...lineOwnSelectionStyle,...lineOpponentSelectionStyle,whiteSpace:'nowrap',fontWeight:pickRevealed ? 800 : 600}}>{signed(displayedSpread)}</td>
+                      <td className={pickedOpponent ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...opponentLogoSelectionStyle}}><LogoDisplay logoPath={opponentSquad?.logo_path} abbreviation={opponentNfl?.abbreviation} name={opponentLabel} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/></td>
+                      <td className={pickedOpponent ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...opponentNameSelectionStyle}}><TeamNameDisplay name={opponentLabel} nflName={opponentNfl?.name} prefix={isHome ? 'vs' : '@'} emphasized={pickedOpponent} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/></td>
+                      <td style={bodyCell}><span aria-label="More information to the right" style={arrowStyle}>››</span></td>
+                      <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:kickedOff ? 700 : 500,fontSize:kickedOff ? '0.78rem' : '0.72rem'}}>{score}</td>
+                      <td style={{...bodyCell,whiteSpace:'nowrap'}}>{(()=>{
+                        if(!kickedOff) return pick && !pick.is_missed ? <span style={{color:'green',fontWeight:700,fontSize:'1.15rem'}}>✓</span> : <span className="muted">—</span>
+                        if(pick?.is_missed){
                           if(g.status==='final'){
                             const margin=Number(pick.ats_margin ?? 0)
-                            const color=margin>0 ? 'green' : margin<0 ? 'red' : '#1565c0'
-                            return <b style={{color}}>{teamLabel} {margin>0 ? '+' : ''}{margin}</b>
+                            return <b style={{color:margin<0 ? 'red' : margin>0 ? 'green' : '#1565c0'}}>NO PICK {margin>0 ? '+' : ''}{margin}</b>
                           }
-
-                          return <b>{teamLabel}</b>
-                        })()}
-                      </td>
+                          return <b>NO PICK</b>
+                        }
+                        if(!pick) return <span className="muted">—</span>
+                        const pickedHome=Number(pick.selection_team_id)===Number(g.home_team_id)
+                        const pickedTeam=pickedHome ? g.home : g.away
+                        const teamLabel=pickedTeam?.abbreviation || pickedTeam?.name || 'Pick'
+                        if(g.status==='final'){
+                          const margin=Number(pick.ats_margin ?? 0)
+                          const color=margin>0 ? 'green' : margin<0 ? 'red' : '#1565c0'
+                          return <b style={{color}}>{teamLabel} {margin>0 ? '+' : ''}{margin}</b>
+                        }
+                        return <b>{teamLabel}</b>
+                      })()}</td>
                     </tr>
                   )
                 })
@@ -480,87 +292,17 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
   )
 }
 
-function LogoDisplay({
-  logoPath,
-  abbreviation,
-  name,
-  href
-}:{
-  logoPath?:string|null
-  abbreviation?:string
-  name:string
-  href?:string
-}){
-  const content=(
-    <SquadLogo
-      logoPath={logoPath}
-      nflAbbreviation={abbreviation}
-      squadName={name}
-      size={22}
-    />
-  )
-
-  const style={
-    display:'flex',
-    alignItems:'center',
-    justifyContent:'flex-end',
-    width:'100%',
-    paddingRight:3,
-    boxSizing:'border-box' as const,
-    color:'inherit',
-    textDecoration:'none'
-  }
-
+function LogoDisplay({logoPath,abbreviation,name,href}:{logoPath?:string|null,abbreviation?:string,name:string,href?:string}){
+  const content=<SquadLogo logoPath={logoPath} nflAbbreviation={abbreviation} squadName={name} size={22}/>
+  const style={display:'flex',alignItems:'center',justifyContent:'flex-end',width:'100%',paddingRight:3,boxSizing:'border-box' as const,color:'inherit',textDecoration:'none'}
   if(href) return <Link href={href} style={style}>{content}</Link>
   return <div style={style}>{content}</div>
 }
 
-function TeamNameDisplay({
-  name,
-  nflName,
-  prefix,
-  emphasized=false,
-  href
-}:{
-  name:string
-  nflName?:string|null
-  prefix?:string
-  emphasized?:boolean
-  href?:string
-}){
+function TeamNameDisplay({name,nflName,prefix,emphasized=false,href}:{name:string,nflName?:string|null,prefix?:string,emphasized?:boolean,href?:string}){
   const parts=squadNameParts(name,nflName)
-  const style={
-    display:'flex',
-    alignItems:'center',
-    justifyContent:'center',
-    minWidth:0,
-    width:'100%',
-    boxSizing:'border-box' as const,
-    padding:'4px 2px',
-    fontWeight:emphasized ? 800 : 600,
-    color:'inherit',
-    textDecoration:'none',
-    textAlign:'center' as const
-  }
-
-  const content=(
-    <span
-      style={{
-        minWidth:0,
-        lineHeight:1.04,
-        display:'flex',
-        flexDirection:'column',
-        alignItems:'center',
-        textAlign:'center'
-      }}
-    >
-      <span style={{display:'block',whiteSpace:'nowrap'}}>
-        {prefix ? `${prefix} ` : ''}{parts.area}
-      </span>
-      <span style={{display:'block',whiteSpace:'nowrap'}}>{parts.nickname}</span>
-    </span>
-  )
-
+  const style={display:'flex',alignItems:'center',justifyContent:'center',minWidth:0,width:'100%',boxSizing:'border-box' as const,padding:'4px 2px',fontWeight:emphasized ? 800 : 600,color:'inherit',textDecoration:'none',textAlign:'center' as const}
+  const content=(<span style={{minWidth:0,lineHeight:1.04,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}><span style={{display:'block',whiteSpace:'nowrap'}}>{prefix ? `${prefix} ` : ''}{parts.area}</span><span style={{display:'block',whiteSpace:'nowrap'}}>{parts.nickname}</span></span>)
   if(href) return <Link href={href} style={style}>{content}</Link>
   return <div style={style}>{content}</div>
 }

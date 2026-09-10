@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import WeekSelector from './week-selector'
 import SquadLogo from '../components/SquadLogo'
+import LiveRefresh from './LiveRefresh'
 
 function signed(n:any){
   if(n===null || n===undefined) return 'Pending'
@@ -64,6 +65,13 @@ function squadNameParts(squadName:string,nflName?:string|null){
   return {area:squadWords[0],nickname:squadWords.slice(1).join(' ')}
 }
 
+function phaseDisplay(game:any){
+  const status=String(game?.status||'').toLowerCase()
+  if(status==='final') return 'F'
+  if(status==='live') return game?.game_phase || 'Live'
+  return '—'
+}
+
 export default async function Schedule({searchParams}:{searchParams:Promise<{week?:string}>}){
   const sp=await searchParams
   const supabase=await createClient()
@@ -117,6 +125,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
         spread,
         total,
         status,
+        game_phase,
         home_score,
         away_score,
         home_team_id,
@@ -133,6 +142,14 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
       .eq('season_year',2026)
       .order('division')
   ])
+
+  const nowMs=Date.now()
+  const sixHoursMs=6*60*60*1000
+  const autoRefreshEnabled=(games||[]).some((g:any)=>{
+    if(String(g.status||'').toLowerCase()==='final') return false
+    const kickoffMs=new Date(g.kickoff_time).getTime()
+    return kickoffMs<=nowMs+sixHoursMs && kickoffMs>=nowMs-sixHoursMs
+  })
 
   const gameIds=(games||[]).map((g:any)=>g.id)
   let weekPicks:any[]=[]
@@ -196,6 +213,8 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
 
   return (
     <main className="wrap">
+      <LiveRefresh enabled={autoRefreshEnabled}/>
+
       <div className="top" style={{justifyContent:'center',textAlign:'center'}}>
         <div>
           <div className="big">NFL SQUADS</div>
@@ -223,8 +242,8 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
               borderCollapse:'separate',
               borderSpacing:0,
               tableLayout:'fixed',
-              width:534,
-              minWidth:534
+              width:574,
+              minWidth:574
             }}
           >
             <colgroup>
@@ -235,6 +254,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
               <col style={{width:108}}/>
               <col style={{width:28}}/>
               <col style={{width:86}}/>
+              <col style={{width:40}}/>
               <col style={{width:124}}/>
             </colgroup>
 
@@ -249,6 +269,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                   <span style={arrowStyle}>››</span>
                 </th>
                 <th style={headCell}>Score</th>
+                <th style={headCell}>Qtr</th>
                 <th style={headCell}>Pick / Result</th>
               </tr>
             </thead>
@@ -262,7 +283,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                   <td style={{...bodyCell,padding:'12px 0 8px'}}>
                     <span aria-label="More information to the right" style={arrowStyle}>››</span>
                   </td>
-                  <td colSpan={2} style={{padding:'12px 0 8px'}}/>
+                  <td colSpan={3} style={{padding:'12px 0 8px'}}/>
                 </tr>,
 
                 ...divisionSquads.map((s:any)=>{
@@ -291,6 +312,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                         <td style={bodyCell}>—</td>
                         <td style={{...bodyCell,fontWeight:800}}>BYE</td>
                         <td style={bodyCell}/>
+                        <td style={bodyCell}>—</td>
                         <td style={bodyCell}>—</td>
                         <td style={bodyCell}>—</td>
                       </tr>
@@ -411,6 +433,10 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
 
                       <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:kickedOff ? 700 : 500,fontSize:kickedOff ? '0.78rem' : '0.72rem'}}>
                         {score}
+                      </td>
+
+                      <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:g.status==='live' || g.status==='final' ? 800 : 500}}>
+                        {phaseDisplay(g)}
                       </td>
 
                       <td style={{...bodyCell,whiteSpace:'nowrap'}}>

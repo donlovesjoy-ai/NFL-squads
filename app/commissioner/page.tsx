@@ -38,6 +38,10 @@ export default async function CommissionerHub(){
       href:'/commissioner/results'
     },
     {
+      label:'Closing Line Audit',
+      href:'/commissioner/closing-line-audit'
+    },
+    {
       label:'Live Feed',
       href:'/commissioner/live-feed'
     },

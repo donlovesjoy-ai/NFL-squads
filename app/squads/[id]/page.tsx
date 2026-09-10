@@ -26,6 +26,18 @@ function recordText(wins:any,losses:any,pushes:any){
   return p ? `${w}-${l}-${p}` : `${w}-${l}`
 }
 
+function fullRecordText(wins:any,losses:any,pushes:any){
+  return `${Number(wins||0)}-${Number(losses||0)}-${Number(pushes||0)}`
+}
+
+function pct(row:any){
+  const wins=Number(row.wins||0)
+  const losses=Number(row.losses||0)
+  const pushes=Number(row.pushes||0)
+  const games=wins+losses+pushes
+  return games ? (wins+pushes*0.5)/games : 0
+}
+
 function signed(value:any){
   const number=Number(value||0)
   return number>0 ? `+${number}` : `${number}`
@@ -44,9 +56,7 @@ function ordinal(n:number){
 
 function sameStanding(a:any,b:any){
   return (
-    Number(a.wins||0)===Number(b.wins||0) &&
-    Number(a.losses||0)===Number(b.losses||0) &&
-    Number(a.pushes||0)===Number(b.pushes||0) &&
+    pct(a)===pct(b) &&
     Number(a.ats_margin||0)===Number(b.ats_margin||0)
   )
 }
@@ -88,7 +98,7 @@ function selectionRecord(rows:any[],ownAbbreviation:string,ownTeam:boolean){
   const own=String(ownAbbreviation||'').toUpperCase()
 
   for(const row of rows){
-    if(!row.week_complete || !['W','L','P'].includes(row.pick_result)) continue
+    if(!['W','L','P'].includes(row.pick_result)) continue
 
     const selection=String(row.selection_abbreviation||'').toUpperCase()
     if(!selection) continue
@@ -101,7 +111,7 @@ function selectionRecord(rows:any[],ownAbbreviation:string,ownTeam:boolean){
     else if(row.pick_result==='P') pushes++
   }
 
-  return recordText(wins,losses,pushes)
+  return fullRecordText(wins,losses,pushes)
 }
 
 function teamRegion(name:string){
@@ -221,7 +231,7 @@ export default async function SquadSchedule({
   const divisionRows=(standingsData||[])
     .filter((row:any)=>Number(row.squads?.division)===Number(squad.division))
     .sort((a:any,b:any)=>
-      Number(b.wins||0)-Number(a.wins||0) ||
+      pct(b)-pct(a) ||
       Number(b.ats_margin||0)-Number(a.ats_margin||0) ||
       Number(a.squads?.id||0)-Number(b.squads?.id||0)
     )
@@ -428,7 +438,6 @@ export default async function SquadSchedule({
                 : ''
               const color=resultColor(row.pick_result)
               const showRecord=Boolean(
-                row.week_complete &&
                 row.record_wins!==null &&
                 row.record_losses!==null
               )
@@ -488,10 +497,6 @@ export default async function SquadSchedule({
                     {selection ? (
                       <span
                         style={{
-                          display:'inline-block',
-                          padding:'4px 4px',
-                          borderRadius:8,
-                          border:`2px solid ${color||'#555'}`,
                           color:color||'inherit',
                           fontWeight:800,
                           whiteSpace:'nowrap',

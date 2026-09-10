@@ -36,10 +36,10 @@ export default async function RulesPage(){
 
         <h2>Weekly Picks</h2>
         <p>Each owner makes one against-the-spread selection on the NFL game involving their assigned NFL team. The owner may select either team in that game.</p>
-        <p>The official spread is the selected bookmaker&apos;s closing line at kickoff. Lines shown before kickoff are subject to change.</p>
+        <p>The official spread is the BetMGM line returned by NFL Squads&apos; dedicated odds pull at the game&apos;s scheduled kickoff time. That official closing-line pull is timestamped on the My Pick page and displays BetMGM as the sportsbook source. Lines shown before scheduled kickoff are subject to change.</p>
 
         <h2>Pick Deadline</h2>
-        <p>A pick may be submitted or changed until one second before scheduled kickoff. Once the deadline is reached, or once the game begins, the pick is locked and cannot be changed.</p>
+        <p>The bet window closes one second before scheduled kickoff. A pick may be submitted or changed until that deadline. Once the deadline is reached, or once the game begins, the pick is locked and cannot be changed.</p>
 
         <h2>Pick Privacy</h2>
         <p>Picks remain private before kickoff. Owners may view their own pick, but other owners&apos; selections remain hidden until kickoff.</p>
@@ -130,7 +130,7 @@ export default async function RulesPage(){
         <p>Owners are entitled to review the commissioner change log. System-generated commissioner change notices are protected from ordinary commissioner editing or deletion.</p>
 
         <h2>Official League Record</h2>
-        <p>The NFL Squads website and its database records serve as the official league record for picks, missed picks, closing lines, results, standings, playoff advancement, tiebreakers, final placements, and payouts.</p>
+        <p>The NFL Squads website and its database records serve as the official league record for picks, missed picks, timestamped closing lines and sportsbook source, results, standings, playoff advancement, tiebreakers, final placements, and payouts.</p>
       </section>
     </main>
   )

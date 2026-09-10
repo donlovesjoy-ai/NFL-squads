@@ -33,13 +33,6 @@ function fmtEasternWithSeconds(value:string|Date){
   })
 }
 
-function gameStatusLabel(status:any){
-  const normalized=String(status||'').toLowerCase()
-  if(normalized==='final') return 'Final'
-  if(normalized==='live') return 'Live'
-  return 'Scheduled'
-}
-
 function bookmakerLabel(value:any){
   const normalized=String(value||'').toLowerCase()
   if(normalized==='betmgm') return 'BetMGM'
@@ -146,6 +139,9 @@ export default async function MyPick({
         kickoff_time,
         scheduled_kickoff_time,
         pick_lock_at,
+        pick_opened_at,
+        pick_open_bookmaker,
+        pick_open_spread,
         spread,
         status,
         final_at,
@@ -241,12 +237,8 @@ export default async function MyPick({
     }
 
     const nextWeek=Number(nextGame.nfl_week)
-    const previousWeek=nextWeek-1
-    const previousGame=squadGames.find(
-      (g:any)=>Number(g.nfl_week)===previousWeek
-    )
-    const previousWeekWasBye=previousWeek>=1 && !previousGame
     const nextKickoff=nextGame.scheduled_kickoff_time || nextGame.kickoff_time
+    const opensAt=new Date(new Date(nextKickoff).getTime()-7*24*60*60*1000)
 
     return (
       <main className="wrap">
@@ -260,31 +252,23 @@ export default async function MyPick({
           <h2>Week {nextWeek}</h2>
           <AllTimesEastern/>
 
-          {previousWeekWasBye ? (
-            <>
-              <p style={{fontWeight:700}}>
-                Pick selection for Week {nextWeek} opens 7 days before kickoff
-                following your Week {previousWeek} bye.
-              </p>
+          <p style={{fontWeight:700}}>
+            Pick selection opens no earlier than exactly 7 days before your scheduled kickoff.
+          </p>
 
-              <p className="muted">
-                Week {nextWeek} kickoff:{' '}
-                {fmtEastern(nextKickoff)}
-              </p>
-            </>
-          ) : (
-            <>
-              <p style={{fontWeight:700}}>
-                Pick selection for Week {nextWeek} opens after completion of
-                your Week {previousWeek} game.
-              </p>
+          <p>
+            <b>Bet window target:</b>{' '}
+            {fmtEasternWithSeconds(opensAt)}
+          </p>
 
-              <p className="muted">
-                Week {previousWeek} game status:{' '}
-                <b>{gameStatusLabel(previousGame?.status)}</b>
-              </p>
-            </>
-          )}
+          <p className="muted">
+            At that time NFL Squads makes a fresh BetMGM odds pull. The pick window opens only after that pull succeeds and its audit snapshot is stored.
+          </p>
+
+          <p className="muted">
+            Week {nextWeek} kickoff:{' '}
+            {fmtEastern(nextKickoff)}
+          </p>
 
           <p
             className="muted"
@@ -359,7 +343,7 @@ export default async function MyPick({
   let buttonText='Make a Decision'
   if(!weekOpen) buttonText='Week Not Open Yet'
   else if(locked) buttonText='Pick Locked'
-  else if(homeSpread===null) buttonText='Waiting for Closing Line'
+  else if(homeSpread===null) buttonText='Waiting for Line'
 
   return (
     <main className="wrap">
@@ -380,6 +364,17 @@ export default async function MyPick({
           <b>Pick deadline:</b>{' '}
           {fmtEasternWithSeconds(deadline)}
         </p>
+
+        {game.pick_opened_at && (
+          <p
+            className="muted"
+            style={{margin:'6px 0 0',fontSize:'0.78rem'}}
+          >
+            Bet window opened:{' '}
+            <b>{fmtEasternWithSeconds(game.pick_opened_at)}</b>
+            {' · '}Source: <b>{bookmakerLabel(game.pick_open_bookmaker)}</b>
+          </p>
+        )}
 
         <p
           className="muted"

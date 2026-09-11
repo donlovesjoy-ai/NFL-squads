@@ -114,41 +114,9 @@ export default async function ClosingLineAudit({
       <h1 style={{textAlign:'center'}}>Closing Line Audit</h1>
 
       <section className="card" style={{maxWidth:980,margin:'0 auto 16px'}}>
-        <p className="muted" style={{textAlign:'center',marginTop:0}}>
+        <p className="muted" style={{textAlign:'center',margin:0}}>
           Scheduled kickoff controls the pick lock. Provider kickoff times are retained only as audit evidence and never move the deadline.
         </p>
-
-        <div style={{display:'grid',gap:18}}>
-          {weeks.map(week=>{
-            const weekGames=rows.filter(g=>Number(g.nfl_week)===week)
-            return (
-              <div key={week}>
-                <h2 style={{margin:'0 0 10px',fontSize:'1rem',textAlign:'left'}}>Week {week}</h2>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:8}}>
-                  {weekGames.map((g:any)=>{
-                    const isSelected=Number(g.id)===Number(selected?.id)
-                    return (
-                      <a
-                        key={g.id}
-                        href={`/commissioner/closing-line-audit?game=${g.id}`}
-                        className="submit"
-                        style={{
-                          textDecoration:'none',
-                          padding:'10px 12px',
-                          textAlign:'left',
-                          outline:isSelected ? '3px solid #777' : 'none',
-                          outlineOffset:2
-                        }}
-                      >
-                        {g.away?.abbreviation} @ {g.home?.abbreviation}
-                      </a>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
       </section>
 
       {selected && (
@@ -194,7 +162,7 @@ export default async function ClosingLineAudit({
             )}
           </section>
 
-          <section className="card" style={{maxWidth:980,margin:'0 auto'}}>
+          <section className="card" style={{maxWidth:980,margin:'0 auto 16px'}}>
             <h2 style={{textAlign:'center',marginTop:0}}>BetMGM Snapshot Timeline</h2>
 
             {!retainedSnapshots.length ? (
@@ -240,6 +208,45 @@ export default async function ClosingLineAudit({
           </section>
         </>
       )}
+
+      <section className="card" style={{maxWidth:980,margin:'0 auto 16px'}}>
+        <h2 style={{textAlign:'center',marginTop:0}}>Games by Week</h2>
+        <div style={{display:'grid',gap:18}}>
+          {weeks.map(week=>{
+            const weekGames=rows.filter(g=>Number(g.nfl_week)===week)
+            return (
+              <div key={week}>
+                <h3 style={{margin:'0 0 10px',fontSize:'1rem',textAlign:'left'}}>Week {week}</h3>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:8}}>
+                  {weekGames.map((g:any)=>{
+                    const isSelected=Number(g.id)===Number(selected?.id)
+                    const gameVerified=Boolean(g.closing_finalized_at && g.closing_snapshot_id)
+                    return (
+                      <a
+                        key={g.id}
+                        href={`/commissioner/closing-line-audit?game=${g.id}`}
+                        className="submit"
+                        style={{
+                          textDecoration:'none',
+                          padding:'10px 12px',
+                          textAlign:'left',
+                          outline:isSelected ? '3px solid #777' : 'none',
+                          outlineOffset:2
+                        }}
+                      >
+                        <div>{g.away?.abbreviation} @ {g.home?.abbreviation}</div>
+                        <div style={{fontSize:'0.72rem',opacity:0.78,marginTop:3}}>
+                          {gameVerified ? `Closing: ${fmtLine(g.closing_spread)} / ${g.closing_total ?? '—'}` : 'Tap to view audit'}
+                        </div>
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
     </main>
   )
 }

@@ -238,7 +238,6 @@ export default async function MyPick({
 
     const nextWeek=Number(nextGame.nfl_week)
     const nextKickoff=nextGame.scheduled_kickoff_time || nextGame.kickoff_time
-    const opensAt=new Date(new Date(nextKickoff).getTime()-7*24*60*60*1000)
 
     return (
       <main className="wrap">
@@ -252,30 +251,17 @@ export default async function MyPick({
           <h2>Week {nextWeek}</h2>
           <AllTimesEastern/>
 
-          <p style={{fontWeight:700}}>
-            Pick selection opens no earlier than exactly 7 days before your scheduled kickoff.
-          </p>
-
-          <p>
-            <b>Bet window target:</b>{' '}
-            {fmtEasternWithSeconds(opensAt)}
-          </p>
-
-          <p className="muted">
-            At that time NFL Squads makes a fresh BetMGM odds pull. The pick window opens only after that pull succeeds and its audit snapshot is stored.
-          </p>
-
-          <p className="muted">
-            Week {nextWeek} kickoff:{' '}
-            {fmtEastern(nextKickoff)}
-          </p>
-
-          <p
-            className="muted"
-            style={{marginTop:18,fontSize:'0.82rem'}}
-          >
-            Lines are subject to change. Bet window closes one second before kickoff.
-            Your official line is assigned at kickoff by BetMGM.
+          <p style={{fontWeight:700,lineHeight:1.5}}>
+            Selection window opens 7 days prior to your next scheduled game.
+            {' '}Your next scheduled game is{' '}
+            {new Date(nextKickoff).toLocaleString('en-US',{
+              timeZone:'America/New_York',
+              weekday:'long',
+              month:'long',
+              day:'numeric',
+              hour:'numeric',
+              minute:'2-digit'
+            })}.
           </p>
         </section>
       </main>

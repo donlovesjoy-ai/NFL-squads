@@ -206,7 +206,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
       <section className="card" style={{paddingLeft:8,paddingRight:8}}>
         <h2 style={{textAlign:'center'}}>Week {week}</h2>
         <div style={{width:'100%',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
-          <table style={{borderCollapse:'separate',borderSpacing:0,tableLayout:'fixed',width:534,minWidth:534}}>
+          <table style={{borderCollapse:'separate',borderSpacing:'0 3px',tableLayout:'fixed',width:534,minWidth:534}}>
             <colgroup><col style={{width:30}}/><col style={{width:90}}/><col style={{width:38}}/><col style={{width:30}}/><col style={{width:108}}/><col style={{width:28}}/><col style={{width:86}}/><col style={{width:124}}/></colgroup>
             <thead><tr><th style={headCell} aria-label="Team logo"/><th style={headCell}>Team</th><th style={headCell}>Line</th><th style={headCell} aria-label="Opponent logo"/><th style={headCell}>Opponent</th><th style={headCell} aria-label="More information to the right"><span style={arrowStyle}>››</span></th><th style={headCell}>Score</th><th style={headCell}>Pick / Result</th></tr></thead>
             <tbody>

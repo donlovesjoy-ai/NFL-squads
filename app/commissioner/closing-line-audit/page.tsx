@@ -67,6 +67,7 @@ export default async function ClosingLineAudit({
       away:nfl_teams!games_away_team_id_fkey(name,abbreviation)
     `)
     .eq('season_year',2026)
+    .order('nfl_week',{ascending:true})
     .order('scheduled_kickoff_time',{ascending:true})
 
   const rows=(games||[]) as any[]
@@ -90,6 +91,22 @@ export default async function ClosingLineAudit({
 
   const selectedScheduled=selected?.scheduled_kickoff_time||selected?.kickoff_time
   const closingVerified=Boolean(selected?.closing_finalized_at && selected?.closing_snapshot_id)
+  const retainedSnapshots=(snapshots||[]) as any[]
+  const officialSnapshot=retainedSnapshots.find(s=>Number(s.id)===Number(selected?.closing_snapshot_id))
+  const bestRetainedSnapshot=officialSnapshot || retainedSnapshots[0] || null
+  const displaySpread=closingVerified ? selected?.closing_spread : bestRetainedSnapshot?.home_spread
+  const displayTotal=closingVerified ? selected?.closing_total : bestRetainedSnapshot?.total
+  const displayBook=closingVerified
+    ? (selected?.closing_bookmaker||selected?.odds_bookmaker)
+    : (bestRetainedSnapshot?.bookmaker_key||selected?.odds_bookmaker)
+  const displayBookUpdated=closingVerified
+    ? selected?.closing_bookmaker_updated_at
+    : bestRetainedSnapshot?.bookmaker_last_update
+  const displayReceived=closingVerified
+    ? selected?.closing_received_at
+    : bestRetainedSnapshot?.observed_at
+
+  const weeks=Array.from(new Set(rows.map(g=>Number(g.nfl_week)).filter(Number.isFinite))).sort((a,b)=>a-b)
 
   return (
     <main className="wrap">
@@ -101,17 +118,36 @@ export default async function ClosingLineAudit({
           Scheduled kickoff controls the pick lock. Provider kickoff times are retained only as audit evidence and never move the deadline.
         </p>
 
-        <div style={{display:'flex',flexWrap:'wrap',gap:8,justifyContent:'center'}}>
-          {rows.map((g:any)=>(
-            <a
-              key={g.id}
-              href={`/commissioner/closing-line-audit?game=${g.id}`}
-              className="submit"
-              style={{textDecoration:'none',padding:'8px 10px'}}
-            >
-              W{g.nfl_week} {g.away?.abbreviation} @ {g.home?.abbreviation}
-            </a>
-          ))}
+        <div style={{display:'grid',gap:18}}>
+          {weeks.map(week=>{
+            const weekGames=rows.filter(g=>Number(g.nfl_week)===week)
+            return (
+              <div key={week}>
+                <h2 style={{margin:'0 0 10px',fontSize:'1rem',textAlign:'left'}}>Week {week}</h2>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:8}}>
+                  {weekGames.map((g:any)=>{
+                    const isSelected=Number(g.id)===Number(selected?.id)
+                    return (
+                      <a
+                        key={g.id}
+                        href={`/commissioner/closing-line-audit?game=${g.id}`}
+                        className="submit"
+                        style={{
+                          textDecoration:'none',
+                          padding:'10px 12px',
+                          textAlign:'left',
+                          outline:isSelected ? '3px solid #777' : 'none',
+                          outlineOffset:2
+                        }}
+                      >
+                        {g.away?.abbreviation} @ {g.home?.abbreviation}
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </section>
 
@@ -127,20 +163,28 @@ export default async function ClosingLineAudit({
               <div><b>Pick lock</b><br/>{fmtEastern(selected.pick_lock_at)}</div>
               <div><b>Actual start detected</b><br/>{fmtEastern(selected.actual_start_at)}</div>
               <div><b>Status</b><br/>{String(selected.status||'scheduled')}</div>
-              <div><b>Official closing spread</b><br/>{fmtLine(selected.closing_spread)}</div>
-              <div><b>Official closing total</b><br/>{selected.closing_total ?? '—'}</div>
-              <div><b>Book</b><br/>{selected.closing_bookmaker||selected.odds_bookmaker||'—'}</div>
-              <div><b>Bookmaker last update</b><br/>{fmtEastern(selected.closing_bookmaker_updated_at)}</div>
-              <div><b>NFL Squads received</b><br/>{fmtEastern(selected.closing_received_at)}</div>
+              <div>
+                <b>{closingVerified ? 'Official closing spread' : 'Best retained spread'}</b><br/>
+                {fmtLine(displaySpread)}
+              </div>
+              <div>
+                <b>{closingVerified ? 'Official closing total' : 'Best retained total'}</b><br/>
+                {displayTotal ?? '—'}
+              </div>
+              <div><b>Book</b><br/>{displayBook||'—'}</div>
+              <div><b>Bookmaker last update</b><br/>{fmtEastern(displayBookUpdated)}</div>
+              <div><b>NFL Squads received</b><br/>{fmtEastern(displayReceived)}</div>
               <div><b>Finalized</b><br/>{fmtEastern(selected.closing_finalized_at)}</div>
               <div><b>Finalize reason</b><br/>{selected.closing_finalize_reason||'—'}</div>
-              <div><b>Snapshot ID</b><br/>{selected.closing_snapshot_id ?? '—'}</div>
+              <div><b>Snapshot ID</b><br/>{selected.closing_snapshot_id ?? bestRetainedSnapshot?.id ?? '—'}</div>
             </div>
 
             <p className="status" style={{marginBottom:0,textAlign:'center'}}>
               {closingVerified
                 ? 'VERIFIED — official closing line is tied to a retained BetMGM snapshot.'
-                : 'NOT YET VERIFIED — no finalized retained closing snapshot is attached to this game.'}
+                : bestRetainedSnapshot
+                  ? 'UNVERIFIED — official closing fields were not finalized for this game. The values above are the best retained snapshot and are shown for audit reference only.'
+                  : 'NOT YET VERIFIED — no finalized retained closing snapshot is attached to this game.'}
             </p>
 
             {selected.closing_snapshot_hash && (
@@ -153,7 +197,7 @@ export default async function ClosingLineAudit({
           <section className="card" style={{maxWidth:980,margin:'0 auto'}}>
             <h2 style={{textAlign:'center',marginTop:0}}>BetMGM Snapshot Timeline</h2>
 
-            {!snapshots?.length ? (
+            {!retainedSnapshots.length ? (
               <p className="muted" style={{textAlign:'center'}}>No retained snapshots for this game yet.</p>
             ) : (
               <div style={{overflowX:'auto'}}>
@@ -170,7 +214,7 @@ export default async function ClosingLineAudit({
                     </tr>
                   </thead>
                   <tbody>
-                    {(snapshots||[]).map((s:any)=>{
+                    {retainedSnapshots.map((s:any)=>{
                       const providerDrift=selectedScheduled && s.provider_commence_time
                         ? new Date(s.provider_commence_time).getTime()!==new Date(selectedScheduled).getTime()
                         : false

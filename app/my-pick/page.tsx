@@ -365,17 +365,6 @@ export default async function MyPick({
           {fmtEasternWithSeconds(deadline)}
         </p>
 
-        {game.pick_opened_at && (
-          <p
-            className="muted"
-            style={{margin:'6px 0 0',fontSize:'0.78rem'}}
-          >
-            Bet window opened:{' '}
-            <b>{fmtEasternWithSeconds(game.pick_opened_at)}</b>
-            {' · '}Source: <b>{bookmakerLabel(game.pick_open_bookmaker)}</b>
-          </p>
-        )}
-
         <p
           className="muted"
           style={{margin:'6px 0 0',fontSize:'0.78rem'}}

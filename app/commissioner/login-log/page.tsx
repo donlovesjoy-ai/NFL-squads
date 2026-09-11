@@ -52,6 +52,7 @@ export default async function LoginLogPage(){
     .from('login_activity_log')
     .select('id,user_id,logged_in_at,source,historical_backfill,visit_hour')
     .or('source.eq.visit,historical_backfill.eq.true')
+    .neq('user_id',user.id)
     .order('logged_in_at',{ascending:false})
     .limit(1000)
 

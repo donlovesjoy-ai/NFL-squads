@@ -349,9 +349,12 @@ export default async function MyPick({
   const deadlinePassed=new Date()>=deadline
   const locked=deadlinePassed || gameStarted || pick?.is_locked===true
 
-  const homeSpread=game.spread===null ? null : Number(game.spread)
+  const betMgmLineAvailable=
+    String(game.odds_bookmaker||'').toLowerCase()==='betmgm' &&
+    game.spread!==null
+  const homeSpread=betMgmLineAvailable ? Number(game.spread) : null
   const awaySpread=homeSpread===null ? null : -homeSpread
-  const submissionDisabled=!weekOpen || locked || homeSpread===null
+  const submissionDisabled=!weekOpen || locked
 
   const kickoffMs=new Date(kickoffTime).getTime()
   const sixHoursMs=6*60*60*1000
@@ -360,7 +363,6 @@ export default async function MyPick({
   let buttonText='Make a Decision'
   if(!weekOpen) buttonText='Week Not Open Yet'
   else if(locked) buttonText='Pick Locked'
-  else if(homeSpread===null) buttonText='Waiting for Line'
 
   return (
     <main className="wrap">

@@ -238,6 +238,38 @@ export default async function MyPick({
 
     const nextWeek=Number(nextGame.nfl_week)
     const nextKickoff=nextGame.scheduled_kickoff_time || nextGame.kickoff_time
+    const previousGame=squadGames.find(
+      (g:any)=>Number(g.nfl_week)===nextWeek-1
+    )
+    const previousGameFinal=
+      previousGame &&
+      String(previousGame.status||'').toLowerCase()==='final' &&
+      Boolean(previousGame.final_at)
+
+    let availabilityMessage:React.ReactNode
+
+    if(previousGame && !previousGameFinal){
+      availabilityMessage=(
+        <>
+          Selection opens as soon as your Week {nextWeek-1} game is final.
+          {' '}Your next scheduled game is{' '}
+        </>
+      )
+    }else if(previousGameFinal){
+      availabilityMessage=(
+        <>
+          Your previous game is final. Waiting for the opening BetMGM line.
+          {' '}Your next scheduled game is{' '}
+        </>
+      )
+    }else{
+      availabilityMessage=(
+        <>
+          Because your squad has a bye in Week {nextWeek-1}, selection opens
+          7 days prior to your next scheduled game. Your next scheduled game is{' '}
+        </>
+      )
+    }
 
     return (
       <main className="wrap">
@@ -252,8 +284,7 @@ export default async function MyPick({
           <AllTimesEastern/>
 
           <p style={{fontWeight:700,lineHeight:1.5}}>
-            Selection window opens 7 days prior to your next scheduled game.
-            {' '}Your next scheduled game is{' '}
+            {availabilityMessage}
             {new Date(nextKickoff).toLocaleString('en-US',{
               timeZone:'America/New_York',
               weekday:'long',

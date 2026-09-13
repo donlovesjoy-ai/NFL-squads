@@ -349,10 +349,8 @@ export default async function MyPick({
   const deadlinePassed=new Date()>=deadline
   const locked=deadlinePassed || gameStarted || pick?.is_locked===true
 
-  const betMgmLineAvailable=
-    String(game.odds_bookmaker||'').toLowerCase()==='betmgm' &&
-    game.spread!==null
-  const homeSpread=betMgmLineAvailable ? Number(game.spread) : null
+  const workingLineAvailable=game.spread!==null
+  const homeSpread=workingLineAvailable ? Number(game.spread) : null
   const awaySpread=homeSpread===null ? null : -homeSpread
   const submissionDisabled=!weekOpen || locked
 

@@ -122,7 +122,9 @@ export async function login(
   // Login telemetry is useful, but it must never prevent a successful login.
   try{
     await withDeadline(
-      supabase.rpc('record_login_activity'),
+      Promise.resolve(
+        supabase.rpc('record_login_activity')
+      ),
       ACTIVITY_DEADLINE_MS
     )
   }catch(error){

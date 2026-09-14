@@ -174,8 +174,7 @@ export default async function SquadSchedule({
   const [
     {data:scheduleRows},
     {data:leagueSquadData},
-    {data:standingsData},
-    {data:nflTeamData}
+    {data:standingsData}
   ]=await Promise.all([
     supabase.rpc(
       'get_squad_schedule_profile',
@@ -209,11 +208,7 @@ export default async function SquadSchedule({
           division
         )
       `)
-      .eq('season_year',2026),
-
-    supabase
-      .from('nfl_teams')
-      .select('id,name,abbreviation')
+      .eq('season_year',2026)
   ])
 
   const schedule:any[]=scheduleRows||[]
@@ -223,11 +218,6 @@ export default async function SquadSchedule({
 
   for(const leagueSquad of leagueSquads){
     squadByNflTeam.set(Number(leagueSquad.nfl_team_id),leagueSquad)
-  }
-
-  const nflTeamById=new Map<number,any>()
-  for(const nflTeam of nflTeamData||[]){
-    nflTeamById.set(Number(nflTeam.id),nflTeam)
   }
 
   const squadNflTeam=Array.isArray(squad.nfl_teams)
@@ -428,15 +418,9 @@ export default async function SquadSchedule({
                 : null
               const opponentLogo=opponentSquad?.logo_path||null
               const opponentHref=opponentSquad ? `/squads/${opponentSquad.id}` : null
-              const opponentNflTeam=row.opponent_team_id
-                ? nflTeamById.get(Number(row.opponent_team_id))
-                : null
-              const opponentText=opponentSquad?.squad_name ||
-                opponentNflTeam?.name ||
-                row.opponent_abbreviation ||
-                '—'
-              const opponentNflName=opponentNflTeam?.name||opponentText
-              const opponentPrefix=row.is_home ? 'vs' : '@'
+              const opponentText=row.is_bye
+                ? 'BYE'
+                : `${row.is_home ? 'vs' : '@'} ${row.opponent_abbreviation||'—'}`
 
               const status=String(row.game_status||'').toLowerCase()
               const kickedOff=
@@ -491,7 +475,7 @@ export default async function SquadSchedule({
                           squadName={opponentText}
                           size={20}
                         />
-                        <span><SquadNameLines squadName={opponentText} nflName={opponentNflName} prefix={opponentPrefix}/></span>
+                        <span>{opponentText}</span>
                       </Link>
                     ) : (
                       <div
@@ -510,7 +494,7 @@ export default async function SquadSchedule({
                           squadName={opponentText}
                           size={20}
                         />
-                        <span><SquadNameLines squadName={opponentText} nflName={opponentNflName} prefix={opponentPrefix}/></span>
+                        <span>{opponentText}</span>
                       </div>
                     )}
                   </td>

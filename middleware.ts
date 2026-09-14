@@ -160,8 +160,9 @@ export async function middleware(
   // Activity tracking should never delay navigation. Let the platform finish it
   // after the response has already been released to the browser.
   event.waitUntil(
-    supabase
-      .rpc('record_hourly_visit')
+    Promise.resolve(
+      supabase.rpc('record_hourly_visit')
+    )
       .then(()=>undefined)
       .catch(
         error=>{

@@ -211,7 +211,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
             <thead><tr><th style={headCell} aria-label="Team logo"/><th style={headCell}>Team</th><th style={headCell}>Line</th><th style={headCell} aria-label="Opponent logo"/><th style={headCell}>Opponent</th><th style={headCell} aria-label="More information to the right"><span style={arrowStyle}>{'>>'}</span></th><th style={headCell}>Score</th><th style={headCell}>Pick / Result</th></tr></thead>
             <tbody>
               {squadsByDivision.flatMap(({division,divisionName,squads:divisionSquads})=>[
-                <tr key={`division-${division}`}><td colSpan={5} style={{padding:'12px 0 8px',textAlign:'center'}}><strong>{divisionName}</strong></td><td style={{...bodyCell,padding:'12px 0 8px'}}><span aria-label="More information to the right" style={arrowStyle}>{'>>'}</span></td><td colSpan={2} style={{padding:'12px 0 8px'}}/></tr>,
+                <tr key={`division-${division}`}><td colSpan={5} style={{padding:'12px 0 8px',textAlign:'center',position:'relative'}}><strong>{divisionName}</strong><span aria-label="More information to the right" style={{...arrowStyle,position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',letterSpacing:'0'}}> {'>>'} </span></td><td style={{...bodyCell,padding:'12px 0 8px'}}/><td colSpan={2} style={{padding:'12px 0 8px'}}/></tr>,
                 ...divisionSquads.map((s:any)=>{
                   const g:any=gameForTeam(Number(s.nfl_team_id))
                   const ownNfl=Array.isArray(s.nfl_teams) ? s.nfl_teams[0] : s.nfl_teams

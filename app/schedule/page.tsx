@@ -208,10 +208,10 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
         <div style={{width:'100%',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
           <table style={{borderCollapse:'separate',borderSpacing:'0 3px',tableLayout:'fixed',width:534,minWidth:534}}>
             <colgroup><col style={{width:30}}/><col style={{width:90}}/><col style={{width:38}}/><col style={{width:30}}/><col style={{width:108}}/><col style={{width:28}}/><col style={{width:86}}/><col style={{width:124}}/></colgroup>
-            <thead><tr><th style={headCell} aria-label="Team logo"/><th style={headCell}>Team</th><th style={headCell}>Line</th><th style={headCell} aria-label="Opponent logo"/><th style={headCell}>Opponent</th><th style={headCell} aria-label="More information to the right"><span style={arrowStyle}>››</span></th><th style={headCell}>Score</th><th style={headCell}>Pick / Result</th></tr></thead>
+            <thead><tr><th style={headCell} aria-label="Team logo"/><th style={headCell}>Team</th><th style={headCell}>Line</th><th style={headCell} aria-label="Opponent logo"/><th style={headCell}>Opponent</th><th style={headCell} aria-label="More information to the right"><span style={arrowStyle}>{'>>'}</span></th><th style={headCell}>Score</th><th style={headCell}>Pick / Result</th></tr></thead>
             <tbody>
               {squadsByDivision.flatMap(({division,divisionName,squads:divisionSquads})=>[
-                <tr key={`division-${division}`}><td colSpan={5} style={{padding:'12px 0 8px',textAlign:'center'}}><strong>{divisionName}</strong></td><td style={{...bodyCell,padding:'12px 0 8px'}}><span aria-label="More information to the right" style={arrowStyle}>››</span></td><td colSpan={2} style={{padding:'12px 0 8px'}}/></tr>,
+                <tr key={`division-${division}`}><td colSpan={5} style={{padding:'12px 0 8px',textAlign:'center'}}><strong>{divisionName}</strong></td><td style={{...bodyCell,padding:'12px 0 8px'}}><span aria-label="More information to the right" style={arrowStyle}>{'>>'}</span></td><td colSpan={2} style={{padding:'12px 0 8px'}}/></tr>,
                 ...divisionSquads.map((s:any)=>{
                   const g:any=gameForTeam(Number(s.nfl_team_id))
                   const ownNfl=Array.isArray(s.nfl_teams) ? s.nfl_teams[0] : s.nfl_teams
@@ -258,7 +258,7 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
                       <td className={(pickedOwnTeam || pickedOpponent) ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...lineOwnSelectionStyle,...lineOpponentSelectionStyle,whiteSpace:'nowrap',fontWeight:pickRevealed ? 800 : 600}}>{signed(displayedSpread)}</td>
                       <td className={pickedOpponent ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...opponentLogoSelectionStyle}}><LogoDisplay logoPath={opponentSquad?.logo_path} abbreviation={opponentNfl?.abbreviation} name={opponentLabel} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/></td>
                       <td className={pickedOpponent ? liveClass.trim() || undefined : undefined} style={{...bodyCell,...opponentNameSelectionStyle}}><TeamNameDisplay name={opponentLabel} nflName={opponentNfl?.name} prefix={isHome ? 'vs' : '@'} emphasized={pickedOpponent} href={opponentSquad ? `/squads/${opponentSquad.id}` : undefined}/></td>
-                      <td style={bodyCell}><span aria-label="More information to the right" style={arrowStyle}>››</span></td>
+                      <td style={bodyCell}><span aria-label="More information to the right" style={arrowStyle}>{'>>'}</span></td>
                       <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:kickedOff ? 700 : 500,fontSize:kickedOff ? '0.78rem' : '0.72rem'}}>{score}</td>
                       <td style={{...bodyCell,whiteSpace:'nowrap'}}>{(()=>{
                         if(!kickedOff) return pick && !pick.is_missed ? <span style={{color:'green',fontWeight:700,fontSize:'1.15rem'}}>✓</span> : <span className="muted">—</span>

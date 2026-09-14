@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import KickoffCountdown from '../components/KickoffCountdown'
 import SquadLogo from '../components/SquadLogo'
+import SquadNameLines from '../components/SquadNameLines'
 import SquadLogoUploader from '../components/SquadLogoUploader'
 import MessageReactions from '../chat/MessageReactions'
 
@@ -382,6 +383,7 @@ export default async function Dashboard(){
           logo_path,
 
           nfl_teams(
+            name,
             abbreviation
           )
         )
@@ -847,7 +849,10 @@ export default async function Dashboard(){
                   marginTop:4
                 }}
               >
-                {squad.squad_name}
+                <SquadNameLines
+                  squadName={squad.squad_name}
+                  nflName={(squad as any)?.nfl_teams?.name}
+                />
               </div>
             </Link>
           )}
@@ -1034,8 +1039,10 @@ export default async function Dashboard(){
 
                         <div style={{marginTop:4}}>
                           <b>
-                            {awaySquad.squad_name ||
-                              game.away?.name}
+                            <SquadNameLines
+                              squadName={awaySquad.squad_name || game.away?.name}
+                              nflName={game.away?.name}
+                            />
                           </b>
                         </div>
                       </Link>
@@ -1061,7 +1068,10 @@ export default async function Dashboard(){
 
                         <div style={{marginTop:4}}>
                           <b>
-                            {game.away?.name}
+                            <SquadNameLines
+                              squadName={game.away?.name || 'Away Team'}
+                              nflName={game.away?.name}
+                            />
                           </b>
                         </div>
                       </>
@@ -1115,8 +1125,10 @@ export default async function Dashboard(){
 
                         <div style={{marginTop:4}}>
                           <b>
-                            {homeSquad.squad_name ||
-                              game.home?.name}
+                            <SquadNameLines
+                              squadName={homeSquad.squad_name || game.home?.name}
+                              nflName={game.home?.name}
+                            />
                           </b>
                         </div>
                       </Link>
@@ -1142,7 +1154,10 @@ export default async function Dashboard(){
 
                         <div style={{marginTop:4}}>
                           <b>
-                            {game.home?.name}
+                            <SquadNameLines
+                              squadName={game.home?.name || 'Home Team'}
+                              nflName={game.home?.name}
+                            />
                           </b>
                         </div>
                       </>
@@ -1242,7 +1257,10 @@ export default async function Dashboard(){
                   marginBottom:4
                 }}
               >
-                {pickedDisplayName}
+                <SquadNameLines
+                  squadName={pickedDisplayName}
+                  nflName={pickedTeam?.name}
+                />
               </div>
 
               <div
@@ -1490,7 +1508,10 @@ export default async function Dashboard(){
                                   overflowWrap:'normal'
                                 }}
                               >
-                                {r.squads.squad_name}
+                                <SquadNameLines
+                                  squadName={r.squads.squad_name}
+                                  nflName={r.squads.nfl_teams?.name}
+                                />
                               </b>
                             </Link>
                           </td>

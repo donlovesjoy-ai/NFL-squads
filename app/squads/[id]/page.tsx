@@ -3,6 +3,7 @@ import { notFound,redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../../components'
 import SquadLogo from '../../components/SquadLogo'
+import SquadNameLines from '../../components/SquadNameLines'
 
 function lineText(abbreviation:string|null|undefined,line:any){
   if(!abbreviation || line===null || line===undefined) return ''
@@ -173,7 +174,8 @@ export default async function SquadSchedule({
   const [
     {data:scheduleRows},
     {data:leagueSquadData},
-    {data:standingsData}
+    {data:standingsData},
+    {data:nflTeamData}
   ]=await Promise.all([
     supabase.rpc(
       'get_squad_schedule_profile',
@@ -207,7 +209,11 @@ export default async function SquadSchedule({
           division
         )
       `)
-      .eq('season_year',2026)
+      .eq('season_year',2026),
+
+    supabase
+      .from('nfl_teams')
+      .select('id,name,abbreviation')
   ])
 
   const schedule:any[]=scheduleRows||[]
@@ -217,6 +223,11 @@ export default async function SquadSchedule({
 
   for(const leagueSquad of leagueSquads){
     squadByNflTeam.set(Number(leagueSquad.nfl_team_id),leagueSquad)
+  }
+
+  const nflTeamById=new Map<number,any>()
+  for(const nflTeam of nflTeamData||[]){
+    nflTeamById.set(Number(nflTeam.id),nflTeam)
   }
 
   const squadNflTeam=Array.isArray(squad.nfl_teams)
@@ -353,7 +364,12 @@ export default async function SquadSchedule({
           />
         </div>
 
-        <h1 style={{marginTop:0,marginBottom:8}}>{squad.squad_name}</h1>
+        <h1 style={{marginTop:0,marginBottom:8}}>
+          <SquadNameLines
+            squadName={squad.squad_name}
+            nflName={squadNflTeam?.name}
+          />
+        </h1>
 
         <div style={{fontSize:'1rem',fontWeight:800}}>
           {recordText(
@@ -412,9 +428,15 @@ export default async function SquadSchedule({
                 : null
               const opponentLogo=opponentSquad?.logo_path||null
               const opponentHref=opponentSquad ? `/squads/${opponentSquad.id}` : null
-              const opponentText=row.is_bye
-                ? 'BYE'
-                : `${row.is_home ? 'vs' : '@'} ${row.opponent_abbreviation||'—'}`
+              const opponentNflTeam=row.opponent_team_id
+                ? nflTeamById.get(Number(row.opponent_team_id))
+                : null
+              const opponentText=opponentSquad?.squad_name ||
+                opponentNflTeam?.name ||
+                row.opponent_abbreviation ||
+                '—'
+              const opponentNflName=opponentNflTeam?.name||opponentText
+              const opponentPrefix=row.is_home ? 'vs' : '@'
 
               const status=String(row.game_status||'').toLowerCase()
               const kickedOff=
@@ -469,7 +491,7 @@ export default async function SquadSchedule({
                           squadName={opponentText}
                           size={20}
                         />
-                        <span>{opponentText}</span>
+                        <span><SquadNameLines squadName={opponentText} nflName={opponentNflName} prefix={opponentPrefix}/></span>
                       </Link>
                     ) : (
                       <div
@@ -488,7 +510,7 @@ export default async function SquadSchedule({
                           squadName={opponentText}
                           size={20}
                         />
-                        <span>{opponentText}</span>
+                        <span><SquadNameLines squadName={opponentText} nflName={opponentNflName} prefix={opponentPrefix}/></span>
                       </div>
                     )}
                   </td>

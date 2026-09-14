@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
 import SquadLogo from '../components/SquadLogo'
+import SquadNameLines from '../components/SquadNameLines'
 import PickDeadlineCountdown from './PickDeadlineCountdown'
 import LiveRefresh from './LiveRefresh'
 import { submitPick } from './actions'
@@ -488,7 +489,7 @@ export default async function MyPick({
               size={28}
             />
 
-            <b>{awayName}</b>
+            <b><SquadNameLines squadName={awayName} nflName={game.away?.name}/></b>
             <span>{fmtSpread(awaySpread)}</span>
           </label>
 
@@ -518,7 +519,7 @@ export default async function MyPick({
               size={28}
             />
 
-            <b>{homeName}</b>
+            <b><SquadNameLines squadName={homeName} nflName={game.home?.name}/></b>
             <span>{fmtSpread(homeSpread)}</span>
           </label>
 

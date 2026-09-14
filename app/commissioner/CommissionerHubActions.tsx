@@ -9,6 +9,7 @@ const options = [
   ['Playoff Control', '/commissioner/playoffs'],
   ['Audit Log', '/audit-log'],
   ['Login Log', '/commissioner/login-log'],
+  ['Last Activity', '/commissioner/last-activity'],
 ] as const
 
 export default function CommissionerHubActions() {

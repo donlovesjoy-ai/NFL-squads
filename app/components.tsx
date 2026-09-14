@@ -51,9 +51,9 @@ export function Nav({
       </Link>
 
       {commissioner && (
-        <Link href="/commissioner">
+        <a href="/commissioner">
           Commissioner Shit
-        </Link>
+        </a>
       )}
 
       {!commissioner && (

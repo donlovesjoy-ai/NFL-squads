@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { logout } from './logout/actions'
+import ActivityTracker from './components/ActivityTracker'
 
 export function Nav({
   commissioner=false
@@ -7,7 +8,9 @@ export function Nav({
   commissioner?:boolean
 }){
   return (
-    <nav
+    <>
+      <ActivityTracker/>
+      <nav
       style={{
         display:'flex',
         justifyContent:'center',
@@ -80,6 +83,7 @@ export function Nav({
           </button>
         </form>
       )}
-    </nav>
+      </nav>
+    </>
   )
 }

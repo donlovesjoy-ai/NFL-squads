@@ -429,12 +429,14 @@ export default async function SquadSchedule({
                 (row.kickoff_time && new Date(row.kickoff_time)<=new Date())
 
               let gameDisplay='—'
+              let ownScore:any=null
+              let opponentScore:any=null
+
               if(row.is_bye){
                 gameDisplay='—'
               }else if(kickedOff){
-                const ownScore=row.is_home ? row.home_score : row.away_score
-                const opponentScore=row.is_home ? row.away_score : row.home_score
-                gameDisplay=`${ownScore ?? 0}-${opponentScore ?? 0}`
+                ownScore=row.is_home ? row.home_score : row.away_score
+                opponentScore=row.is_home ? row.away_score : row.home_score
               }else{
                 gameDisplay=gameDateEastern(row.kickoff_time)
               }
@@ -442,6 +444,18 @@ export default async function SquadSchedule({
               const selection=kickedOff
                 ? lineText(row.selection_abbreviation,row.selection_line)
                 : ''
+              const selectedAbbreviation=String(row.selection_abbreviation||'').toUpperCase()
+              const selectedOwnScore=Boolean(selectedAbbreviation) &&
+                selectedAbbreviation===String(teamAbbreviation||'').toUpperCase()
+              const selectedOpponentScore=Boolean(selectedAbbreviation) &&
+                selectedAbbreviation===String(row.opponent_abbreviation||'').toUpperCase()
+              const selectedScoreStyle={
+                display:'inline-block',
+                border:'1px solid #777',
+                borderRadius:3,
+                padding:'1px 3px',
+                lineHeight:1
+              }
               const color=resultColor(row.pick_result)
               const showRecord=Boolean(
                 row.record_wins!==null &&
@@ -524,7 +538,23 @@ export default async function SquadSchedule({
                       fontSize:kickedOff ? '0.76rem' : '0.72rem'
                     }}
                   >
-                    {gameDisplay}
+                    {kickedOff && !row.is_bye ? (
+                      <span
+                        style={{
+                          display:'inline-flex',
+                          alignItems:'center',
+                          gap:2
+                        }}
+                      >
+                        <span style={selectedOwnScore ? selectedScoreStyle : undefined}>
+                          {ownScore ?? 0}
+                        </span>
+                        <span>-</span>
+                        <span style={selectedOpponentScore ? selectedScoreStyle : undefined}>
+                          {opponentScore ?? 0}
+                        </span>
+                      </span>
+                    ) : gameDisplay}
                   </td>
 
                   <td style={{...bodyCell,whiteSpace:'nowrap',fontWeight:800}}>

@@ -343,6 +343,12 @@ export default async function MyPick({
     .eq('game_id',game.id)
     .maybeSingle()
 
+  const savedSelectionTeamId=
+    pick?.selection_team_id===null || pick?.selection_team_id===undefined
+      ? null
+      : Number(pick.selection_team_id)
+  const hasSavedPick=savedSelectionTeamId!==null && pick?.is_missed!==true
+
   const weekOpen=weekOpenMap.get(Number(game.nfl_week))===true
   const deadline=game.pick_lock_at
     ? new Date(game.pick_lock_at)
@@ -467,7 +473,7 @@ export default async function MyPick({
           <input type="hidden" name="game_id" value={game.id}/>
 
           <label
-            className={`pick pick-choice${Number(pick?.selection_team_id)===Number(game.away_team_id) ? ' pick-choice-saved' : ''}`}
+            className={`pick pick-choice${hasSavedPick && savedSelectionTeamId===Number(game.away_team_id) ? ' pick-choice-saved' : ''}`}
             style={{
               display:'flex',
               alignItems:'center',
@@ -481,7 +487,7 @@ export default async function MyPick({
               type="radio"
               name="selection_team_id"
               value={game.away_team_id}
-              defaultChecked={pick?.selection_team_id===game.away_team_id}
+              defaultChecked={savedSelectionTeamId===Number(game.away_team_id)}
               required
               disabled={!weekOpen || locked}
             />
@@ -500,7 +506,7 @@ export default async function MyPick({
           </label>
 
           <label
-            className={`pick pick-choice${Number(pick?.selection_team_id)===Number(game.home_team_id) ? ' pick-choice-saved' : ''}`}
+            className={`pick pick-choice${hasSavedPick && savedSelectionTeamId===Number(game.home_team_id) ? ' pick-choice-saved' : ''}`}
             style={{
               display:'flex',
               alignItems:'center',
@@ -514,7 +520,7 @@ export default async function MyPick({
               type="radio"
               name="selection_team_id"
               value={game.home_team_id}
-              defaultChecked={pick?.selection_team_id===game.home_team_id}
+              defaultChecked={savedSelectionTeamId===Number(game.home_team_id)}
               required
               disabled={!weekOpen || locked}
             />

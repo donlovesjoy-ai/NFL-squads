@@ -7,7 +7,7 @@ button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding
 .pick:hover{border-color:#111}
 .pick-choice{position:relative;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
 .pick-choice-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.pick-choice-check{display:none;align-items:center;justify-content:center;color:#16a34a;font-size:3.15rem;font-weight:900;line-height:.8;transform:rotate(-7deg);text-shadow:0 2px 0 rgba(0,0,0,.12)}
+.pick-choice-check{display:none;width:68px;height:68px;flex:0 0 68px;background:url('/picked-stamp.png') center/contain no-repeat;font-size:0;line-height:0;mix-blend-mode:multiply}
 .pick-choice:has(.pick-choice-input:checked){background:#fff;border:2px solid #111;box-shadow:0 0 0 2px rgba(17,17,17,.08)}
 .pick-choice-saved,.pick-choice-saved:has(.pick-choice-input:checked){background:#eaf8ee;border:2px solid #16a34a;box-shadow:0 3px 10px rgba(22,163,74,.14)}
 .pick-choice-saved .pick-choice-check{display:inline-flex}

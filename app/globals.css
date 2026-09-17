@@ -7,7 +7,7 @@ button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding
 .pick:hover{border-color:#111}
 .pick-choice{position:relative;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
 .pick-choice-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.pick-choice-check{display:none;width:76px;height:76px;flex:0 0 76px;background-color:transparent!important;background-repeat:no-repeat;background-position:center;background-size:contain;background-image:url('/picked-stamp-transparent.png?v=2');font-size:0;line-height:0}
+.pick-choice-check{display:none;width:76px;height:76px;flex:0 0 76px;background-color:transparent!important;background-repeat:no-repeat;background-position:center;background-size:contain;background-image:url('https://raw.githubusercontent.com/donlovesjoy-ai/NFL-squads/18fa871422a10ab6cad977d6dbe25070d7657f98/public/picked-stamp-transparent.png');font-size:0;line-height:0}
 .pick-choice-check::before,.pick-choice-check::after{content:none!important;display:none!important}
 .pick-choice:has(.pick-choice-input:checked){background:#fff;border:2px solid #111;box-shadow:0 0 0 2px rgba(17,17,17,.08)}
 .pick-choice-saved,.pick-choice-saved:has(.pick-choice-input:checked){background:#eaf8ee;border:2px solid #16a34a;box-shadow:0 3px 10px rgba(22,163,74,.14)}

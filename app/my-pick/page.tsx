@@ -6,6 +6,7 @@ import SquadNameLines from '../components/SquadNameLines'
 import PickDeadlineCountdown from './PickDeadlineCountdown'
 import LiveRefresh from './LiveRefresh'
 import { submitPick } from './actions'
+import pickedStamp from '../../public/picked-stamp-transparent.png'
 
 function fmtSpread(n:number|null){
   if(n===null) return 'Line not posted'
@@ -492,7 +493,20 @@ export default async function MyPick({
               disabled={!weekOpen || locked}
             />
 
-            <span className="pick-choice-check" aria-hidden="true">✓</span>
+            {hasSavedPick && savedSelectionTeamId===Number(game.away_team_id) && (
+              <img
+                src={pickedStamp.src}
+                alt="Picked"
+                width={68}
+                height={68}
+                style={{
+                  width:68,
+                  height:68,
+                  flex:'0 0 68px',
+                  objectFit:'contain'
+                }}
+              />
+            )}
 
             <SquadLogo
               logoPath={awaySquad?.logo_path}
@@ -525,7 +539,20 @@ export default async function MyPick({
               disabled={!weekOpen || locked}
             />
 
-            <span className="pick-choice-check" aria-hidden="true">✓</span>
+            {hasSavedPick && savedSelectionTeamId===Number(game.home_team_id) && (
+              <img
+                src={pickedStamp.src}
+                alt="Picked"
+                width={68}
+                height={68}
+                style={{
+                  width:68,
+                  height:68,
+                  flex:'0 0 68px',
+                  objectFit:'contain'
+                }}
+              />
+            )}
 
             <SquadLogo
               logoPath={homeSquad?.logo_path}

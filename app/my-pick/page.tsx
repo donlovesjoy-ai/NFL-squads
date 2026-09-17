@@ -458,7 +458,7 @@ export default async function MyPick({
           <input type="hidden" name="game_id" value={game.id}/>
 
           <label
-            className="pick pick-choice"
+            className={`pick pick-choice${Number(pick?.selection_team_id)===Number(game.away_team_id) ? ' pick-choice-saved' : ''}`}
             style={{
               display:'flex',
               alignItems:'center',
@@ -491,7 +491,7 @@ export default async function MyPick({
           </label>
 
           <label
-            className="pick pick-choice"
+            className={`pick pick-choice${Number(pick?.selection_team_id)===Number(game.home_team_id) ? ' pick-choice-saved' : ''}`}
             style={{
               display:'flex',
               alignItems:'center',

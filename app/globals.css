@@ -7,9 +7,8 @@ button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding
 .pick:hover{border-color:#111}
 .pick-choice{position:relative;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
 .pick-choice-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.pick-choice-check{display:none;width:82px;height:82px;flex:0 0 82px;position:relative;background:transparent!important;color:transparent;font-size:0;line-height:0;overflow:visible}
-.pick-choice-check::before{content:'';position:absolute;inset:12px;border:4px solid #16a34a;border-radius:999px;box-shadow:inset 0 0 0 2px rgba(22,163,74,.14);background:transparent}
-.pick-choice-check::after{content:'PICKED';position:absolute;left:6px;right:6px;top:50%;transform:translateY(-50%) rotate(-15deg);border:4px solid #16a34a;border-radius:8px;color:#16a34a;background:transparent;box-shadow:inset 0 0 0 2px rgba(22,163,74,.14);font-weight:900;font-size:22px;line-height:1;letter-spacing:.04em;text-align:center;padding:6px 0;white-space:nowrap;text-transform:uppercase}
+.pick-choice-check{display:none;width:76px;height:76px;flex:0 0 76px;background-color:transparent!important;background-repeat:no-repeat;background-position:center;background-size:contain;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg transform='rotate(-12 60 60)'%3E%3Ccircle cx='60' cy='60' r='42' fill='none' stroke='%2316a34a' stroke-width='6'/%3E%3Ccircle cx='60' cy='60' r='34' fill='none' stroke='%2316a34a' stroke-width='2'/%3E%3Cpath d='M60 22l2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9zM60 82l2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z' fill='%2316a34a'/%3E%3Crect x='10' y='43' width='100' height='34' rx='4' fill='%2316a34a' stroke='%23eaf8ee' stroke-width='3'/%3E%3Crect x='14' y='47' width='92' height='26' rx='2' fill='none' stroke='%23eaf8ee' stroke-width='2'/%3E%3Ctext x='60' y='67' text-anchor='middle' font-family='Arial,Helvetica,sans-serif' font-size='24' font-weight='900' letter-spacing='1' fill='white'%3EPICKED%3C/text%3E%3C/g%3E%3C/svg%3E");font-size:0;line-height:0}
+.pick-choice-check::before,.pick-choice-check::after{content:none!important;display:none!important}
 .pick-choice:has(.pick-choice-input:checked){background:#fff;border:2px solid #111;box-shadow:0 0 0 2px rgba(17,17,17,.08)}
 .pick-choice-saved,.pick-choice-saved:has(.pick-choice-input:checked){background:#eaf8ee;border:2px solid #16a34a;box-shadow:0 3px 10px rgba(22,163,74,.14)}
 .pick-choice-saved .pick-choice-check{display:inline-flex}
@@ -43,6 +42,5 @@ section.card:has(a[href="/commissioner/setup"]):has(a[href="/commissioner/live-f
 @media(max-width:760px){
   .bracket-grid{grid-template-columns:1fr}
   textarea,input,select{font-size:16px}
-  .pick-choice-check{width:72px;height:72px;flex:0 0 72px}
-  .pick-choice-check::after{font-size:19px;padding:5px 0}
+  .pick-choice-check{width:68px;height:68px;flex:0 0 68px}
 }

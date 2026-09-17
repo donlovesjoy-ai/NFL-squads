@@ -4,7 +4,14 @@
 nav{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0 26px}.card{background:white;border:1px solid #ddd;border-radius:14px;padding:20px;margin-bottom:18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.muted{color:#6b6b6b}.big{font-size:28px;font-weight:800}
 button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding:16px;border:1px solid #bbb;border-radius:10px;background:white;margin:10px 0;cursor:pointer}
-.pick:hover{border-color:#111}.submit{width:100%;padding:14px;border:0;border-radius:10px;background:#111;color:#fff;font-weight:800;cursor:pointer;margin-top:12px}
+.pick:hover{border-color:#111}
+.pick-choice{position:relative;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
+.pick-choice-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.pick-choice-check{display:none;align-items:center;justify-content:center;color:#16a34a;font-size:3.15rem;font-weight:900;line-height:.8;transform:rotate(-7deg);text-shadow:0 2px 0 rgba(0,0,0,.12)}
+.pick-choice:has(.pick-choice-input:checked){background:#eaf8ee;border:2px solid #16a34a;box-shadow:0 3px 10px rgba(22,163,74,.14)}
+.pick-choice:has(.pick-choice-input:checked) .pick-choice-check{display:inline-flex}
+.pick-choice:focus-within{outline:3px solid rgba(22,163,74,.22);outline-offset:2px}
+.submit{width:100%;padding:14px;border:0;border-radius:10px;background:#111;color:#fff;font-weight:800;cursor:pointer;margin-top:12px}
 .submit:disabled{opacity:.45;cursor:not-allowed}.status{padding:10px 12px;border-radius:10px;background:#f1f1f1;display:inline-block}.division h2{text-decoration:underline}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid #eee}
 section.card>a[href="/standings"]+div table th,section.card>a[href="/standings"]+div table td{text-align:center}

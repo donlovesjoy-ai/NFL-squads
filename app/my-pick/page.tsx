@@ -383,14 +383,23 @@ export default async function MyPick({
           {fmtEasternWithSeconds(deadline)}
         </p>
 
-        <p
+        <div
           className="muted"
-          style={{margin:'6px 0 0',fontSize:'0.78rem'}}
+          style={{
+            margin:'6px 0 0',
+            fontSize:'0.78rem',
+            textAlign:'center',
+            lineHeight:1.45
+          }}
         >
-          {oddsLabel}:{' '}
-          <b>{oddsTimestamp || 'Not available yet'}</b>
-          {' · '}Source: <b>{oddsSource}</b>
-        </p>
+          <div style={{whiteSpace:'nowrap'}}>
+            {oddsLabel}:{' '}
+            <b>{oddsTimestamp || 'Not available yet'}</b>
+          </div>
+          <div>
+            Source: <b>{oddsSource}</b>
+          </div>
+        </div>
 
         {!weekOpen && (
           <p className="status">
@@ -575,18 +584,20 @@ export default async function MyPick({
             </div>
           )}
 
-          <p
+          <div
             className="muted"
             style={{
               fontSize:'0.78rem',
-              lineHeight:1.4,
+              lineHeight:1.45,
               margin:'2px auto 0',
-              maxWidth:440
+              maxWidth:440,
+              textAlign:'center'
             }}
           >
-            Lines are subject to change. Bet window closes one second before kickoff.
-            Your official line is assigned at kickoff.
-          </p>
+            <div>Lines are subject to change.</div>
+            <div>Bet window closes one second before kickoff.</div>
+            <div>Your official line is assigned at kickoff.</div>
+          </div>
 
           <div style={{textAlign:'center',marginTop:6}}>
             <PickDeadlineCountdown

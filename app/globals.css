@@ -8,9 +8,10 @@ button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding
 .pick-choice{position:relative;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
 .pick-choice-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .pick-choice-check{display:none;align-items:center;justify-content:center;color:#16a34a;font-size:3.15rem;font-weight:900;line-height:.8;transform:rotate(-7deg);text-shadow:0 2px 0 rgba(0,0,0,.12)}
-.pick-choice:has(.pick-choice-input:checked){background:#eaf8ee;border:2px solid #16a34a;box-shadow:0 3px 10px rgba(22,163,74,.14)}
-.pick-choice:has(.pick-choice-input:checked) .pick-choice-check{display:inline-flex}
-.pick-choice:focus-within{outline:3px solid rgba(22,163,74,.22);outline-offset:2px}
+.pick-choice:has(.pick-choice-input:checked){background:#fff;border:2px solid #111;box-shadow:0 0 0 2px rgba(17,17,17,.08)}
+.pick-choice-saved,.pick-choice-saved:has(.pick-choice-input:checked){background:#eaf8ee;border:2px solid #16a34a;box-shadow:0 3px 10px rgba(22,163,74,.14)}
+.pick-choice-saved .pick-choice-check{display:inline-flex}
+.pick-choice:focus-within{outline:3px solid rgba(17,17,17,.16);outline-offset:2px}
 .submit{width:100%;padding:14px;border:0;border-radius:10px;background:#111;color:#fff;font-weight:800;cursor:pointer;margin-top:12px}
 .submit:disabled{opacity:.45;cursor:not-allowed}.status{padding:10px 12px;border-radius:10px;background:#f1f1f1;display:inline-block}.division h2{text-decoration:underline}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid #eee}

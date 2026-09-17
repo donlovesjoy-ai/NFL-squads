@@ -410,8 +410,6 @@ export default async function MyPick({
           </p>
         )}
 
-        {sp.saved && !gameStarted && <p className="status">Pick saved.</p>}
-
         {sp.error==='week_closed' && (
           <p className="status">
             This week&apos;s picks are not open yet.
@@ -446,10 +444,6 @@ export default async function MyPick({
           </p>
         )}
 
-        {pick && !pick.is_missed && !gameStarted && (
-          <p className="status">Current pick submitted.</p>
-        )}
-
         {pick?.is_missed && (
           <p className="status">
             No pick was submitted for this matchup.
@@ -464,7 +458,7 @@ export default async function MyPick({
           <input type="hidden" name="game_id" value={game.id}/>
 
           <label
-            className="pick"
+            className="pick pick-choice"
             style={{
               display:'flex',
               alignItems:'center',
@@ -474,6 +468,7 @@ export default async function MyPick({
             }}
           >
             <input
+              className="pick-choice-input"
               type="radio"
               name="selection_team_id"
               value={game.away_team_id}
@@ -481,6 +476,8 @@ export default async function MyPick({
               required
               disabled={!weekOpen || locked}
             />
+
+            <span className="pick-choice-check" aria-hidden="true">✓</span>
 
             <SquadLogo
               logoPath={awaySquad?.logo_path}
@@ -494,7 +491,7 @@ export default async function MyPick({
           </label>
 
           <label
-            className="pick"
+            className="pick pick-choice"
             style={{
               display:'flex',
               alignItems:'center',
@@ -504,6 +501,7 @@ export default async function MyPick({
             }}
           >
             <input
+              className="pick-choice-input"
               type="radio"
               name="selection_team_id"
               value={game.home_team_id}
@@ -511,6 +509,8 @@ export default async function MyPick({
               required
               disabled={!weekOpen || locked}
             />
+
+            <span className="pick-choice-check" aria-hidden="true">✓</span>
 
             <SquadLogo
               logoPath={homeSquad?.logo_path}

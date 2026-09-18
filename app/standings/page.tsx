@@ -180,8 +180,16 @@ export default async function Standings(){
                       ...(isMe ? {
                         borderTop:'2px solid #111',
                         borderBottom:'2px solid #111',
-                        ...(position==='first' ? {borderLeft:'2px solid #111'} : {}),
-                        ...(position==='last' ? {borderRight:'2px solid #111'} : {})
+                        ...(position==='first' ? {
+                          borderLeft:'2px solid #111',
+                          borderTopLeftRadius:10,
+                          borderBottomLeftRadius:10
+                        } : {}),
+                        ...(position==='last' ? {
+                          borderRight:'2px solid #111',
+                          borderTopRightRadius:10,
+                          borderBottomRightRadius:10
+                        } : {})
                       } : {})
                     })
 

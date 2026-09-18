@@ -175,20 +175,30 @@ export default async function Standings(){
                       ? r.squads.nfl_teams[0]
                       : r.squads?.nfl_teams
                     const name=squadNameParts(r.squads.squad_name,nflTeam?.name)
+                    const rowCell=(position:'first'|'middle'|'last')=>({
+                      ...bodyCell,
+                      ...(isMe ? {
+                        borderTop:'2px solid #111',
+                        borderBottom:'2px solid #111',
+                        ...(position==='first' ? {borderLeft:'2px solid #111'} : {}),
+                        ...(position==='last' ? {borderRight:'2px solid #111'} : {})
+                      } : {})
+                    })
 
                     return (
-                      <tr key={i} style={isMe ? {fontWeight:700} : undefined}>
+                      <tr key={i}>
                         <td
                           style={{
-                            ...bodyCell,
+                            ...rowCell('first'),
                             whiteSpace:'normal',
-                            lineHeight:1.15
+                            lineHeight:1.15,
+                            fontWeight:isMe ? 700 : 400
                           }}
                         >
                           {r.squads.owner_name || '—'}
                         </td>
 
-                        <td style={{...bodyCell,whiteSpace:'nowrap'}}>
+                        <td style={{...rowCell('middle'),whiteSpace:'nowrap'}}>
                           <Link
                             href={`/squads/${r.squads.id}`}
                             style={{
@@ -208,7 +218,7 @@ export default async function Standings(){
                           </Link>
                         </td>
 
-                        <td style={{...bodyCell,whiteSpace:'normal',lineHeight:1.1}}>
+                        <td style={{...rowCell('middle'),whiteSpace:'normal',lineHeight:1.1}}>
                           <Link
                             href={`/squads/${r.squads.id}`}
                             style={{
@@ -234,10 +244,10 @@ export default async function Standings(){
                           </Link>
                         </td>
 
-                        <td style={{...bodyCell,whiteSpace:'nowrap'}}>{r.wins}</td>
-                        <td style={{...bodyCell,whiteSpace:'nowrap'}}>{r.losses}</td>
-                        <td style={{...bodyCell,whiteSpace:'nowrap'}}>{r.pushes}</td>
-                        <td style={{...bodyCell,whiteSpace:'nowrap'}}>{signed(r.ats_margin)}</td>
+                        <td style={{...rowCell('middle'),whiteSpace:'nowrap',fontWeight:700}}>{r.wins}</td>
+                        <td style={{...rowCell('middle'),whiteSpace:'nowrap',fontWeight:700}}>{r.losses}</td>
+                        <td style={{...rowCell('middle'),whiteSpace:'nowrap',fontWeight:700}}>{r.pushes}</td>
+                        <td style={{...rowCell('last'),whiteSpace:'nowrap',fontWeight:700}}>{signed(r.ats_margin)}</td>
                       </tr>
                     )
                   })}

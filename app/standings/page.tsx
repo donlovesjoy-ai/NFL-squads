@@ -142,7 +142,8 @@ export default async function Standings(){
                 style={{
                   width:'100%',
                   textAlign:'center',
-                  borderCollapse:'collapse',
+                  borderCollapse:'separate',
+                  borderSpacing:0,
                   tableLayout:'fixed'
                 }}
               >

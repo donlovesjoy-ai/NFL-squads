@@ -242,13 +242,27 @@ export default async function MyPick({
     }
   }
 
-  const game:any=selectedWeek===null
+  const nowMs=Date.now()
+  const activeGame=squadGames.find((g:any)=>{
+    const status=String(g.status||'').toLowerCase()
+    const gameKickoff=g.scheduled_kickoff_time || g.kickoff_time
+
+    return (
+      status!=='final' &&
+      Boolean(gameKickoff) &&
+      new Date(gameKickoff).getTime()<=nowMs
+    )
+  })
+
+  const openGame:any=selectedWeek===null
     ? null
     : squadGames.find(
         (g:any)=>
           Number(g.nfl_week)===selectedWeek &&
           String(g.status||'').toLowerCase()!=='final'
       )
+
+  const game:any=activeGame || openGame
 
   if(!game){
     const nextGame=squadGames.find(
@@ -342,7 +356,10 @@ export default async function MyPick({
   const kickoffTime=game.scheduled_kickoff_time || game.kickoff_time
 
   const gameStatus=String(game.status||'').toLowerCase()
-  const gameStarted=gameStatus==='live' || gameStatus==='final'
+  const gameStarted=
+    gameStatus==='live' ||
+    gameStatus==='final' ||
+    new Date(kickoffTime).getTime()<=Date.now()
   const officialLineAvailable=Boolean(game.closing_finalized_at && game.closing_received_at)
 
   const oddsTimestamp=officialLineAvailable
@@ -382,7 +399,9 @@ export default async function MyPick({
       : Number(pick.selection_team_id)
   const hasSavedPick=savedSelectionTeamId!==null && pick?.is_missed!==true
 
-  const weekOpen=weekOpenMap.get(Number(game.nfl_week))===true
+  const weekOpen=
+    weekOpenMap.get(Number(game.nfl_week))===true ||
+    gameStarted
   const deadline=game.pick_lock_at
     ? new Date(game.pick_lock_at)
     : new Date(new Date(kickoffTime).getTime()-1_000)
@@ -399,8 +418,8 @@ export default async function MyPick({
   const autoRefreshEnabled=gameStatus!=='final' && kickoffMs<=Date.now()+sixHoursMs && kickoffMs>=Date.now()-sixHoursMs
 
   let buttonText='Make a Decision'
-  if(!weekOpen) buttonText='Week Not Open Yet'
-  else if(locked) buttonText='Pick Locked'
+  if(locked) buttonText='Pick Locked'
+  else if(!weekOpen) buttonText='Week Not Open Yet'
 
   return (
     <main className="wrap">
@@ -443,12 +462,6 @@ export default async function MyPick({
         {!weekOpen && (
           <p className="status">
             Week {game.nfl_week} picks are not open yet.
-          </p>
-        )}
-
-        {gameStarted && (
-          <p className="status">
-            This game has started. Your pick is locked.
           </p>
         )}
 

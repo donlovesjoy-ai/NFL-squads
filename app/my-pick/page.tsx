@@ -38,6 +38,7 @@ function fmtEasternWithSeconds(value:string|Date){
 function bookmakerLabel(value:any){
   const normalized=String(value||'').toLowerCase()
   if(normalized==='betmgm') return 'BetMGM'
+  if(normalized==='draftkings') return 'DraftKings'
   return value || 'Not available yet'
 }
 

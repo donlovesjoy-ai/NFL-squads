@@ -1,677 +1,80 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../../lib/supabase/server'
 import { Nav } from '../components'
-import SquadLogo from '../components/SquadLogo'
-import SquadNameLines from '../components/SquadNameLines'
-import PickDeadlineCountdown from './PickDeadlineCountdown'
-import LiveRefresh from './LiveRefresh'
-import { submitPick } from './actions'
 
-
-function fmtSpread(n:number|null){
-  if(n===null) return 'Line not posted'
-  if(n===0) return 'PK'
-  return n>0 ? `+${n}` : `${n}`
+function formatTipoff(value: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+  }).format(new Date(value))
 }
 
-function fmtEastern(value:string|Date){
-  return new Date(value).toLocaleString('en-US',{
-    timeZone:'America/New_York',
-    month:'short',
-    day:'numeric',
-    hour:'numeric',
-    minute:'2-digit'
-  })
-}
+export default async function MyPickPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-function fmtEasternWithSeconds(value:string|Date){
-  return new Date(value).toLocaleString('en-US',{
-    timeZone:'America/New_York',
-    month:'short',
-    day:'numeric',
-    hour:'numeric',
-    minute:'2-digit',
-    second:'2-digit'
-  })
-}
-
-function bookmakerLabel(value:any){
-  const normalized=String(value||'').toLowerCase()
-  if(normalized==='betmgm') return 'BetMGM'
-  if(normalized==='draftkings') return 'DraftKings'
-  return value || 'Not available yet'
-}
-
-function AllTimesEastern(){
-  return (
-    <div
-      className="muted"
-      style={{
-        fontSize:'0.72rem',
-        marginTop:-8,
-        marginBottom:12
-      }}
-    >
-      All Times Eastern
-    </div>
-  )
-}
-
-function PickedStamp(){
-  return (
-    <svg
-      width="68"
-      height="68"
-      viewBox="0 0 100 100"
-      aria-label="Picked"
-      role="img"
-      style={{width:68,height:68,flex:'0 0 68px',overflow:'visible'}}
-    >
-      <g transform="rotate(-14 50 50)">
-        <circle cx="50" cy="50" r="35" fill="none" stroke="#16a34a" strokeWidth="5"/>
-        <circle cx="50" cy="50" r="29" fill="none" stroke="#16a34a" strokeWidth="2"/>
-        <rect x="6" y="36" width="88" height="28" rx="3" fill="#16a34a"/>
-        <rect x="10" y="40" width="80" height="20" rx="2" fill="none" stroke="white" strokeWidth="2"/>
-        <text
-          x="50"
-          y="56"
-          textAnchor="middle"
-          fontFamily="Arial, Helvetica, sans-serif"
-          fontSize="18"
-          fontWeight="900"
-          letterSpacing="1.5"
-          fill="white"
-        >
-          PICKED
-        </text>
-      </g>
-    </svg>
-  )
-}
-
-export default async function MyPick({
-  searchParams
-}:{
-  searchParams:Promise<{
-    saved?:string
-    error?:string
-  }>
-}){
-  const sp=await searchParams
-  const supabase=await createClient()
-  const {data:{user}}=await supabase.auth.getUser()
-
-  if(!user) redirect('/login')
-
-  const [
-    {data:profile},
-    {data:squad}
-  ]=await Promise.all([
-    supabase
-      .from('users')
-      .select('role')
-      .eq('id',user.id)
-      .maybeSingle(),
-
-    supabase
-      .from('squads')
-      .select(`
-        id,
-        squad_name,
-        nfl_team_id,
-        logo_path,
-        nfl_teams(
-          name,
-          abbreviation
-        )
-      `)
-      .eq('user_id',user.id)
-      .eq('season_year',2026)
-      .maybeSingle()
-  ])
-
-  const commissioner=profile?.role==='commissioner'
-
-  if(!squad){
-    return (
-      <main className="wrap">
-        <Nav commissioner={commissioner}/>
-        <h1 style={{textAlign:'center'}}>My Pick</h1>
-        <div
-          className="card"
-          style={{textAlign:'center',maxWidth:720,margin:'0 auto'}}
-        >
-          Your squad has not been assigned yet.
-        </div>
-      </main>
-    )
-  }
-
-  const [
-    {data:leagueSquads},
-    {data:allGames},
-    {data:weekStatusRows}
-  ]=await Promise.all([
-    supabase
-      .from('squads')
-      .select(`
-        id,
-        squad_name,
-        nfl_team_id,
-        logo_path,
-        nfl_teams(
-          name,
-          abbreviation
-        )
-      `)
-      .eq('season_year',2026),
-
-    supabase
-      .from('games')
-      .select(`
-        id,
-        nfl_week,
-        kickoff_time,
-        scheduled_kickoff_time,
-        pick_lock_at,
-        pick_opened_at,
-        pick_open_bookmaker,
-        pick_open_spread,
-        spread,
-        status,
-        final_at,
-        home_team_id,
-        away_team_id,
-        odds_bookmaker,
-        odds_updated_at,
-        closing_bookmaker,
-        closing_received_at,
-        closing_finalized_at,
-
-        home:
-          nfl_teams!games_home_team_id_fkey(
-            name,
-            abbreviation
-          ),
-
-        away:
-          nfl_teams!games_away_team_id_fkey(
-            name,
-            abbreviation
-          )
-      `)
-      .eq('season_year',2026)
-      .or(`home_team_id.eq.${squad.nfl_team_id},away_team_id.eq.${squad.nfl_team_id}`)
-      .order('nfl_week',{ascending:true})
-      .order('kickoff_time',{ascending:true}),
-
-    supabase.rpc('get_pick_week_open_statuses',{
-      p_season:2026,
-      p_squad_id:squad.id
-    })
-  ])
-
-  const squadByNflTeam=new Map<number,any>()
-  for(const s of leagueSquads||[]){
-    squadByNflTeam.set(Number(s.nfl_team_id),s)
-  }
-
-  const squadGames=(allGames||[]) as any[]
-  const weekOpenMap=new Map<number,boolean>()
-
-  for(const row of weekStatusRows||[]){
-    weekOpenMap.set(Number(row.nfl_week),row.is_open===true)
-  }
-
-  const weeks=[...new Set(squadGames.map((g:any)=>Number(g.nfl_week)))]
-  const openWeeks=weeks
-    .filter(week=>weekOpenMap.get(week)===true)
-    .sort((a,b)=>b-a)
-
-  let selectedWeek:number|null=null
-
-  for(const week of openWeeks){
-    const hasAvailableGame=squadGames.some(
-      (g:any)=>
-        Number(g.nfl_week)===week &&
-        String(g.status||'').toLowerCase()!=='final'
-    )
-
-    if(hasAvailableGame){
-      selectedWeek=week
-      break
-    }
-  }
-
-  const nowMs=Date.now()
-  const activeGame=squadGames.find((g:any)=>{
-    const status=String(g.status||'').toLowerCase()
-    const gameKickoff=g.scheduled_kickoff_time || g.kickoff_time
-
-    return (
-      status!=='final' &&
-      Boolean(gameKickoff) &&
-      new Date(gameKickoff).getTime()<=nowMs
-    )
-  })
-
-  const openGame:any=selectedWeek===null
-    ? null
-    : squadGames.find(
-        (g:any)=>
-          Number(g.nfl_week)===selectedWeek &&
-          String(g.status||'').toLowerCase()!=='final'
-      )
-
-  const game:any=activeGame || openGame
-
-  if(!game){
-    const nextGame=squadGames.find(
-      (g:any)=>String(g.status||'').toLowerCase()!=='final'
-    )
-
-    if(!nextGame){
-      return (
-        <main className="wrap">
-          <Nav commissioner={commissioner}/>
-          <h1 style={{textAlign:'center'}}>My Pick</h1>
-          <div
-            className="card"
-            style={{textAlign:'center',maxWidth:720,margin:'0 auto'}}
-          >
-            No remaining matchup found.
-          </div>
-        </main>
-      )
-    }
-
-    const nextWeek=Number(nextGame.nfl_week)
-    const nextKickoff=nextGame.scheduled_kickoff_time || nextGame.kickoff_time
-    const previousGame=squadGames.find(
-      (g:any)=>Number(g.nfl_week)===nextWeek-1
-    )
-    const previousGameFinal=
-      previousGame &&
-      String(previousGame.status||'').toLowerCase()==='final' &&
-      Boolean(previousGame.final_at)
-
-    let availabilityMessage:React.ReactNode
-
-    if(previousGame && !previousGameFinal){
-      availabilityMessage=(
-        <>
-          Selection opens as soon as your Week {nextWeek-1} game is final.
-          {' '}Your next scheduled game is{' '}
-        </>
-      )
-    }else if(previousGameFinal){
-      availabilityMessage=(
-        <>
-          Your previous game is final. Waiting for the opening BetMGM line.
-          {' '}Your next scheduled game is{' '}
-        </>
-      )
-    }else{
-      availabilityMessage=(
-        <>
-          Because your squad has a bye in Week {nextWeek-1}, selection opens
-          7 days prior to your next scheduled game. Your next scheduled game is{' '}
-        </>
-      )
-    }
-
-    return (
-      <main className="wrap">
-        <Nav commissioner={commissioner}/>
-        <h1 style={{textAlign:'center'}}>My Pick</h1>
-
-        <section
-          className="card"
-          style={{textAlign:'center',maxWidth:720,margin:'0 auto'}}
-        >
-          <h2>Week {nextWeek}</h2>
-          <AllTimesEastern/>
-
-          <p style={{fontWeight:700,lineHeight:1.5}}>
-            {availabilityMessage}
-            {new Date(nextKickoff).toLocaleString('en-US',{
-              timeZone:'America/New_York',
-              weekday:'long',
-              month:'long',
-              day:'numeric',
-              hour:'numeric',
-              minute:'2-digit'
-            })}.
-          </p>
-        </section>
-      </main>
-    )
-  }
-
-  const playoffWeek=Number(game.nfl_week)>=16 && Number(game.nfl_week)<=18
-  const awaySquad=squadByNflTeam.get(Number(game.away_team_id))
-  const homeSquad=squadByNflTeam.get(Number(game.home_team_id))
-
-  const awayName=awaySquad?.squad_name || game.away?.name
-  const homeName=homeSquad?.squad_name || game.home?.name
-  const kickoffTime=game.scheduled_kickoff_time || game.kickoff_time
-
-  const gameStatus=String(game.status||'').toLowerCase()
-  const gameStarted=
-    gameStatus==='live' ||
-    gameStatus==='final' ||
-    new Date(kickoffTime).getTime()<=Date.now()
-  const officialLineAvailable=Boolean(game.closing_finalized_at && game.closing_received_at)
-
-  const oddsTimestamp=officialLineAvailable
-    ? fmtEasternWithSeconds(game.closing_received_at)
-    : game.odds_updated_at
-      ? fmtEasternWithSeconds(game.odds_updated_at)
-      : null
-
-  const oddsSource=bookmakerLabel(
-    officialLineAvailable
-      ? game.closing_bookmaker
-      : game.odds_bookmaker
-  )
-
-  const oddsLabel=officialLineAvailable
-    ? 'Official line pulled'
-    : 'Odds last updated'
-
-  const {data:pick}=await supabase
-    .from('picks')
-    .select(`
-      selection_team_id,
-      result,
-      ats_margin,
-      is_locked,
-      revealed,
-      is_missed,
-      game_total_prediction
-    `)
-    .eq('squad_id',squad.id)
-    .eq('game_id',game.id)
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+  const { data: squad } = await supabase
+    .from('squads')
+    .select('id,squad_name,nba_team_id,nba_teams(name,abbreviation)')
+    .eq('user_id', user.id)
+    .eq('season_year', 2026)
     .maybeSingle()
 
-  const savedSelectionTeamId=
-    pick?.selection_team_id===null || pick?.selection_team_id===undefined
-      ? null
-      : Number(pick.selection_team_id)
-  const hasSavedPick=savedSelectionTeamId!==null && pick?.is_missed!==true
+  if (!squad) {
+    return <main style={{maxWidth:900,margin:'0 auto',padding:'28px 18px'}}><h1 style={{textAlign:'center'}}>My Games</h1><Nav commissioner={profile?.role === 'commissioner'} /><p style={{marginTop:30,textAlign:'center'}}>Your NBA team has not been assigned yet.</p></main>
+  }
 
-  const weekOpen=
-    weekOpenMap.get(Number(game.nfl_week))===true ||
-    gameStarted
-  const deadline=game.pick_lock_at
-    ? new Date(game.pick_lock_at)
-    : new Date(new Date(kickoffTime).getTime()-1_000)
-  const deadlinePassed=new Date()>=deadline
-  const locked=deadlinePassed || gameStarted || pick?.is_locked===true
+  const team: any = Array.isArray((squad as any).nba_teams) ? (squad as any).nba_teams[0] : (squad as any).nba_teams
+  const { count: used } = await supabase
+    .from('squad_game_selections')
+    .select('*', { count: 'exact', head: true })
+    .eq('squad_id', squad.id)
 
-  const workingLineAvailable=game.spread!==null
-  const homeSpread=workingLineAvailable ? Number(game.spread) : null
-  const awaySpread=homeSpread===null ? null : -homeSpread
-  const submissionDisabled=!weekOpen || locked
-
-  const kickoffMs=new Date(kickoffTime).getTime()
-  const sixHoursMs=6*60*60*1000
-  const autoRefreshEnabled=gameStatus!=='final' && kickoffMs<=Date.now()+sixHoursMs && kickoffMs>=Date.now()-sixHoursMs
-
-  let buttonText='Make a Decision'
-  if(locked) buttonText='Pick Locked'
-  else if(!weekOpen) buttonText='Week Not Open Yet'
+  const now = new Date().toISOString()
+  const { data: games } = await supabase
+    .from('games')
+    .select('id,home_team_id,away_team_id,scheduled_tipoff_time,pick_lock_at,home_spread,status,home:nba_teams!games_home_team_id_fkey(name,abbreviation),away:nba_teams!games_away_team_id_fkey(name,abbreviation)')
+    .eq('season_year', 2026)
+    .gte('scheduled_tipoff_time', now)
+    .or(`home_team_id.eq.${squad.nba_team_id},away_team_id.eq.${squad.nba_team_id}`)
+    .order('scheduled_tipoff_time', { ascending: true })
+    .limit(20)
 
   return (
-    <main className="wrap">
-      <LiveRefresh enabled={autoRefreshEnabled}/>
-      <Nav commissioner={commissioner}/>
-      <h1 style={{textAlign:'center'}}>My Pick</h1>
+    <main style={{maxWidth:900,margin:'0 auto',padding:'28px 18px 60px'}}>
+      <h1 style={{textAlign:'center'}}>My Games</h1>
+      <Nav commissioner={profile?.role === 'commissioner'} />
+      <div style={{marginTop:28,padding:22,border:'1px solid #444',borderRadius:16,textAlign:'center'}}>
+        <div style={{fontSize:22,fontWeight:800}}>{squad.squad_name}</div>
+        <div style={{marginTop:4}}>{team?.name} ({team?.abbreviation})</div>
+        <div style={{fontSize:30,fontWeight:900,marginTop:14}}>{used || 0} / 50</div>
+        <div style={{opacity:.72}}>regular-season games selected</div>
+      </div>
 
-      <section
-        className="card"
-        style={{textAlign:'center',maxWidth:720,margin:'0 auto'}}
-      >
-        <h2>NFL Week {game.nfl_week}</h2>
-        <AllTimesEastern/>
-
-        <p>{fmtEastern(kickoffTime)}</p>
-
-        <p>
-          <b>Pick deadline:</b>{' '}
-          {fmtEasternWithSeconds(deadline)}
-        </p>
-
-        <div
-          className="muted"
-          style={{
-            margin:'6px 0 0',
-            fontSize:'0.78rem',
-            textAlign:'center',
-            lineHeight:1.45
-          }}
-        >
-          <div style={{whiteSpace:'nowrap'}}>
-            {oddsLabel}:{' '}
-            <b>{oddsTimestamp || 'Not available yet'}</b>
-          </div>
-          <div>
-            Source: <b>{oddsSource}</b>
-          </div>
+      <h2 style={{marginTop:34}}>Upcoming eligible games</h2>
+      {!games?.length ? <p style={{opacity:.7}}>No upcoming games are loaded yet.</p> : (
+        <div style={{display:'grid',gap:10}}>
+          {games.map((game: any) => {
+            const home = Array.isArray(game.home) ? game.home[0] : game.home
+            const away = Array.isArray(game.away) ? game.away[0] : game.away
+            return (
+              <div key={game.id} style={{padding:'16px 18px',border:'1px solid #444',borderRadius:12,display:'grid',gridTemplateColumns:'1fr auto',gap:14,alignItems:'center'}}>
+                <div>
+                  <div style={{fontWeight:800,fontSize:18}}>{away?.abbreviation || away?.name} @ {home?.abbreviation || home?.name}</div>
+                  <div style={{marginTop:5,opacity:.72}}>{formatTipoff(game.scheduled_tipoff_time)} ET</div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontWeight:700}}>{game.home_spread == null ? 'Line pending' : `Home ${Number(game.home_spread) > 0 ? '+' : ''}${game.home_spread}`}</div>
+                  <div style={{fontSize:13,opacity:.65,marginTop:4}}>{game.status}</div>
+                </div>
+              </div>
+            )
+          })}
         </div>
-
-        {!weekOpen && (
-          <p className="status">
-            Week {game.nfl_week} picks are not open yet.
-          </p>
-        )}
-
-        {!gameStarted && deadlinePassed && (
-          <p className="status">
-            The pick deadline has passed. Your pick is locked.
-          </p>
-        )}
-
-        {sp.error==='week_closed' && (
-          <p className="status">
-            This week&apos;s picks are not open yet.
-          </p>
-        )}
-
-        {sp.error==='locked' && (
-          <p className="status">
-            This pick is locked and can no longer be changed.
-          </p>
-        )}
-
-        {sp.error==='game_total_required' && (
-          <p className="status">
-            A Game Total Prediction is required during the playoffs.
-          </p>
-        )}
-
-        {sp.error==='bad_game_total' && (
-          <p className="status">
-            Please enter a valid Game Total Prediction.
-          </p>
-        )}
-
-        {sp.error &&
-         sp.error!=='week_closed' &&
-         sp.error!=='locked' &&
-         sp.error!=='game_total_required' &&
-         sp.error!=='bad_game_total' && (
-          <p className="status">
-            Unable to save pick: {sp.error}
-          </p>
-        )}
-
-        {pick?.is_missed && (
-          <p className="status">
-            No pick was submitted for this matchup.
-          </p>
-        )}
-
-        <form
-          action={submitPick}
-          style={{display:'grid',gap:14,maxWidth:520,margin:'20px auto 0'}}
-        >
-          <input type="hidden" name="squad_id" value={squad.id}/>
-          <input type="hidden" name="game_id" value={game.id}/>
-
-          <label
-            className={`pick pick-choice${hasSavedPick && savedSelectionTeamId===Number(game.away_team_id) ? ' pick-choice-saved' : ''}`}
-            style={{
-              display:'flex',
-              alignItems:'center',
-              justifyContent:'center',
-              gap:8,
-              textAlign:'center'
-            }}
-          >
-            <input
-              className="pick-choice-input"
-              type="radio"
-              name="selection_team_id"
-              value={game.away_team_id}
-              defaultChecked={savedSelectionTeamId===Number(game.away_team_id)}
-              required
-              disabled={!weekOpen || locked}
-            />
-
-            {hasSavedPick && savedSelectionTeamId===Number(game.away_team_id) && (
-              <PickedStamp/>
-            )}
-
-            <SquadLogo
-              logoPath={awaySquad?.logo_path}
-              nflAbbreviation={game.away?.abbreviation}
-              squadName={awayName}
-              size={28}
-            />
-
-            <b><SquadNameLines squadName={awayName} nflName={game.away?.name}/></b>
-            <span>{fmtSpread(awaySpread)}</span>
-          </label>
-
-          <label
-            className={`pick pick-choice${hasSavedPick && savedSelectionTeamId===Number(game.home_team_id) ? ' pick-choice-saved' : ''}`}
-            style={{
-              display:'flex',
-              alignItems:'center',
-              justifyContent:'center',
-              gap:8,
-              textAlign:'center'
-            }}
-          >
-            <input
-              className="pick-choice-input"
-              type="radio"
-              name="selection_team_id"
-              value={game.home_team_id}
-              defaultChecked={savedSelectionTeamId===Number(game.home_team_id)}
-              required
-              disabled={!weekOpen || locked}
-            />
-
-            {hasSavedPick && savedSelectionTeamId===Number(game.home_team_id) && (
-              <PickedStamp/>
-            )}
-
-            <SquadLogo
-              logoPath={homeSquad?.logo_path}
-              nflAbbreviation={game.home?.abbreviation}
-              squadName={homeName}
-              size={28}
-            />
-
-            <b><SquadNameLines squadName={homeName} nflName={game.home?.name}/></b>
-            <span>{fmtSpread(homeSpread)}</span>
-          </label>
-
-          {playoffWeek && (
-            <div
-              style={{
-                marginTop:4,
-                padding:'14px 12px',
-                border:'1px solid #ddd',
-                borderRadius:10,
-                textAlign:'center'
-              }}
-            >
-              <label
-                htmlFor="game_total_prediction"
-                style={{display:'block',fontWeight:800,marginBottom:8}}
-              >
-                Game Total Prediction
-              </label>
-
-              <input
-                id="game_total_prediction"
-                name="game_total_prediction"
-                type="number"
-                min="0"
-                step="any"
-                required
-                disabled={!weekOpen || locked}
-                defaultValue={pick?.game_total_prediction ?? ''}
-                inputMode="decimal"
-                style={{
-                  width:120,
-                  maxWidth:'100%',
-                  textAlign:'center',
-                  fontSize:'1.05rem',
-                  fontWeight:700,
-                  padding:'9px 10px'
-                }}
-              />
-
-              <p
-                className="muted"
-                style={{
-                  fontSize:'0.78rem',
-                  lineHeight:1.4,
-                  margin:'8px auto 0',
-                  maxWidth:400
-                }}
-              >
-                Predict the total combined points scored in your NFL game.
-                Closest prediction is the first playoff tiebreaker.
-              </p>
-            </div>
-          )}
-
-          <div
-            className="muted"
-            style={{
-              fontSize:'0.78rem',
-              lineHeight:1.45,
-              margin:'2px auto 0',
-              maxWidth:440,
-              textAlign:'center'
-            }}
-          >
-            <div>Lines are subject to change.</div>
-            <div>Bet window closes one second before kickoff.</div>
-            <div>Your official line is assigned at kickoff.</div>
-          </div>
-
-          <div style={{textAlign:'center',marginTop:6}}>
-            <PickDeadlineCountdown
-              kickoffTime={new Date(kickoffTime).toISOString()}
-              lockTime={deadline.toISOString()}
-            />
-
-            <button
-              className="submit"
-              type="submit"
-              disabled={submissionDisabled}
-            >
-              {buttonText}
-            </button>
-          </div>
-        </form>
-      </section>
+      )}
+      <p style={{marginTop:24,opacity:.66,fontSize:14}}>Game-selection controls are the next conversion step. The page is now reading from the NBA schedule and your owned NBA team instead of the NFL weekly model.</p>
     </main>
   )
 }

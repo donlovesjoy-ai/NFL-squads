@@ -164,3 +164,7 @@ Owner | Squad | Opponent | Spread | Kickoff | Result
 - Owner column shows first name only.
 - When the NFL opponent belongs to another NFL Squads owner, the Opponent column shows that owner's custom squad name instead of the NFL franchise name.
 - If the opponent NFL team is not owned in NFL Squads, the actual NFL team name is shown.
+
+## NBA Squads bootstrap
+
+The `nba-squads-bootstrap` branch is the isolated NBA Squads conversion branch and is intentionally separate from the live NFL Squads `main` branch. This branch is configured for the new NBA Squads Supabase project and Vercel deployment workflow.

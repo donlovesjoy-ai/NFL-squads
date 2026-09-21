@@ -1,6 +1,6 @@
 {
-  "name": "NFL Squads",
-  "short_name": "NFL Squads",
+  "name": "NBA Squads",
+  "short_name": "NBA Squads",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",

@@ -1,271 +1,54 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../../lib/supabase/server'
 import { Nav } from '../components'
-import SquadLogo from '../components/SquadLogo'
 
-function pct(r:any){
-  const games=(r.wins||0)+(r.losses||0)+(r.pushes||0)
-  return games ? ((r.wins||0)+(r.pushes||0)*0.5)/games : 0
-}
+export default async function StandingsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-function signed(n:any){
-  const x=Number(n||0)
-  return x>0 ? `+${x}` : `${x}`
-}
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
+  const { data: rows } = await supabase
+    .from('standings')
+    .select('wins,losses,pushes,ats_margin,selections_used,squads(squad_name,owner_name,nba_teams(name,abbreviation))')
+    .eq('season_year', 2026)
+    .is('competition_period_id', null)
 
-function squadNameParts(squadName:string,nflName?:string|null){
-  const squadWords=String(squadName||'').trim().split(/\s+/).filter(Boolean)
-  const nflWords=String(nflName||'').trim().split(/\s+/).filter(Boolean)
-
-  let shared=0
-  while(
-    shared<squadWords.length &&
-    shared<nflWords.length &&
-    squadWords[shared].toLowerCase()===nflWords[shared].toLowerCase()
-  ){
-    shared++
-  }
-
-  if(shared>0 && shared<squadWords.length){
-    return {
-      area:squadWords.slice(0,shared).join(' '),
-      nickname:squadWords.slice(shared).join(' ')
-    }
-  }
-
-  if(squadWords.length<=1){
-    return {area:squadWords[0]||'',nickname:'\u00a0'}
-  }
-
-  return {
-    area:squadWords[0],
-    nickname:squadWords.slice(1).join(' ')
-  }
-}
-
-export default async function Standings(){
-  const supabase=await createClient()
-  const {data:{user}}=await supabase.auth.getUser()
-
-  if(!user){
-    redirect('/login')
-  }
-
-  const {data:profile}=await supabase
-    .from('users')
-    .select('role')
-    .eq('id',user.id)
-    .maybeSingle()
-
-  const commissioner=profile?.role==='commissioner'
-
-  const [
-    {data},
-    {data:names}
-  ]=await Promise.all([
-    supabase
-      .from('standings')
-      .select(`
-        wins,
-        losses,
-        pushes,
-        ats_margin,
-
-        squads!inner(
-          id,
-          user_id,
-          owner_name,
-          squad_name,
-          division,
-          logo_path,
-
-          nfl_teams(
-            name,
-            abbreviation
-          )
-        )
-      `)
-      .eq('season_year',2026),
-
-    supabase
-      .from('division_names')
-      .select('division,division_name')
-      .eq('season_year',2026)
-      .order('division')
-  ])
-
-  const myRow:any=(data||[]).find((r:any)=>r.squads?.user_id===user.id)
-  const myDivision=myRow?.squads?.division
-  const divisionOrder=myDivision
-    ? [myDivision,...[1,2,3,4].filter(d=>d!==myDivision)]
-    : [1,2,3,4]
-
-  const headCell={
-    textAlign:'center' as const,
-    padding:'7px 2px',
-    whiteSpace:'nowrap' as const,
-    fontSize:'0.79rem'
-  }
-
-  const bodyCell={
-    textAlign:'center' as const,
-    padding:'7px 2px',
-    verticalAlign:'middle' as const,
-    fontSize:'0.79rem'
-  }
+  const standings = (rows || []).map((row: any) => {
+    const squad = Array.isArray(row.squads) ? row.squads[0] : row.squads
+    const team = Array.isArray(squad?.nba_teams) ? squad.nba_teams[0] : squad?.nba_teams
+    const decisions = Number(row.wins || 0) + Number(row.losses || 0)
+    const winPct = decisions ? Number(row.wins || 0) / decisions : 0
+    return { ...row, squad, team, winPct }
+  }).sort((a: any, b: any) => b.winPct - a.winPct || Number(b.ats_margin || 0) - Number(a.ats_margin || 0))
 
   return (
-    <main className="wrap">
-      <Nav commissioner={commissioner}/>
-
-      <h1 style={{textAlign:'center'}}>Standings</h1>
-
-      {divisionOrder.map(d=>{
-        const title=(names||[]).find((x:any)=>x.division===d)?.division_name || `Division ${d}`
-        const rows=(data||[])
-          .filter((r:any)=>r.squads?.division===d)
-          .sort((a:any,b:any)=>pct(b)-pct(a) || Number(b.ats_margin)-Number(a.ats_margin))
-
-        return (
-          <section
-            className="card division"
-            key={d}
-            style={{textAlign:'center'}}
-          >
-            <h2 style={{textAlign:'center'}}>{title}</h2>
-
-            {rows.length===0 ? (
-              <p className="muted">No teams assigned yet.</p>
-            ) : (
-              <table
-                style={{
-                  width:'100%',
-                  textAlign:'center',
-                  borderCollapse:'separate',
-                  borderSpacing:0,
-                  tableLayout:'fixed'
-                }}
-              >
-                <colgroup>
-                  <col style={{width:'24%'}}/>
-                  <col style={{width:'10%'}}/>
-                  <col style={{width:'30%'}}/>
-                  <col style={{width:'6%'}}/>
-                  <col style={{width:'6%'}}/>
-                  <col style={{width:'6%'}}/>
-                  <col style={{width:'18%'}}/>
-                </colgroup>
-
-                <thead>
-                  <tr>
-                    <th style={headCell}>Owner</th>
-                    <th style={headCell}></th>
-                    <th style={headCell}>Team</th>
-                    <th style={headCell}>W</th>
-                    <th style={headCell}>L</th>
-                    <th style={headCell}>T</th>
-                    <th style={headCell}>ATS</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {rows.map((r:any,i:number)=>{
-                    const isMe=r.squads?.user_id===user.id
-                    const nflTeam=Array.isArray(r.squads?.nfl_teams)
-                      ? r.squads.nfl_teams[0]
-                      : r.squads?.nfl_teams
-                    const name=squadNameParts(r.squads.squad_name,nflTeam?.name)
-                    const rowCell=(position:'first'|'middle'|'last')=>({
-                      ...bodyCell,
-                      ...(isMe ? {
-                        borderTop:'2px solid #111',
-                        borderBottom:'2px solid #111',
-                        ...(position==='first' ? {
-                          borderLeft:'2px solid #111',
-                          borderTopLeftRadius:10,
-                          borderBottomLeftRadius:10
-                        } : {}),
-                        ...(position==='last' ? {
-                          borderRight:'2px solid #111',
-                          borderTopRightRadius:10,
-                          borderBottomRightRadius:10
-                        } : {})
-                      } : {})
-                    })
-
-                    return (
-                      <tr key={i}>
-                        <td
-                          style={{
-                            ...rowCell('first'),
-                            whiteSpace:'normal',
-                            lineHeight:1.15,
-                            fontWeight:isMe ? 700 : 400
-                          }}
-                        >
-                          {r.squads.owner_name || '—'}
-                        </td>
-
-                        <td style={{...rowCell('middle'),whiteSpace:'nowrap'}}>
-                          <Link
-                            href={`/squads/${r.squads.id}`}
-                            style={{
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'center',
-                              color:'inherit',
-                              textDecoration:'none'
-                            }}
-                          >
-                            <SquadLogo
-                              logoPath={r.squads.logo_path}
-                              nflAbbreviation={nflTeam?.abbreviation}
-                              squadName={r.squads.squad_name}
-                              size={22}
-                            />
-                          </Link>
-                        </td>
-
-                        <td style={{...rowCell('middle'),whiteSpace:'normal',lineHeight:1.1}}>
-                          <Link
-                            href={`/squads/${r.squads.id}`}
-                            style={{
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'center',
-                              color:'inherit',
-                              textDecoration:'none'
-                            }}
-                          >
-                            <b
-                              style={{
-                                lineHeight:1.05,
-                                display:'flex',
-                                flexDirection:'column',
-                                alignItems:'center',
-                                minWidth:0
-                              }}
-                            >
-                              <span style={{display:'block',whiteSpace:'nowrap'}}>{name.area}</span>
-                              <span style={{display:'block',whiteSpace:'nowrap'}}>{name.nickname}</span>
-                            </b>
-                          </Link>
-                        </td>
-
-                        <td style={{...rowCell('middle'),whiteSpace:'nowrap',fontWeight:700}}>{r.wins}</td>
-                        <td style={{...rowCell('middle'),whiteSpace:'nowrap',fontWeight:700}}>{r.losses}</td>
-                        <td style={{...rowCell('middle'),whiteSpace:'nowrap',fontWeight:700}}>{r.pushes}</td>
-                        <td style={{...rowCell('last'),whiteSpace:'nowrap',fontWeight:700}}>{signed(r.ats_margin)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-          </section>
-        )
-      })}
+    <main style={{maxWidth:950,margin:'0 auto',padding:'28px 18px 60px'}}>
+      <h1 style={{textAlign:'center'}}>NBA Squads Standings</h1>
+      <Nav commissioner={profile?.role === 'commissioner'} />
+      <div style={{marginTop:28,overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',minWidth:700}}>
+          <thead>
+            <tr>
+              {['#','Squad','NBA Team','Record','Win %','ATS +/-','Games Used'].map(h => <th key={h} style={{padding:'12px 10px',borderBottom:'1px solid #555',textAlign:'center'}}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {standings.map((row: any, i: number) => (
+              <tr key={`${row.squad?.squad_name}-${i}`}>
+                <td style={{padding:12,textAlign:'center'}}>{i + 1}</td>
+                <td style={{padding:12,textAlign:'center',fontWeight:800}}>{row.squad?.squad_name || '—'}</td>
+                <td style={{padding:12,textAlign:'center'}}>{row.team?.abbreviation || row.team?.name || '—'}</td>
+                <td style={{padding:12,textAlign:'center'}}>{row.wins}-{row.losses}-{row.pushes}</td>
+                <td style={{padding:12,textAlign:'center'}}>{(row.winPct * 100).toFixed(1)}%</td>
+                <td style={{padding:12,textAlign:'center'}}>{Number(row.ats_margin || 0) > 0 ? '+' : ''}{Number(row.ats_margin || 0).toFixed(1)}</td>
+                <td style={{padding:12,textAlign:'center'}}>{row.selections_used}/50</td>
+              </tr>
+            ))}
+            {!standings.length && <tr><td colSpan={7} style={{padding:30,textAlign:'center',opacity:.7}}>Standings will populate after squads are assigned and games are played.</td></tr>}
+          </tbody>
+        </table>
+      </div>
     </main>
   )
 }

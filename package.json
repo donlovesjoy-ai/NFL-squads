@@ -1,6 +1,6 @@
 {
-  "name": "nfl-squads-2026",
-  "version": "0.2.0",
+  "name": "nba-squads-2026-27",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

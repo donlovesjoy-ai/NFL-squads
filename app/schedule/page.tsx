@@ -9,7 +9,7 @@ const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT']
 function etParts(value:string){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'numeric',minute:'2-digit',hour12:true}).formatToParts(new Date(value))
   const get=(type:string)=>parts.find(p=>p.type===type)?.value || ''
-  return {year:Number(get('year')),month:Number(get('month')),day:Number(get('day')),time:`${get('hour')}:${get('minute')} ${get('dayPeriod')}`}
+  return {year:Number(get('year')),month:Number(get('month')),day:Number(get('day')),time:`${get('hour')}:${get('minute')}`}
 }
 
 function monthKey(year:number,month:number){return `${year}-${String(month).padStart(2,'0')}`}
@@ -24,7 +24,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   if(!user)redirect('/login')
   const p=await searchParams
   const {data:profile}=await supabase.from('users').select('role').eq('id',user.id).maybeSingle()
-  const {data:squads}=await supabase.from('squads').select('id,user_id,squad_name,owner_name,nba_team_id,nba_teams(name,abbreviation)').eq('season_year',2026).order('squad_name')
+  const {data:squads}=await supabase.from('squads').select('id,user_id,squad_name,owner_name,nba_team_id,nba_teams(name,abbreviation,logo_url)').eq('season_year',2026).order('squad_name')
   const list=(squads||[]) as any[]
   const own=list.find(s=>s.user_id===user.id)
   const requested=Number(p.squad)
@@ -40,7 +40,7 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
     return <main className="wrap"><h1 style={{textAlign:'center'}}>Schedule</h1><Nav commissioner={profile?.role==='commissioner'}/><div className="card" style={{textAlign:'center'}}>No NBA Squads teams have been assigned yet.</div></main>
   }
 
-  const {data:teams}=await supabase.from('nba_teams').select('id,name,abbreviation')
+  const {data:teams}=await supabase.from('nba_teams').select('id,name,abbreviation,logo_url')
   const teamMap=new Map((teams||[]).map((t:any)=>[t.id,t]))
   const {data:games}=await supabase.from('games').select('id,home_team_id,away_team_id,scheduled_tipoff_time,status,home_score,away_score,home_spread,closing_spread').eq('season_year',2026).or(`home_team_id.eq.${selected.nba_team_id},away_team_id.eq.${selected.nba_team_id}`).order('scheduled_tipoff_time')
   const allGames=(games||[]) as any[]
@@ -59,15 +59,15 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
   const nbaTeam:any=Array.isArray(selected.nba_teams)?selected.nba_teams[0]:selected.nba_teams
   const mk=(y:number,m:number)=>`/schedule?squad=${selected.id}&month=${monthKey(y,m)}`
 
-  return <main style={{maxWidth:1120,margin:'0 auto',padding:'28px 14px 60px'}}>
+  return <main style={{maxWidth:1120,margin:'0 auto',padding:'28px 8px 60px'}}>
     <h1 style={{textAlign:'center',marginBottom:8}}>Schedule</h1>
     <Nav commissioner={profile?.role==='commissioner'}/>
     <div style={{display:'flex',gap:8,overflowX:'auto',padding:'4px 2px 12px',marginTop:12}}>
       {list.map((s:any)=>{const t:any=Array.isArray(s.nba_teams)?s.nba_teams[0]:s.nba_teams;const active=s.id===selected.id;return <Link key={s.id} href={`/schedule?squad=${s.id}&month=${monthKey(year,month)}`} style={{whiteSpace:'nowrap',padding:'9px 12px',borderRadius:999,border:'1px solid #bbb',background:active?'#111':'#fff',color:active?'#fff':'#111',fontWeight:800}}>{t?.abbreviation||s.squad_name}</Link>})}
     </div>
 
-    <section className="card" style={{padding:14,overflow:'hidden'}}>
-      <div style={{display:'grid',gridTemplateColumns:'52px 1fr 52px',alignItems:'center',gap:8}}>
+    <section className="card" style={{padding:10,overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'42px 1fr 42px',alignItems:'center',gap:6}}>
         <Link href={mk(prev.year,prev.month)} style={{fontSize:28,textAlign:'center'}}>‹</Link>
         <div style={{textAlign:'center'}}>
           <div style={{fontSize:25,fontWeight:900}}>{monthTitle(year,month)}</div>
@@ -76,26 +76,28 @@ export default async function SchedulePage({searchParams}:{searchParams:Promise<
         </div>
         <Link href={mk(next.year,next.month)} style={{fontSize:28,textAlign:'center'}}>›</Link>
       </div>
-      <div style={{textAlign:'center',margin:'12px 0 4px'}}><Link href={`/team-schedule/${selected.id}`} style={{textDecoration:'underline',fontWeight:800}}>View full 82-game team schedule</Link></div>
+      <div style={{textAlign:'center',margin:'12px 0 4px'}}><Link href={`/team-schedule/${selected.id}`} style={{textDecoration:'underline',fontWeight:800}}>View full team schedule</Link></div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',marginTop:16,borderTop:'1px solid #c8c8c8',borderLeft:'1px solid #c8c8c8'}}>
-        {DAYS.map(d=><div key={d} style={{padding:'8px 2px',textAlign:'center',fontWeight:900,fontSize:12,borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:'#f3f4f6'}}>{d}</div>)}
+        {DAYS.map(d=><div key={d} style={{padding:'7px 1px',textAlign:'center',fontWeight:900,fontSize:11,borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:'#f3f4f6'}}>{d}</div>)}
         {cells.map((day,index)=>{
           const gamesForDay=day?byDay.get(day)||[]:[]
-          return <div key={index} style={{minHeight:118,padding:6,borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:day?'#fff':'#f7f7f7'}}>
-            {day&&<div style={{fontSize:12,fontWeight:800,opacity:.55,marginBottom:5}}>{day}</div>}
+          return <div key={index} style={{minHeight:92,padding:3,borderRight:'1px solid #c8c8c8',borderBottom:'1px solid #c8c8c8',background:day?'#fff':'#f7f7f7',minWidth:0}}>
+            {day&&<div style={{fontSize:11,fontWeight:800,opacity:.55,marginBottom:3}}>{day}</div>}
             {gamesForDay.map((g:any)=>{
               const d=etParts(g.scheduled_tipoff_time),opponentId=g.home_team_id===selected.nba_team_id?g.away_team_id:g.home_team_id,opp:any=teamMap.get(opponentId),home=g.home_team_id===selected.nba_team_id
               const pick:any=pickMap.get(g.id),miss=forcedMap.has(g.id),rs=resultStyle(pick?.result,miss)
               const selection:any=pick?teamMap.get(pick.selection_team_id):null
-              return <details key={g.id} style={{...rs,border:'1px solid',borderColor:rs.borderColor,borderRadius:7,padding:'6px 7px',marginBottom:5,fontSize:12}}>
-                <summary style={{cursor:'pointer',listStyle:'none'}}>
-                  <div style={{fontWeight:900,fontSize:15}}>{home?'vs':'@'} {opp?.abbreviation||'TBD'}</div>
-                  <div style={{fontWeight:700,marginTop:2}}>{d.time}</div>
-                  {pick?.result&&<div style={{fontWeight:900,textTransform:'uppercase',marginTop:3}}>{pick.result}</div>}
-                  {miss&&<div style={{fontWeight:900,marginTop:3}}>AUTO LOSS</div>}
+              return <details key={g.id} style={{...rs,border:'1px solid',borderColor:rs.borderColor,borderRadius:8,padding:4,marginBottom:3,fontSize:10,width:'100%',minWidth:0,boxSizing:'border-box'}}>
+                <summary style={{cursor:'pointer',listStyle:'none',textAlign:'center',display:'grid',gap:2,justifyItems:'center'}}>
+                  <div style={{fontWeight:900,fontSize:11,lineHeight:1}}>{home?'VS':'@'}</div>
+                  <div style={{fontWeight:900,fontSize:13,lineHeight:1.05,whiteSpace:'nowrap'}}>{opp?.abbreviation||'TBD'}</div>
+                  {opp?.logo_url&&<img src={opp.logo_url} alt={`${opp.name} logo`} style={{width:27,height:27,objectFit:'contain',display:'block'}}/>}
+                  <div style={{fontWeight:800,fontSize:10,lineHeight:1,whiteSpace:'nowrap'}}>{d.time}</div>
+                  {pick?.result&&<div style={{fontWeight:900,textTransform:'uppercase',fontSize:9,marginTop:1}}>{pick.result}</div>}
+                  {miss&&<div style={{fontWeight:900,fontSize:9,marginTop:1}}>AUTO LOSS</div>}
                 </summary>
-                <div style={{borderTop:'1px solid rgba(0,0,0,.15)',marginTop:6,paddingTop:6,lineHeight:1.55}}>
+                <div style={{borderTop:'1px solid rgba(0,0,0,.15)',marginTop:5,paddingTop:5,lineHeight:1.45,fontSize:10}}>
                   <div><b>Final:</b> {g.status==='final'?`${g.away_score}–${g.home_score}`:'—'}</div>
                   <div><b>Selection:</b> {miss?'Missed required game':selection?.abbreviation||'No pick'}</div>
                   <div><b>Spread:</b> {spreadForTeam(g,selected.nba_team_id)}</div>

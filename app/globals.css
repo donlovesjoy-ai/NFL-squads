@@ -3,7 +3,8 @@
 .wrap{max-width:1080px;margin:0 auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
 nav{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0 26px}.card{background:white;border:1px solid #ddd;border-radius:14px;padding:20px;margin-bottom:18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.muted{color:#6b6b6b}.big{font-size:28px;font-weight:800}
-button,input{font:inherit}.pick{display:block;width:100%;text-align:left;padding:16px;border:1px solid #bbb;border-radius:10px;background:white;margin:10px 0;cursor:pointer}
+button,input{font:inherit}
+.chat-composer-input::placeholder{text-align:center}.pick{display:block;width:100%;text-align:left;padding:16px;border:1px solid #bbb;border-radius:10px;background:white;margin:10px 0;cursor:pointer}
 .pick:hover{border-color:#111}
 .pick-choice{position:relative;transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease}
 .pick-choice-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}

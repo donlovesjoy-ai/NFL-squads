@@ -25,8 +25,8 @@ export default function WeekSelector({week}:{week:number}){
           borderRadius:10,
           background:'#fff',
           color:'#111',
-          fontSize:'1.35rem',
-          fontWeight:900,
+          fontSize:'1.5rem',
+          fontWeight:400,
           textAlign:'center',
           textAlignLast:'center',
           cursor:'pointer'

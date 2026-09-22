@@ -568,17 +568,6 @@ export default async function SquadSchedule({
           </tbody>
         </table>
 
-        <p
-          className="muted"
-          style={{
-            textAlign:'center',
-            fontSize:'0.7rem',
-            marginTop:12,
-            marginBottom:0
-          }}
-        >
-          Selections reveal at kickoff.
-        </p>
       </section>
     </main>
   )

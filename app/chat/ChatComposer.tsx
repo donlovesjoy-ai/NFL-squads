@@ -180,7 +180,8 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
               resize:'none',
               margin:0,
               borderRadius:10,
-              fontSize:'16px'
+              fontSize:'16px',
+              textAlign:'center'
             }}
           />
 

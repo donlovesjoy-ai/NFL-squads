@@ -4,16 +4,40 @@ import { useRouter } from 'next/navigation'
 
 export default function WeekSelector({week}:{week:number}){
   const router=useRouter()
-  return <label style={{display:'block',maxWidth:280}}>
-    <b>Week</b>
-    <select
-      value={week}
-      onChange={(e)=>router.push(`/schedule?week=${e.target.value}`)}
-      style={{marginTop:8}}
+
+  return (
+    <div
+      style={{
+        width:180,
+        maxWidth:'100%',
+        margin:'0 auto 18px'
+      }}
     >
-      {Array.from({length:18},(_,i)=>i+1).map(w=>
-        <option key={w} value={w}>Week {w}</option>
-      )}
-    </select>
-  </label>
+      <select
+        aria-label="Select NFL week"
+        value={week}
+        onChange={(event)=>router.push(`/schedule?week=${event.target.value}`)}
+        style={{
+          width:'100%',
+          margin:0,
+          padding:'10px 36px 10px 12px',
+          border:'1px solid #bbb',
+          borderRadius:10,
+          background:'#fff',
+          color:'#111',
+          fontSize:'1.35rem',
+          fontWeight:900,
+          textAlign:'center',
+          textAlignLast:'center',
+          cursor:'pointer'
+        }}
+      >
+        {Array.from({length:18},(_,index)=>index+1).map(optionWeek=>(
+          <option key={optionWeek} value={optionWeek}>
+            Week {optionWeek}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
 }

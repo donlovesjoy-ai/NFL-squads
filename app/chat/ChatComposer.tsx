@@ -167,6 +167,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
           )}
 
           <textarea
+            className="chat-composer-input"
             ref={textareaRef}
             name="message"
             placeholder="Got something to say?"
@@ -180,8 +181,7 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
               resize:'none',
               margin:0,
               borderRadius:10,
-              fontSize:'16px',
-              textAlign:'center'
+              fontSize:'16px'
             }}
           />
 

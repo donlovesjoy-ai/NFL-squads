@@ -200,8 +200,10 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
         Schedule &amp; Results
       </h1>
 
+      <WeekSelector week={week}/>
+
       <section className="card" style={{paddingLeft:8,paddingRight:8}}>
-        <WeekSelector week={week}/>
+        <h2 style={{textAlign:'center',fontWeight:900}}>Week {week}</h2>
         <div style={{width:'100%',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
           <table style={{borderCollapse:'separate',borderSpacing:'0 3px',tableLayout:'fixed',width:534,minWidth:534}}>
             <colgroup><col style={{width:30}}/><col style={{width:90}}/><col style={{width:38}}/><col style={{width:30}}/><col style={{width:108}}/><col style={{width:28}}/><col style={{width:86}}/><col style={{width:124}}/></colgroup>

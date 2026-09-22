@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
-import WeekSelector from './week-selector'
 import SquadLogo from '../components/SquadLogo'
 import LiveRefresh from './LiveRefresh'
 
@@ -196,15 +195,12 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
       <div className="top" style={{justifyContent:'center',textAlign:'center'}}><div><div className="big">NFL SQUADS</div><div className="muted">2026 Schedule &amp; Results</div></div></div>
       <Nav commissioner={commissioner}/>
 
-      <section className="card" style={{textAlign:'center'}}>
-        <h1>Schedule &amp; Results</h1>
-        <p className="muted">Select any NFL week to view every league squad&apos;s matchup and result.</p>
-        <p className="muted" style={{fontSize:'0.76rem',marginTop:-4}}>* All times EDT</p>
-        <div style={{display:'flex',justifyContent:'center'}}><WeekSelector week={week}/></div>
-      </section>
+      <h1 style={{textAlign:'center',margin:'0 0 18px'}}>
+        Schedule &amp; Results
+      </h1>
 
       <section className="card" style={{paddingLeft:8,paddingRight:8}}>
-        <h2 style={{textAlign:'center'}}>Week {week}</h2>
+        <h2 style={{textAlign:'center',fontWeight:900}}>Week {week}</h2>
         <div style={{width:'100%',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
           <table style={{borderCollapse:'separate',borderSpacing:'0 3px',tableLayout:'fixed',width:534,minWidth:534}}>
             <colgroup><col style={{width:30}}/><col style={{width:90}}/><col style={{width:38}}/><col style={{width:30}}/><col style={{width:108}}/><col style={{width:28}}/><col style={{width:86}}/><col style={{width:124}}/></colgroup>

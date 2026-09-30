@@ -76,6 +76,11 @@ function sameStanding(a:any,b:any){
   )
 }
 
+function standingPct(r:any){
+  const games=(r.wins||0)+(r.losses||0)+(r.pushes||0)
+  return games ? ((r.wins||0)+(r.pushes||0)*0.5)/games : 0
+}
+
 function resultDisplay(pick:any){
   if(!pick){
     return null
@@ -404,8 +409,8 @@ export default async function Dashboard(){
       .sort(
         (a:any,b:any)=>
           (
-            b.wins-
-            a.wins
+            standingPct(b)-
+            standingPct(a)
           ) ||
           (
             Number(

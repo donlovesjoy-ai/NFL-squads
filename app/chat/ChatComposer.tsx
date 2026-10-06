@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {
   ChangeEvent,
   useEffect,
@@ -20,13 +19,7 @@ const allowedImageTypes=new Set([
   'image/gif'
 ])
 
-type ReplyInfo={
-  id:number
-  author:string
-  message:string
-}|null
-
-export default function ChatComposer({reply}:{reply:ReplyInfo}){
+export default function ChatComposer(){
   const [message,setMessage]=useState('')
   const [showEmoji,setShowEmoji]=useState(false)
   const [selectedFile,setSelectedFile]=useState<File|null>(null)
@@ -112,46 +105,6 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
       }}
     >
       <div style={{width:'100%',maxWidth:900,margin:'0 auto'}}>
-        {reply && (
-          <div
-            style={{
-              maxWidth:700,
-              margin:'0 auto 8px',
-              padding:'8px 10px',
-              borderLeft:'3px solid #777',
-              background:'#f4f4f4',
-              borderRadius:8,
-              fontSize:'0.8rem'
-            }}
-          >
-            <div style={{fontWeight:800}}>
-              Replying to {reply.author}
-            </div>
-
-            <div
-              className="muted"
-              style={{
-                overflow:'hidden',
-                textOverflow:'ellipsis',
-                whiteSpace:'nowrap'
-              }}
-            >
-              {reply.message || 'Photo'}
-            </div>
-
-            <Link
-              href="/chat#composer"
-              style={{
-                display:'inline-block',
-                marginTop:4,
-                textDecoration:'underline'
-              }}
-            >
-              Cancel reply
-            </Link>
-          </div>
-        )}
-
         <form
           action={postMessage}
           encType="multipart/form-data"
@@ -162,10 +115,6 @@ export default function ChatComposer({reply}:{reply:ReplyInfo}){
             gap:8
           }}
         >
-          {reply && (
-            <input type="hidden" name="reply_to_id" value={reply.id}/>
-          )}
-
           <textarea
             className="chat-composer-input"
             ref={textareaRef}

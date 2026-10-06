@@ -153,7 +153,9 @@ function resultDisplay(pick:any){
   return null
 }
 
-export default async function Dashboard(){
+export default async function Dashboard({searchParams}:{searchParams:Promise<{home?:string}>}){
+  const {home}=await searchParams
+  if(home!=='1') redirect('/')
   const supabase=
     await createClient()
 

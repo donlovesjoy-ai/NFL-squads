@@ -19,7 +19,7 @@ export async function signup(formData: FormData) {
     redirect('/signup?error=1')
   }
 if (data.session) {
-  redirect('/dashboard')
+  redirect('/')
 }
 
   redirect('/login?created=1')

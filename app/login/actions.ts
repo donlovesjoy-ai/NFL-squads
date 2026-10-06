@@ -41,7 +41,7 @@ function safeNext(value:string){
     !value.startsWith('/') ||
     value.startsWith('//')
   ){
-    return '/dashboard'
+    return '/'
   }
 
   try{
@@ -55,7 +55,7 @@ function safeNext(value:string){
       parsed.origin !==
       'https://nfl-squads.vercel.app'
     ){
-      return '/dashboard'
+      return '/'
     }
 
     return (
@@ -64,7 +64,7 @@ function safeNext(value:string){
       parsed.hash
     )
   }catch{
-    return '/dashboard'
+    return '/'
   }
 }
 

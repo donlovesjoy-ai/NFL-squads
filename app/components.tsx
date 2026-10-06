@@ -21,7 +21,7 @@ export function Nav({
         textAlign:'center'
       }}
     >
-      <Link href="/dashboard">
+      <Link href="/dashboard?home=1">
         Home
       </Link>
 

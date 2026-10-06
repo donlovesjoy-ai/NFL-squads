@@ -1796,18 +1796,6 @@ export default async function Dashboard(){
                         {formatChatTime(m.created_at)} ET
                       </div>
 
-                      {!isSystem && (
-                        <Link
-                          href={`/chat?reply=${m.id}#composer`}
-                          style={{
-                            fontSize:'0.82rem',
-                            fontWeight:800,
-                            textDecoration:'underline'
-                          }}
-                        >
-                          Reply
-                        </Link>
-                      )}
                     </div>
                   </div>
                 )

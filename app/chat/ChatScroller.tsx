@@ -2,7 +2,8 @@
 
 import {
   ReactNode,
-  useEffect
+  useEffect,
+  useRef
 } from 'react'
 
 export default function ChatScroller({
@@ -10,12 +11,12 @@ export default function ChatScroller({
 }:{
   children:ReactNode
 }){
+  const scrollRef=useRef<HTMLDivElement>(null)
+
   useEffect(()=>{
     const scrollToBottom=()=>{
-      window.scrollTo({
-        top:document.documentElement.scrollHeight,
-        behavior:'auto'
-      })
+      const element=scrollRef.current
+      if(element) element.scrollTop=element.scrollHeight
     }
 
     requestAnimationFrame(()=>{
@@ -26,8 +27,8 @@ export default function ChatScroller({
   },[])
 
   return (
-    <>
+    <div className="chat-message-scroll" ref={scrollRef}>
       {children}
-    </>
+    </div>
   )
 }

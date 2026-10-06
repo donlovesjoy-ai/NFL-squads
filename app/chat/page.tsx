@@ -110,12 +110,7 @@ export default async function ChatPage(){
   }
 
   return (
-    <main
-      className="wrap"
-      style={{
-        paddingBottom:'calc(300px + env(safe-area-inset-bottom))'
-      }}
-    >
+    <main className="wrap chat-page-shell">
       <div className="chat-sticky-header">
         <div
           className="top"

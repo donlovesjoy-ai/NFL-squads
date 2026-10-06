@@ -54,11 +54,6 @@ export async function postMessage(formData:FormData){
 
   const message=String(formData.get('message')||'').trim().slice(0,500)
   const gifUrl=cleanGifUrl(String(formData.get('gif_url')||''))
-  const replyValue=Number(formData.get('reply_to_id'))
-  const replyToId=Number.isInteger(replyValue) && replyValue>0
-    ? replyValue
-    : null
-
   const image=formData.get('image')
   let imagePath:string|null=null
 
@@ -66,7 +61,7 @@ export async function postMessage(formData:FormData){
     const extension=allowedImageTypes.get(image.type)
 
     if(!extension || image.size>MAX_IMAGE_SIZE){
-      redirect(replyToId ? `/chat?reply=${replyToId}#composer` : '/chat#composer')
+      redirect('/chat#composer')
     }
 
     imagePath=`${user.id}/${crypto.randomUUID()}.${extension}`
@@ -85,7 +80,7 @@ export async function postMessage(formData:FormData){
   }
 
   if(!message && !gifUrl && !imagePath){
-    redirect(replyToId ? `/chat?reply=${replyToId}#composer` : '/chat#composer')
+    redirect('/chat#composer')
   }
 
   const {data:squad}=await supabase
@@ -100,7 +95,6 @@ export async function postMessage(formData:FormData){
     squad_id:squad?.id || null,
     message,
     is_commissioner:commissioner,
-    reply_to_id:replyToId,
     image_path:imagePath,
     gif_url:gifUrl
   })

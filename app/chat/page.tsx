@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Nav } from '../components'
@@ -33,12 +32,7 @@ function authorFor(message:any){
   )
 }
 
-export default async function ChatPage({
-  searchParams
-}:{
-  searchParams:Promise<{reply?:string}>
-}){
-  const sp=await searchParams
+export default async function ChatPage(){
   const supabase=await createClient()
   const {data:{user}}=await supabase.auth.getUser()
 
@@ -115,37 +109,6 @@ export default async function ChatPage({
     reactionsByMessage.set(messageId,current)
   }
 
-  const requestedReplyId=Number(sp.reply)
-  let replyTarget=Number.isInteger(requestedReplyId) && requestedReplyId>0
-    ? messageById.get(requestedReplyId) || null
-    : null
-
-  if(!replyTarget && Number.isInteger(requestedReplyId) && requestedReplyId>0){
-    const {data}=await supabase
-      .from('chat_messages')
-      .select(`
-        id,
-        message,
-        is_commissioner,
-        squads(
-          squad_name,
-          owner_name
-        )
-      `)
-      .eq('id',requestedReplyId)
-      .maybeSingle()
-
-    replyTarget=data||null
-  }
-
-  const replyInfo=replyTarget
-    ? {
-        id:Number(replyTarget.id),
-        author:authorFor(replyTarget),
-        message:String(replyTarget.message||'')
-      }
-    : null
-
   return (
     <main
       className="wrap"
@@ -153,20 +116,22 @@ export default async function ChatPage({
         paddingBottom:'calc(300px + env(safe-area-inset-bottom))'
       }}
     >
-      <div
-        className="top"
-        style={{
-          justifyContent:'center',
-          textAlign:'center'
-        }}
-      >
-        <div style={{width:'100%',textAlign:'center'}}>
-          <div className="big">NFL SQUADS</div>
-          <div className="muted">2026 League Chat</div>
+      <div className="chat-sticky-header">
+        <div
+          className="top"
+          style={{
+            justifyContent:'center',
+            textAlign:'center'
+          }}
+        >
+          <div style={{width:'100%',textAlign:'center'}}>
+            <div className="big">NFL SQUADS</div>
+            <div className="muted">2026 League Chat</div>
+          </div>
         </div>
-      </div>
 
-      <Nav commissioner={commissioner}/>
+        <Nav commissioner={commissioner}/>
+      </div>
 
       <ChatScroller>
         <section style={{marginTop:16}}>
@@ -381,19 +346,6 @@ export default async function ChatPage({
                     >
                       {formatTime(m.created_at)} ET
                     </div>
-
-                    {!isSystem && (
-                      <Link
-                        href={`/chat?reply=${m.id}#composer`}
-                        style={{
-                          fontSize:'0.82rem',
-                          fontWeight:800,
-                          textDecoration:'underline'
-                        }}
-                      >
-                        Reply
-                      </Link>
-                    )}
                   </div>
 
                   {commissioner && (
@@ -432,7 +384,7 @@ export default async function ChatPage({
         </section>
       </ChatScroller>
 
-      <ChatComposer reply={replyInfo}/>
+      <ChatComposer/>
     </main>
   )
 }

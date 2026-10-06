@@ -22,7 +22,7 @@ export default async function Home(){
 
   const week=Number(activeGames?.[0]?.nfl_week)
   if(activeError || squadError || !squad || !Number.isInteger(week) || week<=1){
-    redirect('/dashboard')
+    redirect('/dashboard?home=1')
   }
 
   const [{data:previousGames,error:previousError},{data:game,error:gameError},{data:weekStatuses,error:weekError}]=await Promise.all([
@@ -69,5 +69,5 @@ export default async function Home(){
     }
   }
 
-  redirect('/dashboard')
+  redirect('/dashboard?home=1')
 }

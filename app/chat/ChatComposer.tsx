@@ -93,11 +93,7 @@ export default function ChatComposer(){
     <div
       id="composer"
       style={{
-        position:'fixed',
-        left:0,
-        right:0,
-        bottom:0,
-        zIndex:100,
+        flexShrink:0,
         background:'#fff',
         borderTop:'1px solid #d5d5d5',
         boxShadow:'0 -4px 14px rgba(0,0,0,0.08)',

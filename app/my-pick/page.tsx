@@ -316,9 +316,10 @@ export default async function MyPick({
       isByeWeek=true
       availabilityMessage=(
         <>
-          There is no pick to make this week. Take this time to reflect on all
-          the poor decisions that you've made. Your next selection opens seven
-          days prior to your next scheduled game. Your next scheduled game is{' '}
+          There is no pick to be made this week. Take this time to reflect on
+          all of the poor decisions that you've made thus far. Your selection
+          window opens seven days prior to your next game. Your next scheduled
+          game is{' '}
         </>
       )
     }

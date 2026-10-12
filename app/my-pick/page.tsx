@@ -296,6 +296,7 @@ export default async function MyPick({
       Boolean(previousGame.final_at)
 
     let availabilityMessage:React.ReactNode
+    let isByeWeek=false
 
     if(previousGame && !previousGameFinal){
       availabilityMessage=(
@@ -312,10 +313,12 @@ export default async function MyPick({
         </>
       )
     }else{
+      isByeWeek=true
       availabilityMessage=(
         <>
-          Because your squad has a bye in Week {nextWeek-1}, selection opens
-          7 days prior to your next scheduled game. Your next scheduled game is{' '}
+          There is no pick to make this week. Take this time to reflect on all
+          the poor decisions that you've made. Your next selection opens seven
+          days prior to your next scheduled game. Your next scheduled game is{' '}
         </>
       )
     }
@@ -329,8 +332,8 @@ export default async function MyPick({
           className="card"
           style={{textAlign:'center',maxWidth:720,margin:'0 auto'}}
         >
-          <h2>Week {nextWeek}</h2>
-          <AllTimesEastern/>
+          <h2>{isByeWeek ? 'Bye Week' : `Week ${nextWeek}`}</h2>
+          {!isByeWeek && <AllTimesEastern/>}
 
           <p style={{fontWeight:700,lineHeight:1.5}}>
             {availabilityMessage}

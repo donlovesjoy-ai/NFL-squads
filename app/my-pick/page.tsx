@@ -420,7 +420,7 @@ export default async function MyPick({
 
   const kickoffMs=new Date(kickoffTime).getTime()
   const sixHoursMs=6*60*60*1000
-  const autoRefreshEnabled=gameStatus!=='final' && kickoffMs<=Date.now()+sixHoursMs && kickoffMs>=Date.now()-sixHoursMs
+  const autoRefreshEnabled=gameStatus==='live' || (gameStatus!=='final' && kickoffMs<=Date.now()+sixHoursMs && kickoffMs>=Date.now()-sixHoursMs)
 
   let buttonText='Make a Decision'
   if(locked) buttonText='Pick Locked'

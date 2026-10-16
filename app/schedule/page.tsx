@@ -146,7 +146,9 @@ export default async function Schedule({searchParams}:{searchParams:Promise<{wee
   const nowMs=Date.now()
   const sixHoursMs=6*60*60*1000
   const autoRefreshEnabled=(games||[]).some((g:any)=>{
-    if(String(g.status||'').toLowerCase()==='final') return false
+    const status=String(g.status||'').toLowerCase()
+    if(status==='final') return false
+    if(status==='live') return true
     const kickoffMs=new Date(g.kickoff_time).getTime()
     return kickoffMs<=nowMs+sixHoursMs && kickoffMs>=nowMs-sixHoursMs
   })

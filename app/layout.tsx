@@ -1,4 +1,5 @@
 import './globals.css'
+import RefreshOnResume from './components/RefreshOnResume'
 
 export const metadata={
   title:'NFL Squads',
@@ -12,5 +13,5 @@ export const metadata={
 }
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="en"><body>{children}</body></html>
+  return <html lang="en"><body><RefreshOnResume/>{children}</body></html>
 }

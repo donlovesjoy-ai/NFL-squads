@@ -41,12 +41,8 @@ export function Nav({
         Playoffs
       </Link>
 
-      <Link href="/rules">
-        Official Rules
-      </Link>
-
-      <Link href="/audit-log">
-        Audit Log
+      <Link href="/stuff">
+        Stuff
       </Link>
 
       <Link href="/chat">

@@ -183,30 +183,33 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{ho
   const commissioner=
     profile?.role==='commissioner'
 
-  const {data:squad}=
-    await supabase
-      .from('squads')
-      .select(`
-        id,
-        squad_name,
-        owner_name,
-        division,
-        nfl_team_id,
-        logo_path,
-        nfl_teams(
-          name,
-          abbreviation
-        )
-      `)
-      .eq(
-        'user_id',
-        user.id
-      )
-      .eq(
-        'season_year',
-        2026
-      )
+  // Fetch the assignment without a relationship join first. A related-table
+  // API error must never masquerade as a missing league assignment.
+  const {data:assignedSquad,error:assignmentError}=
+    await supabase.from('squads')
+      .select('id,squad_name,owner_name,division,nfl_team_id,logo_path')
+      .eq('user_id',user.id)
+      .eq('season_year',2026)
       .maybeSingle()
+
+  let squad:any=assignedSquad
+  let squadLookupError=assignmentError?.message||null
+
+  if(assignedSquad){
+    const {data:team,error:teamError}=
+      await supabase.from('nfl_teams')
+        .select('name,abbreviation')
+        .eq('id',assignedSquad.nfl_team_id)
+        .maybeSingle()
+    squad={...assignedSquad,nfl_teams:team||null}
+    if(teamError){
+      console.error('NFL Squads team detail lookup failed',teamError.code)
+    }
+  }
+
+  if(assignmentError){
+    console.error('NFL Squads assignment lookup failed',assignmentError.code)
+  }
 
   let game:any=null
   let pick:any=null
@@ -864,7 +867,13 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{ho
             </Link>
           )}
 
-          {!squad && (
+          {squadLookupError && (
+            <p role="alert" className="status">
+              Unable to load your squad right now. Your league assignment has not been removed. Please try refreshing the page.
+            </p>
+          )}
+
+          {!squad && !squadLookupError && (
             <div
               className="big"
               style={{

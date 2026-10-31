@@ -193,7 +193,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{ho
       .maybeSingle()
 
   let squad:any=assignedSquad
-  let squadLookupError=assignmentError?.message||null
+  const squadLookupError=assignmentError ? `${assignmentError.code || 'UNKNOWN'}: ${assignmentError.message}` : null
 
   if(assignedSquad){
     const {data:team,error:teamError}=
@@ -869,7 +869,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{ho
 
           {squadLookupError && (
             <p role="alert" className="status">
-              Unable to load your squad right now. Your league assignment has not been removed. Please try refreshing the page.
+              Unable to load your squad. Error: {squadLookupError}. Your assignment remains in the league database.
             </p>
           )}
 
@@ -963,11 +963,11 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{ho
                 }
               />
             </>
-          ) : (
+          ) : !squadLookupError ? (
             <p className="muted">
               Waiting for commissioner assignment.
             </p>
-          )}
+          ) : null}
         </section>
 
         <section

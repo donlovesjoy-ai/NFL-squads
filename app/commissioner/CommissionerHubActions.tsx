@@ -5,6 +5,7 @@ const options = [
   ['League Setup', '/commissioner/setup'],
   ['Lines & Results', '/commissioner/results'],
   ['Closing Line Audit', '/commissioner/closing-line-audit'],
+  ['Schedule Changes', '/commissioner/schedule-changes'],
   ['Live Feed', '/commissioner/live-feed'],
   ['Playoff Control', '/commissioner/playoffs'],
   ['Audit Log', '/audit-log'],
